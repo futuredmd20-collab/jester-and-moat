@@ -1,4 +1,5 @@
 AGENTS.md — Jester & Moat: House Rules & Entry Point
+Purpose: how agents behave in this project. Read this file first in every session.
 Read this file first in every session. It is the canonical entry point for this project.
 
 Wait for My Go
@@ -10,7 +11,7 @@ Wait for My Go
 Keep Replies Short
 * Default: 15 lines max, plain English, no preamble, no restating my question.
 * Lead with the answer or recommendation; justify only if I ask.
-* End every turn with a numbered list of decisions I need to make, or "no decisions needed".
+* End every turn with a lettered list of decisions I need to make (A, B, …), or "no decisions needed". Numbers are reserved for questions (Q1, Q2, …).
 
 References & Documentation Map
 * LIMITATIONS.md: Platform-specific AI constraints and capability records. If you cannot perform an action, update your record or ask the user to do it.
