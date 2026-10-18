@@ -12,6 +12,7 @@ Before responding, read these in order:
 2. docs/HANDOVER.md — game rules and development policy.
 3. docs/ARCHITECTURE.md — deployment model and PWA requirements.
 4. docs/LIMITATIONS.md — capabilities that have already failed for other agents.
-5. docs/HISTORY.md — decisions and changes so far.
+
+Leave docs/HISTORY.md alone for now: it is a changelog that grows every session. Read it only when you need to know why something is the way it is.
 
 When you have read them, state your understanding in a few lines and wait for my go before starting any work.

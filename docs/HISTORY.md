@@ -24,3 +24,8 @@ Purpose: dated record of decisions and changes, newest last. Not for current sta
 * Drive cleaned of stale .md mirrors; each doc now exists once, in the Jester & Moat folder.
 * AGENTS.md work scope corrected to the real folder name **BACKUPS**, and agents are now told to stay inside the Jester & Moat folder. Creating files elsewhere in Drive is allowed only when a tool cannot target that folder.
 * Drive version history confirmed as user-only reference: Game versions, BACKUPS, and BACKUPS/Old game versions. Nothing outside Jester & Moat is project storage.
+
+2026-10-18 — HISTORY.md moved out of the startup read
+* HISTORY.md dropped from the session-start reading order in AGENTS.md and from the kickoff prompt in PROMPT.md: it is a changelog that only grows, so reading it up front costs every new session context before any work begins.
+* It is now background: agents open it when they need to know why something is the way it is.
+* Decided after a multi-client test of PROMPT.md. The test results themselves are not recorded yet; the user is still gathering them.
