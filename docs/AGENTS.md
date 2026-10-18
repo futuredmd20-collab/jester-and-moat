@@ -1,6 +1,5 @@
 AGENTS.md — Jester & Moat: House Rules & Entry Point
-Purpose: how agents behave in this project. Read this file first in every session.
-Read this file first in every session. It is the canonical entry point for this project.
+Purpose: how agents behave in this project. Read this file first in every session; it is the canonical entry point.
 
 Wait for My Go
 * Plan first: state what you'll do and why in a few lines, then stop and wait.
