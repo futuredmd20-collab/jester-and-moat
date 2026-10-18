@@ -1,0 +1,26 @@
+{
+  "name": "Jester & Moat",
+  "short_name": "Jester & Moat",
+  "description": "Jester & Moat — a 10x8 chess variant with moats, jester swaps and AI.",
+  "version": "0.5.5",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#262019",
+  "theme_color": "#655749",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
