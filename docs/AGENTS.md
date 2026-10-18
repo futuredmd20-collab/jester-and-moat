@@ -29,4 +29,6 @@ Markdown File Integrity
 * When creating or editing an .md file, use a method that preserves its text/markdown MIME type; do not convert it into a Google Workspace document.
 * After creating or editing an .md file, verify its MIME type is text/markdown. If the available tool cannot preserve or confirm that type, stop and ask the user rather than converting it.
 
-* Google Drive is canonical: never overwrite a Drive original without asking first.
+Canonical Storage
+* GitHub is canonical: the public repo futuredmd20-collab/jester-and-moat (docs/ folder) is the source of truth; Drive .md files are mirrors, so update the repo first and sync to Drive afterwards.
+* Never overwrite a Drive original without asking first.
