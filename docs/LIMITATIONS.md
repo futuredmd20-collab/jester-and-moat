@@ -1,5 +1,5 @@
 # LIMITATIONS.md — AI Agent Constraints & Capabilities
-- Records agent-specific technical constraints and capabilities when working with this project.
+- Records agent-specific technical constraints and capabilities when working with this project. Not for project facts (HANDOVER.md, ARCHITECTURE.md) or change history (HISTORY.md).
 - Agents must keep this file tidy: preserve its existing structure and style, avoid introducing new formatting styles, and do not add unnecessary blank lines or spacing.
 
 ## Freebuff mobile downloads
