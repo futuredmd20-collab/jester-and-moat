@@ -13,13 +13,17 @@ Keep Replies Short
 * End every turn with a lettered list of decisions I need to make (A, B, …), or "no decisions needed". Numbers are reserved for questions (Q1, Q2, …).
 
 References & Documentation Map
-* LIMITATIONS.md: Platform-specific AI constraints and capability records. If you cannot perform an action, update your record or ask the user to do it.
-* PROMPT.md: Technical deployment specifications and PWA requirements.
-* HANDOVER.md: Project memory, game rules, and changelog.
-* RESUME.md: Current active session state.
+* Every doc opens with a Purpose line stating what it holds and what it does not. Keep that line accurate when you edit a file.
+* HANDOVER.md: game rules and development policy.
+* ARCHITECTURE.md: deployment model and PWA requirements.
+* LIMITATIONS.md: platform and agent capability records. If you cannot perform an action, update your record or ask the user to do it.
+* HISTORY.md: dated record of decisions and changes.
+* PROMPT.md: the kickoff prompt to paste into a new session.
+* RESUME.md: agent-only scratch. Never treat its contents as project truth.
 
 Session Start
-* Read this file, then RESUME.md, HANDOVER.md, PROMPT.md, and LIMITATIONS.md.
+* Read AGENTS.md, then HANDOVER.md, ARCHITECTURE.md, LIMITATIONS.md, and HISTORY.md, in that order.
+* RESUME.md is not on the reading list: it holds another agent's leftovers, not project fact. Open it only when resuming an interrupted session.
 
 AI Work Scope
 AI agents may work with project files and folders generally. Only the **Backups** folder and everything inside it are out of scope.
