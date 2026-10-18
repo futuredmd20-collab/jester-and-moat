@@ -26,7 +26,8 @@ Session Start
 * RESUME.md is not on the reading list: it holds another agent's leftovers, not project fact. Open it only when resuming an interrupted session.
 
 AI Work Scope
-AI agents may work with project files and folders generally. Only the **Backups** folder and everything inside it are out of scope.
+* AI agents may work with project files and folders generally. Only the **BACKUPS** folder and everything inside it are out of scope.
+* In Google Drive, work only inside the **Jester & Moat** folder. Creating files elsewhere in Drive, including My Drive root, is allowed only when a tool cannot target that folder, and you must say so when it happens. Nothing outside Jester & Moat is ours to touch without the user asking for it specifically.
 
 Markdown File Integrity
 * Files ending in .md must remain actual Markdown/plain-text files in Google Drive, not Google Docs or Word documents.

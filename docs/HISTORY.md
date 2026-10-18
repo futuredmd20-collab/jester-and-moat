@@ -19,3 +19,8 @@ Purpose: dated record of decisions and changes, newest last. Not for current sta
 * RESUME.md reset to a blank agent-scratch template; its status notes moved here.
 * Decisions are now lettered (A, B, …) and numbers reserved for questions (Q1, Q2, …), after two numbering schemes collided in one reply.
 * Every doc now opens with a Purpose line saying what it holds and what it does not.
+
+2026-10-18 — Drive scope rule
+* Drive cleaned of stale .md mirrors; each doc now exists once, in the Jester & Moat folder.
+* AGENTS.md work scope corrected to the real folder name **BACKUPS**, and agents are now told to stay inside the Jester & Moat folder. Creating files elsewhere in Drive is allowed only when a tool cannot target that folder.
+* Drive version history confirmed as user-only reference: Game versions, BACKUPS, and BACKUPS/Old game versions. Nothing outside Jester & Moat is project storage.
