@@ -14,8 +14,8 @@
 - Markdown files in Drive must remain plain text with the `text/markdown` MIME type.
 
 ## Buffy (this Freebuff/Codebuff agent): GitHub
-- Prefer integration writes: `git push` is unavailable from this sandbox (no git credentials), so file changes go through the GitHub integration's commit, branch, and pull-request actions.
-- GitHub is connected as an account-scoped integration, so no per-session device flow is needed; confirm with a live API call before concluding the integration is missing.
+- No git credentials in this sandbox: `git push` fails, so commits go through the GitHub integration's commit, branch, and pull-request actions.
+- The integration is account-scoped: no per-session login; confirm with a live API call before concluding it is missing.
 
 ## Gemini
 - Drive access may be limited to reading and searching; copying, overwriting, or editing files may not be available.
