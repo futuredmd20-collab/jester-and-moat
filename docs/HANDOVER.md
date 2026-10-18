@@ -1,4 +1,5 @@
 HANDOVER.md — Project Memory & Game Rules
+Purpose: stable facts about the game and how it is developed. Not for change history (HISTORY.md), deployment details (ARCHITECTURE.md), or agent session scratch (RESUME.md).
 * Agents must keep this file tidy: preserve its existing structure and style, avoid introducing new formatting styles, and do not add unnecessary blank lines or spacing.
 
 Game Context & Mechanics
@@ -11,6 +12,4 @@ Game Context & Mechanics
 
 Development & Testing
 * When there are tests worth maintaining, add a `tests/` folder at the project root. Include a `tests/README.md` explaining each test’s purpose, dependencies, and run command. Keep test tooling separate from the versioned game/PWA files.
-
-Changelog & History
-* Maintained incrementally as features, fixes, and testing decisions are completed.
+* Record completed features, fixes, and testing decisions in HISTORY.md, not here.
