@@ -3,7 +3,9 @@ Purpose: paste this into a new session to start an agent on this project. Not fo
 
 ---
 
-Working on Jester & Moat, a chess variant built as an offline PWA. The source is canonical on GitHub at futuredmd20-collab/jester-and-moat (docs/ folder); the Drive copies are mirrors.
+Working on Jester & Moat, a chess variant built as an offline PWA. The source is canonical on GitHub at futuredmd20-collab/jester-and-moat; the Drive copies are mirrors.
+
+The docs live at https://github.com/futuredmd20-collab/jester-and-moat/tree/main/docs — use that if the paths below mean nothing in your session. If you cannot open it, say so and stop; do not guess what the docs say.
 
 Before responding, read these in order:
 1. docs/AGENTS.md — house rules and workflow. Binding; it overrides this prompt wherever they differ.
