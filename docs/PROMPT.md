@@ -1,11 +1,15 @@
-PROMPT.md — Technical Architecture & PWA Deployment
+PROMPT.md — Kickoff Prompt
+Purpose: paste this into a new session to start an agent on this project. Not for rules or project facts — it only points at them.
 
-Deployment Model: PWA
-* The multi-file source (index.html, style.css, script.js) is the primary deployment target and shipped form of the app.
-* Include a web app manifest (manifest.json) and service worker (sw.js) that pre-caches all project files for offline play.
-* Update the sw.js precache list whenever files are added, renamed, or removed.
-* Served over HTTPS with no backend or build step required for deployment.
+---
 
-Optional Single-File Build ("Test Build")
-* A single self-contained HTML file (jester-and-moat.html) may be compiled using the build.js script to concatenate index.html, style.css, and script.js only upon explicit request for quick local phone testing on Android over file:// via Acode.
-* Keep the single-file build out of the primary PWA deployment path.
+Working on Jester & Moat, a chess variant built as an offline PWA. The source is canonical on GitHub at futuredmd20-collab/jester-and-moat (docs/ folder); the Drive copies are mirrors.
+
+Before responding, read these in order:
+1. docs/AGENTS.md — house rules and workflow. Binding; it overrides this prompt wherever they differ.
+2. docs/HANDOVER.md — game rules and development policy.
+3. docs/ARCHITECTURE.md — deployment model and PWA requirements.
+4. docs/LIMITATIONS.md — capabilities that have already failed for other agents.
+5. docs/HISTORY.md — decisions and changes so far.
+
+When you have read them, state your understanding in a few lines and wait for my go before starting any work.
