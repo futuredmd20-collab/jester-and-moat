@@ -13,6 +13,10 @@
 - If direct transfer is unavailable, Buffy should explain the limitation and offer a user-mediated download route. Buffy must not overwrite canonical Drive files without explicit authorization.
 - Markdown files in Drive must remain plain text with the `text/markdown` MIME type.
 
+## Buffy (this Freebuff/Codebuff agent): GitHub
+- Prefer integration writes: `git push` is unavailable from this sandbox (no git credentials), so file changes go through the GitHub integration's commit, branch, and pull-request actions.
+- GitHub is connected as an account-scoped integration, so no per-session device flow is needed; confirm with a live API call before concluding the integration is missing.
+
 ## Gemini
 - Drive access may be limited to reading and searching; copying, overwriting, or editing files may not be available.
 - Code updates may need to be provided in chat for the user to apply locally.
