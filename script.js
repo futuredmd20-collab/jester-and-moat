@@ -1,8 +1,9 @@
 "use strict";
 
-/* v0.5.5 — the fourteen drawn SVG symbols are generated from the light-piece
- * artwork and embedded in index.html; fills read theme variables so both sides
- * share the source art with a distinct light/dark palette.
+/* v0.5.5 — seven drawn SVG symbols, one per piece, live in pieces.svg (built by
+ * generate-piece-sprite.js) and are injected before this file runs. Fills read
+ * the --p-* palette that pieces.css sets from data-color, so both sides share
+ * one drawing with a distinct light/dark palette.
  * The element is sized by CSS (.piece), never here: one box, one rule. */
 const PIECE_NAME = { k: 'king', q: 'queen', r: 'rook', b: 'bishop', n: 'knight', p: 'pawn', j: 'jester' };
 
@@ -15,7 +16,7 @@ function pieceMarkup(type, color, extraClass = "") {
   const side = color === 'b' ? 'black' : 'white';
   return `<svg class="piece piece-${name} ${extraClass}" preserveAspectRatio="none" data-type="${name}" data-color="${color}" ` +
     `role="img" aria-label="${side} ${name}">` +
-    `<use href="#p-${name}-${color}"></use></svg>`;
+    `<use href="#p-${name}"></use></svg>`;
 }
 
 /* The board editor's piece palette draws the same shared SVG artwork. */
