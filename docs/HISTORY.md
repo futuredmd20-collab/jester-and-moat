@@ -29,3 +29,8 @@ Purpose: dated record of decisions and changes, newest last. Not for current sta
 * HISTORY.md dropped from the session-start reading order in AGENTS.md and from the kickoff prompt in PROMPT.md: it is a changelog that only grows, so reading it up front costs every new session context before any work begins.
 * It is now background: agents open it when they need to know why something is the way it is.
 * Decided after a multi-client test of PROMPT.md. The test results themselves are not recorded yet; the user is still gathering them.
+
+2026-10-19 — Piece art moved out of index.html
+* The fourteen inline piece symbols became seven shared symbols in generated pieces.svg, with the side palette in pieces.css; index.html fell 138,441 → 13,162 bytes and script.js now emits `<use href="#p-${name}">`.
+* generate-piece-sprite.js added: it rebuilds pieces.svg and pieces.css from the light-*.svg files and must be run from the repo root. sw.js precaches both and bumps the cache to jm-cache-v0.5.5-sprite-1; build.js inlines the sprite for the single-file build.
+* Salvaged from a Freebuff chat that could not be migrated (Drive: Salvage 2026-10-19) and delivered as PR #1 on branch refactor/piece-sprite.

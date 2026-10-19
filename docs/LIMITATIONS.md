@@ -12,9 +12,12 @@
 - Buffy’s attempt to upload from the local preview URL was denied because Drive could not access that URL.
 - If direct transfer is unavailable, Buffy should explain the limitation and offer a user-mediated download route. Buffy must not overwrite canonical Drive files without explicit authorization.
 - Markdown files in Drive must remain plain text with the `text/markdown` MIME type.
+- Drive cannot receive a workspace file without a staged upload reference. Text and Markdown travel as uploads; images and other binaries do not, so a chat whose only channel is Drive text uploads must split large files and leave binaries behind.
 
 ## Buffy (this Freebuff/Codebuff agent): GitHub
-- No git credentials in this sandbox: `git push` fails, so commits go through the GitHub integration's commit, branch, and pull-request actions.
+- The sandbox carries no git credentials by default: `git push` fails and commits can only go through the GitHub integration's commit, branch, and pull-request actions.
+- The CLI path works once a classic personal access token with `repo` scope is installed by the user through `gh auth login --with-token` (read the token with `read -rs`, never echo it) followed by `gh auth setup-git`; `git clone`, `git push`, and `gh pr create` then succeed. Use this route when the integration refuses a payload for size.
+- A GitHub-capable integration can still refuse a large inline payload even when the file itself is valid; the piece-sprite change had to leave its chat through Drive because `pieces.svg` was too large to commit that way.
 - The integration is account-scoped: no per-session login; confirm with a live API call before concluding it is missing.
 
 ## Gemini
