@@ -34,3 +34,8 @@ Purpose: dated record of decisions and changes, newest last. Not for current sta
 * The fourteen inline piece symbols became seven shared symbols in generated pieces.svg, with the side palette in pieces.css; index.html fell 138,441 → 13,162 bytes and script.js now emits `<use href="#p-${name}">`.
 * generate-piece-sprite.js added: it rebuilds pieces.svg and pieces.css from the light-*.svg files and must be run from the repo root. sw.js precaches both and bumps the cache to jm-cache-v0.5.5-sprite-1; build.js inlines the sprite for the single-file build.
 * Salvaged from a Freebuff chat that could not be migrated (Drive: Salvage 2026-10-19) and delivered as PR #1 on branch refactor/piece-sprite.
+
+2026-10-19 — 512 px icons restored for installability
+* icon-512.png and icon-maskable-512.png added and declared in manifest.json; Chrome on Android wants a 192 and a 512 icon before it offers to install the PWA.
+* Both are built from the shipping icon-192.png art, because the only 512 in history is the truncated file removed in 3fead3f and no maskable-512 ever existed. They are upscales — replace them if a true 512 source turns up.
+* sw.js precaches both and bumps the cache to jm-cache-v0.5.5-sprite-2.
