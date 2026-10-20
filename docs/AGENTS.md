@@ -7,6 +7,12 @@ Wait for My Go
 * A question is not approval. Reading, searching, and planning are always fine.
 * After I approve, finish that one step and report — don't chain into the next.
 
+Branch & Review
+* Create a dedicated branch for every task.
+* Show proposed changes and wait for approval before committing or opening a PR.
+* Never merge a PR without explicit permission.
+* Treat GitHub as canonical; do not modify mirror copies as a substitute.
+
 Keep Replies Short
 * Default: 15 lines max, plain English, no preamble, no restating my question.
 * Lead with the answer or recommendation; justify only if I ask.
