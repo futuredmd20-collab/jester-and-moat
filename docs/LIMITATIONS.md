@@ -21,6 +21,11 @@
 - A GitHub-capable integration can still refuse a large inline payload even when the file itself is valid; the piece-sprite change had to leave its chat through Drive because `pieces.svg` was too large to commit that way.
 - The integration is account-scoped: no per-session login; confirm with a live API call before concluding it is missing.
 
+## Vibe (this Mistral GLM agent)
+- Files uploaded in chat are not stored as bytes: the filesystem holds a placeholder, text extraction fails on binary uploads, and images are only viewable through a vision model's textual description. Pixel-level work on uploaded images (cropping, background removal) is therefore impossible in this session.
+- Text is the working route: SVG sources can be read verbatim from Drive (download_file_content) or GitHub (get_file_contents) and split without touching path data; the flat piece crops on this branch were produced that way.
+- The sandbox resets between some calls, so intermediate workspace files can vanish; keep durable copies on Drive or in the repo.
+
 ## Gemini
 - Drive access may be limited to reading and searching; copying, overwriting, or editing files may not be available.
 - Code updates may need to be provided in chat for the user to apply locally.
