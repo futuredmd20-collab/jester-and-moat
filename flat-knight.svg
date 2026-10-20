@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="t-knight d-knight">
+  <title id="t-knight">Flat Knight</title>
+  <desc id="d-knight">Jester &amp; Moat flat Knight piece. Paints via the --p-* variables from pieces.css (.piece[data-color]); the same file serves light and dark.</desc>
+  <path d="M12 92Q12 89 19 88L25 87Q28 85 29 81L33 78H76Q78 84 83 87L87 89V93H12Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M29 79Q31 69 42 62Q34 57 32 49Q29 38 39 29L38 17L49 25Q54 20 62 23L65 32Q73 34 75 43L86 51L82 57L69 55Q66 63 72 72L78 79Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M39 30Q42 24 39 18L49 26Q56 22 62 24L65 32Q54 29 48 37L43 46Q41 52 49 56Q41 55 36 50Q33 39 39 30Z" fill="var(--p-gold)" stroke="var(--p-outline)" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M49 38Q59 33 69 39Q72 44 68 48Q59 50 51 45Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="1.6"/>
+  <circle cx="65" cy="37" r="2.3" fill="var(--p-ink)"/>
+  <path d="M38 65Q51 69 68 63M33 79H76M25 86H81" fill="none" stroke="var(--p-gold)" stroke-width="2.1"/>
+</svg>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="t-bishop d-bishop">
+  <title id="t-bishop">Flat Bishop</title>
+  <desc id="d-bishop">Jester &amp; Moat flat Bishop piece. Paints via the --p-* variables from pieces.css (.piece[data-color]); the same file serves light and dark.</desc>
+  <path d="M13 92Q13 89 20 88L26 87Q29 85 30 81L34 78H66L70 81Q71 85 74 87L80 88Q87 89 87 92V95H13Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M30 79Q34 69 42 63Q32 56 32 45Q32 33 44 24L50 16L56 24Q68 33 68 45Q68 56 58 63Q66 69 70 79Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.5" stroke-linejoin="round"/>
+  <circle cx="50" cy="16" r="4" fill="var(--p-gold)" stroke="var(--p-outline)" stroke-width="1.5"/>
+  <path d="M50 25Q63 36 63 46Q63 55 53 61Q50 63 47 61Q37 55 37 46Q37 36 50 25Z" fill="var(--p-gloss)" stroke="var(--p-gold)" stroke-width="2"/>
+  <path d="M42 34 58 52" fill="none" stroke="var(--p-outline)" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M35 68Q50 73 65 68M30 80H70M25 86H75" fill="none" stroke="var(--p-gold)" stroke-width="2.1"/>
+</svg>

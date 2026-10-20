@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="t-rook d-rook">
+  <title id="t-rook">Flat Rook</title>
+  <desc id="d-rook">Jester &amp; Moat flat Rook piece. Paints via the --p-* variables from pieces.css (.piece[data-color]); the same file serves light and dark.</desc>
+  <path d="M12 92Q12 89 19 88L25 87Q28 85 29 81L32 78V44L25 40V26H36V33H44V17H56V33H64V26H75V40L68 44V78L71 81Q72 85 75 87L81 88Q88 89 88 92V95H12Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M26.5 26H34.5M45.5 17H54.5M65.5 26H73.5" fill="none" stroke="var(--p-gold)" stroke-width="2.2"/>
+  <path d="M14 91H86M24 86H76M30 79H70M29 43H71" fill="none" stroke="var(--p-gold)" stroke-width="2.2"/>
+  <path d="M39 48V73M50 48V73M61 48V73" fill="none" stroke="var(--p-outline)" stroke-width="2.2"/>
+</svg>

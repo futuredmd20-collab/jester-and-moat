@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="t-jester d-jester">
+  <title id="t-jester">Flat Jester</title>
+  <desc id="d-jester">Jester &amp; Moat flat Jester piece. Paints via the --p-* variables from pieces.css (.piece[data-color]); the same file serves light and dark.</desc>
+  <path d="M13 92Q13 89 20 88L26 87Q29 85 30 81L34 78H66L70 81Q71 85 74 87L80 88Q87 89 87 92V95H13Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M30 79Q34 69 42 63Q34 58 34 50Q34 43 40 38L50 31L60 38Q66 43 66 50Q66 58 58 63Q66 69 70 79Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M40 42Q24 12 12 30Q26 42 40 42Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M60 42Q76 12 88 30Q74 42 60 42Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M43 36Q50 6 57 36Q50 40 43 36Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M34 54Q30 34 50 30Q70 34 66 54Q50 58 34 54Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M34 54Q50 58 66 54" fill="none" stroke="var(--p-gold)" stroke-width="2.4"/>
+  <circle cx="11" cy="30" r="3" fill="var(--p-gold)" stroke="var(--p-outline)" stroke-width="1.4"/><circle cx="89" cy="30" r="3" fill="var(--p-gold)" stroke="var(--p-outline)" stroke-width="1.4"/><circle cx="50" cy="19.5" r="3.2" fill="var(--p-gold)" stroke="var(--p-outline)" stroke-width="1.4"/>
+  <path d="M35 68Q50 73 65 68M30 80H70M25 86H75" fill="none" stroke="var(--p-gold)" stroke-width="2.1"/>
+</svg>

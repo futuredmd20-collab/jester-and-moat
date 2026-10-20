@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="t-king d-king">
+  <title id="t-king">Flat King</title>
+  <desc id="d-king">Jester &amp; Moat flat King piece. Paints via the --p-* variables from pieces.css (.piece[data-color]); the same file serves light and dark.</desc>
+  <path d="M13 92Q13 89 20 88L26 87Q29 85 30 81L34 78H66L70 81Q71 85 74 87L80 88Q87 89 87 92V95H13Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M30 79Q34 69 42 63Q34 58 34 50Q34 43 40 38L50 31L60 38Q66 43 66 50Q66 58 58 63Q66 69 70 79Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M50 2V30M36 12H64" fill="none" stroke="var(--p-gold)" stroke-width="5.5" stroke-linecap="round"/>
+  <circle cx="50" cy="33" r="4.5" fill="var(--p-gold)" stroke="var(--p-outline)" stroke-width="1.5"/>
+  <path d="M36 47Q50 37 64 47" fill="none" stroke="var(--p-gold)" stroke-width="2.2"/>
+  <path d="M35 68Q50 73 65 68M30 80H70M25 86H75" fill="none" stroke="var(--p-gold)" stroke-width="2.1"/>
+</svg>
