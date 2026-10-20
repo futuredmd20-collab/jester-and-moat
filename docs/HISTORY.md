@@ -50,3 +50,10 @@ Purpose: dated record of decisions and changes, newest last. Not for current sta
 * Drive .md mirrors retired: GitHub is now the only editable copy of the docs. Drive keeps saved games and user-made ZIP backups in BACKUPS, one ZIP per release. AGENTS.md lost the sync rule, PROMPT.md no longer mentions Drive copies.
 * docs/VERSIONING.md added: versions are annotated tags on main, not branches, because a branch moves and cannot record a version. It also fixes what MAJOR/MINOR/PATCH mean here and lists the seven release steps, since nothing is automated.
 * Automation considered and not adopted: Release Please would duplicate HISTORY.md as a second changelog.
+
+2026-10-20 — Legacy glyph CSS removed
+* style.css lost the four dead .piece-glyph rules (base, .white, .black and the dark-theme colour override), 47 lines. Nothing has emitted that class since the Unicode-glyph renderer retired in v0.5.1.
+* The old comment claimed the archived gallery piece-contours.html was built from style.css. Checked: that file is a standalone 335 KB HTML with its own inline copy of the rules, so it does not read the stylesheet and loses nothing.
+* Verified rather than assumed: headless Chromium at 1280x900, HEAD against this commit, screenshots byte-identical in light and dark (0 changed pixels per theme); CSS rule count 169 to 165, the four removed selectors being the only difference.
+* style.css is precached, so the cache name is bumped to jm-cache-v0.5.5-sprite-3. No user-visible change, so no version bump and no tag.
+* Found while validating, not fixed: the dark-theme PIECE-COLOURS block has a broken comment (the BEGIN marker closes on line 621, and line 622 starts mid-sentence with "#605a50: an ivory body..."), so the browser drops --piece-w-body and dark mode paints white pieces with the light-theme #e7dcbd instead of the intended #f1ebd9.

@@ -385,51 +385,11 @@
   .coord.col { right: 2px; bottom: 0; }
   .coord.row { left: 2px; top: 0; }
 
-  /* --- Legacy glyph pieces: NOT rendered by the game since v0.5.1 ---
-     Kept in this stylesheet because the archived artifacts (piece-contours.html,
-     the soft gallery, art/piece-preview.html's glyph card) are built FROM
-     style.css and would lose their styling without them. Dead rules for the game;
-     delete them together with those artifacts, not before. */
-  .piece-glyph {
-    font-size: clamp(1.8rem, 5.2vw, 2.7rem);
-    line-height: 1;
-    font-weight: normal;
-    pointer-events: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  /* White pieces: solid opaque ivory fill, dark contour ring.
-     Solid glyphs (see UNICODE_PIECES) are colored here; the centered
-     text-stroke eats slightly into the fill, so the fill is slightly
-     larger via paint-order-safe double shadow. Accent: warm ivory tone
-     matching the walnut theme. */
-  .piece-glyph.white {
-    color: #f7f2e5;
-    -webkit-text-stroke: 1.2px #2a241e;
-    text-shadow:
-      0 1px 0 #2a241e,
-      1px 0 0 #2a241e,
-      -1px 0 0 #2a241e,
-      0 -1px 0 #2a241e,
-      0 3px 5px rgba(0, 0, 0, 0.28);
-  }
-
-  /* Black pieces: solid opaque dark fill with a clearly visible light
-     contour ring, so they stay readable on dark squares (user feedback:
-     black-on-dark was illegible). The light ring is what does the work —
-     like classic Staunton outlines. */
-  .piece-glyph.black {
-    color: #3a332b;
-    -webkit-text-stroke: 1.1px #f0e5d2;
-    text-shadow:
-      0 1px 0 #f0e5d2,
-      1px 0 0 #f0e5d2,
-      -1px 0 0 #f0e5d2,
-      0 -1px 0 #f0e5d2,
-      0 3px 5px rgba(0, 0, 0, 0.35);
-  }
+  /* No .piece-glyph rules: the Unicode-glyph renderer retired in v0.5.1 and
+     nothing since emits that class. The archived gallery (piece-contours.html)
+     is a standalone file with its own inline copy of these rules, so it does
+     not read this stylesheet. script.js still lists .piece-glyph in a
+     querySelector fallback; that is a harmless no-op left in place. */
 
   /* Keep the SVG source aspect ratios recognizable, but widen each board image
      box by about 35% so the artwork no longer looks pin-thin. Pawns stay shorter
@@ -703,5 +663,3 @@
   html.theme-dark #board {
     box-shadow: 0 7px 0 var(--board-edge), 0 12px 28px #00000059, 0 0 22px #97959026;
   }
-  /* White pieces pop harder on the (now darker) light squares */
-  html.theme-dark .piece-glyph.white { color: #faf5ea; }
