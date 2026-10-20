@@ -13,6 +13,7 @@
 <body>
 <!-- PIECE-SPRITE:HOST — the seven <symbol>s are generated into pieces.svg by generate-piece-sprite.js and injected here before script.js runs. The single-file build inlines them into this div instead. -->
 <div id="pieceSprite" aria-hidden="true"><!-- PIECE-SPRITE:INLINE --></div>
+<div id="pieceFlatSprite" aria-hidden="true"><!-- PIECE-FLAT-SPRITE:INLINE --></div>
 <div class="app-shell">
 
 <header class="top-header">
@@ -213,6 +214,21 @@
   <input type="checkbox" id="coordsToggle" checked style="width:18px;height:18px;accent-color:var(--burgundy);">
  </div>
  <div class="drawer-row">
+  <label for="pieceSetSelect">Piece design:</label>
+  <select id="pieceSetSelect">
+   <option value="classic" selected>Classic</option>
+   <option value="flat">Flat (placeholder for future artwork)</option>
+  </select>
+ </div>
+ <div class="drawer-row">
+  <label for="boardStyleSelect">Board style:</label>
+  <select id="boardStyleSelect">
+   <option value="soft-stone" selected>Soft Stone</option>
+   <option value="warm-wood">Warm Wood</option>
+   <option value="cool-slate">Cool Slate</option>
+  </select>
+ </div>
+ <div class="drawer-row">
   <label for="themeSelect">Theme:</label>
   <select id="themeSelect">
    <option value="auto" selected>Auto (Follow System)</option>
@@ -274,15 +290,18 @@
     document.body.appendChild(script);
   }
   // The single-file build inlines the symbols above, so it boots straight away.
-  if (document.getElementById("p-rook")) { boot(); return; }
-  fetch("pieces.svg")
-    .then(function (response) { return response.ok ? response.text() : Promise.reject(response.status); })
-    .then(function (svg) {
-      document.getElementById("pieceSprite").innerHTML = svg;
+  if (document.getElementById("p-rook") && document.getElementById("flat-p-rook")) { boot(); return; }
+  Promise.all([
+    fetch("pieces.svg").then(function (response) { return response.ok ? response.text() : Promise.reject(response.status); }),
+    fetch("pieces-flat.svg").then(function (response) { return response.ok ? response.text() : Promise.reject(response.status); })
+  ])
+    .then(function (sprites) {
+      document.getElementById("pieceSprite").innerHTML = sprites[0];
+      document.getElementById("pieceFlatSprite").innerHTML = sprites[1];
       boot();
     })
     .catch(function (error) {
-      console.error("Piece sprite (pieces.svg) failed to load:", error);
+      console.error("Piece sprite failed to load:", error);
       boot();
     });
 })();

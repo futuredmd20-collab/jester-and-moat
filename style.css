@@ -115,6 +115,38 @@
   }
 
   html { background: var(--paper); }
+  html[data-board-style="warm-wood"] {
+    --square-light: #ead8b6;
+    --square-dark: #a97748;
+    --board-frame: #76502f;
+    --board-bg: #53361f;
+    --board-edge: #d2b083;
+    --coord-light: #61432c;
+    --coord-dark: #f5e8d1;
+    --moat-w: #b9d0d6;
+    --moat-w-edge: #426c78;
+    --moat-b: #d8b8bd;
+    --moat-b-edge: #7a4651;
+    --sel-fill: #e0bd67;
+    --sel-ring: #694116;
+    --last-ring: #784c1e;
+  }
+  html[data-board-style="cool-slate"] {
+    --square-light: #dce4e9;
+    --square-dark: #718493;
+    --board-frame: #465762;
+    --board-bg: #34444f;
+    --board-edge: #aab8c1;
+    --coord-light: #405560;
+    --coord-dark: #f3f6f8;
+    --moat-w: #bdd7e2;
+    --moat-w-edge: #426a7a;
+    --moat-b: #ddc6d6;
+    --moat-b-edge: #765368;
+    --sel-fill: #d4b85e;
+    --sel-ring: #48515a;
+    --last-ring: #4d5f6b;
+  }
   body {
     background: radial-gradient(ellipse at top, #fffaf2 0%, var(--paper) 58%, #eee3d1 100%);
     color: var(--ink);
@@ -411,6 +443,17 @@
   #board .piece-jester { --piece-w: 47%; --piece-h: 88%; }
   #board .piece-pawn { --piece-w: 38%; --piece-h: 68%; }
 
+  /* The flat prototype is intentionally wider and shorter than the classic
+     drawings. Its symbols share a square viewBox, so the board image boxes
+     control the silhouette proportions directly rather than stretching art. */
+  #board .piece-set-flat.piece-rook,
+  #board .piece-set-flat.piece-bishop,
+  #board .piece-set-flat.piece-queen,
+  #board .piece-set-flat.piece-king,
+  #board .piece-set-flat.piece-jester { --piece-w: 82%; --piece-h: 74%; }
+  #board .piece-set-flat.piece-knight { --piece-w: 86%; --piece-h: 74%; }
+  #board .piece-set-flat.piece-pawn { --piece-w: 68%; --piece-h: 60%; }
+
   /* Board squares only: lift the artwork off the square's bottom edge. `top`
      rather than transform, because the slide animation writes an inline
      transform on the glyph (translate to the origin square, then transition
@@ -615,6 +658,42 @@
     --piece-b-exact-5: #989897;
 /* PIECE-COLOURS:dark:END */
     background: var(--paper);
+  }
+  html.theme-dark[data-board-style="warm-wood"] {
+    --square-light: #806d56;
+    --square-dark: #554333;
+    --board-frame: #493a2c;
+    --board-bg: #382b20;
+    --board-edge: #88745d;
+    --coord-light: #f0dfc8;
+    --coord-dark: #f6ead8;
+    --moat-w: #69848c;
+    --moat-w-edge: #b2d0d8;
+    --moat-b: #8d6871;
+    --moat-b-edge: #e0c0c5;
+    --moat-w-ink: #132c33;
+    --moat-b-ink: #382026;
+    --sel-fill: #8a713e;
+    --sel-ring: #f0dcae;
+    --last-ring: #e8cf9a;
+  }
+  html.theme-dark[data-board-style="cool-slate"] {
+    --square-light: #70808a;
+    --square-dark: #46545d;
+    --board-frame: #3e4b54;
+    --board-bg: #303b43;
+    --board-edge: #7e8d97;
+    --coord-light: #eff4f6;
+    --coord-dark: #f6f8f9;
+    --moat-w: #728f9b;
+    --moat-w-edge: #c0dfeb;
+    --moat-b: #8b7488;
+    --moat-b-edge: #e5ccdf;
+    --moat-w-ink: #142b33;
+    --moat-b-ink: #382335;
+    --sel-fill: #87733f;
+    --sel-ring: #f0dcae;
+    --last-ring: #d8e5ed;
   }
   html.theme-dark body { background: radial-gradient(ellipse at top, #2e271e 0%, #221d16 58%, #1a1510 100%); }
   html.theme-dark .app-shell { background: #2a231a; box-shadow: 0 5px 22px #00000066, inset 0 0 0 4px #2e271e; }

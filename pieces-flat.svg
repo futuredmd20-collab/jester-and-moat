@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="piece-sprite piece-sprite-flat" width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute;left:-9999px">
+  <symbol id="flat-p-rook" viewBox="0 0 100 100" preserveAspectRatio="none">
+    <path d="M12 92Q12 89 19 88L25 87Q28 85 29 81L32 78V44L25 40V23H38V32H44V23H56V32H62V23H75V40L68 44V78L71 81Q72 85 75 87L81 88Q88 89 88 92V95H12Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M14 91H86M24 86H76M30 79H70M29 43H71" fill="none" stroke="var(--p-gold)" stroke-width="2.2"/>
+    <path d="M39 48V73M50 48V73M61 48V73" fill="none" stroke="var(--p-outline)" stroke-width="2.2"/>
+  </symbol>
+  <symbol id="flat-p-knight" viewBox="0 0 100 100" preserveAspectRatio="none">
+    <path d="M12 92Q12 89 19 88L25 87Q28 85 29 81L33 78H76Q78 84 83 87L87 89V93H12Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M29 79Q31 69 42 62Q34 57 32 49Q29 38 39 29L38 17L49 25Q54 20 62 23L65 32Q73 34 75 43L86 51L82 57L69 55Q66 63 72 72L78 79Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M39 30Q42 24 39 18L49 26Q56 22 62 24L65 32Q54 29 48 37L43 46Q41 52 49 56Q41 55 36 50Q33 39 39 30Z" fill="var(--p-gold)" stroke="var(--p-outline)" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M49 38Q59 33 69 39Q72 44 68 48Q59 50 51 45Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="1.6"/>
+    <circle cx="65" cy="37" r="2.3" fill="var(--p-ink)"/>
+    <path d="M38 65Q51 69 68 63M33 79H76M25 86H81" fill="none" stroke="var(--p-gold)" stroke-width="2.1"/>
+  </symbol>
+  <symbol id="flat-p-bishop" viewBox="0 0 100 100" preserveAspectRatio="none">
+    <path d="M13 92Q13 89 20 88L26 87Q29 85 30 81L34 78H66L70 81Q71 85 74 87L80 88Q87 89 87 92V95H13Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M30 79Q34 69 42 63Q32 56 32 45Q32 33 44 24L50 16L56 24Q68 33 68 45Q68 56 58 63Q66 69 70 79Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.5" stroke-linejoin="round"/>
+    <circle cx="50" cy="16" r="4" fill="var(--p-gold)" stroke="var(--p-outline)" stroke-width="1.5"/>
+    <path d="M50 25Q63 36 63 46Q63 55 53 61Q50 63 47 61Q37 55 37 46Q37 36 50 25Z" fill="var(--p-gloss)" stroke="var(--p-gold)" stroke-width="2"/>
+    <path d="M42 34 58 52" fill="none" stroke="var(--p-outline)" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M35 68Q50 73 65 68M30 80H70M25 86H75" fill="none" stroke="var(--p-gold)" stroke-width="2.1"/>
+  </symbol>
+  <symbol id="flat-p-queen" viewBox="0 0 100 100" preserveAspectRatio="none">
+    <path d="M13 92Q13 89 20 88L26 87Q29 85 30 81L34 78H66L70 81Q71 85 74 87L80 88Q87 89 87 92V95H13Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M30 79Q34 69 42 63Q34 58 34 50Q34 43 40 38L50 31L60 38Q66 43 66 50Q66 58 58 63Q66 69 70 79Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M32 48 28 28 42 38 50 20 58 38 72 28 68 48Q50 54 32 48Z" fill="var(--p-gold)" stroke="var(--p-outline)" stroke-width="2.2" stroke-linejoin="round"/>
+    <circle cx="28" cy="26" r="3.6" fill="var(--p-gold)" stroke="var(--p-outline)" stroke-width="1.4"/><circle cx="50" cy="18" r="3.6" fill="var(--p-gold)" stroke="var(--p-outline)" stroke-width="1.4"/><circle cx="72" cy="26" r="3.6" fill="var(--p-gold)" stroke="var(--p-outline)" stroke-width="1.4"/>
+    <path d="M35 68Q50 73 65 68M30 80H70M25 86H75" fill="none" stroke="var(--p-gold)" stroke-width="2.1"/>
+  </symbol>
+  <symbol id="flat-p-king" viewBox="0 0 100 100" preserveAspectRatio="none">
+    <path d="M13 92Q13 89 20 88L26 87Q29 85 30 81L34 78H66L70 81Q71 85 74 87L80 88Q87 89 87 92V95H13Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M30 79Q34 69 42 63Q34 58 34 50Q34 43 40 38L50 31L60 38Q66 43 66 50Q66 58 58 63Q66 69 70 79Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M50 9V33M40 19H60" fill="none" stroke="var(--p-gold)" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="50" cy="35" r="4" fill="var(--p-gold)" stroke="var(--p-outline)" stroke-width="1.5"/>
+    <path d="M35 68Q50 73 65 68M30 80H70M25 86H75" fill="none" stroke="var(--p-gold)" stroke-width="2.1"/>
+  </symbol>
+  <symbol id="flat-p-jester" viewBox="0 0 100 100" preserveAspectRatio="none">
+    <path d="M13 92Q13 89 20 88L26 87Q29 85 30 81L34 78H66L70 81Q71 85 74 87L80 88Q87 89 87 92V95H13Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M30 79Q34 69 42 63Q34 58 34 50Q34 43 40 38L50 31L60 38Q66 43 66 50Q66 58 58 63Q66 69 70 79Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M34 48 23 27 43 37 50 17 57 37 77 27 66 48Q50 54 34 48Z" fill="var(--p-gold)" stroke="var(--p-outline)" stroke-width="2.2" stroke-linejoin="round"/>
+    <circle cx="23" cy="25" r="3.8" fill="var(--p-gold)" stroke="var(--p-outline)" stroke-width="1.4"/><circle cx="50" cy="15" r="3.8" fill="var(--p-gold)" stroke="var(--p-outline)" stroke-width="1.4"/><circle cx="77" cy="25" r="3.8" fill="var(--p-gold)" stroke="var(--p-outline)" stroke-width="1.4"/>
+    <path d="M35 68Q50 73 65 68M30 80H70M25 86H75" fill="none" stroke="var(--p-gold)" stroke-width="2.1"/>
+  </symbol>
+  <symbol id="flat-p-pawn" viewBox="0 0 100 100" preserveAspectRatio="none">
+    <path d="M17 92Q17 89 23 88L28 87Q30 85 31 81L35 78H65L69 81Q70 85 72 87L77 88Q83 89 83 92V95H17Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M34 80Q36 70 43 65Q36 59 36 51Q36 42 43 38" fill="none" stroke="var(--p-outline)" stroke-width="2.5"/>
+    <path d="M66 80Q64 70 57 65Q64 59 64 51Q64 42 57 38" fill="none" stroke="var(--p-outline)" stroke-width="2.5"/>
+    <path d="M43 65Q50 62 57 65L66 80H34Z" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.3" stroke-linejoin="round"/>
+    <circle cx="50" cy="33" r="14" fill="var(--p-body)" stroke="var(--p-outline)" stroke-width="2.5"/>
+    <path d="M39 71Q50 74 61 71M35 80H65M29 86H71" fill="none" stroke="var(--p-gold)" stroke-width="2.1"/>
+  </symbol>
+</svg>

@@ -8,15 +8,16 @@
 const PIECE_NAME = { k: 'king', q: 'queen', r: 'rook', b: 'bishop', n: 'knight', p: 'pawn', j: 'jester' };
 
 /* One markup function for board squares, captured boxes, the promotion modal and
- * the editor palette, so every surface shows the same drawing at its own size.
- * Each referenced symbol supplies its original viewBox; CSS sets a shared height
- * and piece-specific natural aspect ratio so the artwork is never distorted. */
+ * the editor palette, so every surface uses the currently selected art set. */
+let activePieceSet = 'classic';
 function pieceMarkup(type, color, extraClass = "") {
   const name = PIECE_NAME[type] || 'pawn';
   const side = color === 'b' ? 'black' : 'white';
-  return `<svg class="piece piece-${name} ${extraClass}" preserveAspectRatio="none" data-type="${name}" data-color="${color}" ` +
+  const symbolPrefix = activePieceSet === 'flat' ? 'flat-p-' : 'p-';
+  const sizingClass = activePieceSet === 'flat' ? 'piece-set-flat' : 'piece-set-classic';
+  return `<svg class="piece piece-${name} ${sizingClass} ${extraClass}" preserveAspectRatio="none" data-type="${name}" data-color="${color}" ` +
     `role="img" aria-label="${side} ${name}">` +
-    `<use href="#p-${name}"></use></svg>`;
+    `<use href="#${symbolPrefix}${name}"></use></svg>`;
 }
 
 /* The board editor's piece palette draws the same shared SVG artwork. */
@@ -1575,7 +1576,10 @@ function saveOptions(){
       speed: document.getElementById('speedSelect').value,
       disp: document.getElementById('uiDisplaySelect').value,
       coords: (document.getElementById('coordsToggle').checked ? '1' : '0'),
-      theme: document.getElementById('themeSelect').value
+      theme: document.getElementById('themeSelect').value,
+      boardStyle: document.getElementById('boardStyleSelect').value,
+      pieceSet: activePieceSet,
+      pieceSetVersion: 4
     }));
   } catch(err) { /* storage unavailable (private mode etc.) — ignore */ }
 }
@@ -1587,6 +1591,9 @@ function loadOptions(){
     setVal('modeSelect', o.mode); setVal('playerSideSelect', o.side); setVal('timeSelect', o.time);
     setVal('jesterPosSelect', o.jpos); setVal('speedSelect', o.speed); setVal('uiDisplaySelect', o.disp);
     setVal('themeSelect', o.theme);
+    setVal('boardStyleSelect', o.boardStyle);
+    setVal('pieceSetSelect', o.pieceSetVersion === 4 && o.pieceSet === 'flat' ? 'flat' : 'classic');
+    activePieceSet = document.getElementById('pieceSetSelect').value;
     if (o.coords !== undefined) document.getElementById('coordsToggle').checked = (o.coords === '1');
   } catch(err) { /* ignore */ }
 }
@@ -1615,8 +1622,20 @@ function themeMqListener(e){
   document.documentElement.classList.toggle('theme-dark', e.matches);
 }
 document.getElementById('themeSelect').addEventListener('change', () => { applyTheme(); saveOptions(); });
+const boardStyleSelect = document.getElementById('boardStyleSelect');
+function applyBoardStyle() {
+  document.documentElement.dataset.boardStyle = boardStyleSelect.value;
+}
+boardStyleSelect.addEventListener('change', () => { applyBoardStyle(); saveOptions(); });
+document.getElementById('pieceSetSelect').addEventListener('change', () => {
+  activePieceSet = document.getElementById('pieceSetSelect').value === 'flat' ? 'flat' : 'classic';
+  renderPalettePieces();
+  render();
+  saveOptions();
+});
 
 loadOptions();
 applyTheme();
+applyBoardStyle();
 renderPalettePieces();
 setup();

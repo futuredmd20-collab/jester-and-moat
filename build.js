@@ -5,6 +5,7 @@ const indexHtml = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
 const styleCss = fs.readFileSync(path.join(__dirname, "style.css"), "utf8");
 const piecesCss = fs.readFileSync(path.join(__dirname, "pieces.css"), "utf8");
 const piecesSvg = fs.readFileSync(path.join(__dirname, "pieces.svg"), "utf8");
+const piecesFlatSvg = fs.readFileSync(path.join(__dirname, "pieces-flat.svg"), "utf8");
 const scriptJs = fs.readFileSync(path.join(__dirname, "script.js"), "utf8");
 
 let combined = indexHtml.replace(
@@ -22,6 +23,10 @@ combined = combined.replace(
 combined = combined.replace(
   "<!-- PIECE-SPRITE:INLINE -->",
   piecesSvg.trimEnd()
+);
+combined = combined.replace(
+  "<!-- PIECE-FLAT-SPRITE:INLINE -->",
+  piecesFlatSvg.trimEnd()
 );
 
 // Replace the loader itself with the game script, so the file works from file://.
