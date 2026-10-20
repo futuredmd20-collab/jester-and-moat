@@ -8,10 +8,11 @@
 - With the user’s explicit approval, Buffy can temporarily publish only the requested artifact for download, then unpublish it after the user confirms they have downloaded it.
 
 ## Buffy (this Freebuff/Codebuff agent): Google Drive
-- In this session, Buffy could search and read Drive files but could not upload a ZIP directly from the workspace: the available upload actions required a staged file reference that Buffy could not create.
+- Drive receives no project docs: the .md mirrors were retired on 2026-10-20. Drive holds saved games and the user's own ZIP backups in **BACKUPS**, both user-managed.
+- In this session, Buffy could search and read Drive files but could not upload a ZIP directly from the workspace: the available upload actions required a staged file reference that Buffy could not create. ZIP backups are therefore downloaded by the user and uploaded by the user.
 - Buffy’s attempt to upload from the local preview URL was denied because Drive could not access that URL.
-- If direct transfer is unavailable, Buffy should explain the limitation and offer a user-mediated download route. Buffy must not overwrite canonical Drive files without explicit authorization.
-- Markdown files in Drive must remain plain text with the `text/markdown` MIME type.
+- If the user asks for a doc copy, write it once as an export and say plainly that it will drift from the repo.
+- Markdown files in Drive, when created at all, must remain plain text with the `text/markdown` MIME type.
 - Drive cannot receive a workspace file without a staged upload reference. Text and Markdown travel as uploads; images and other binaries do not, so a chat whose only channel is Drive text uploads must split large files and leave binaries behind.
 
 ## Buffy (this Freebuff/Codebuff agent): GitHub

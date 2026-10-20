@@ -44,3 +44,9 @@ Purpose: dated record of decisions and changes, newest last. Not for current sta
 * PR #1 merged into main by rebase (44ecd0f → 85ef78b, three commits); GitHub Pages rebuilt on 85ef78b and now serves the sprite build.
 * Post-deploy check: index.html, script.js, pieces.css, pieces.svg, manifest.json, sw.js and both 512 icons return 200 with correct MIME types and match their pre-merge hashes; no http:// references remain.
 * The two 512 icons are still upscales of the 192 art — replace them if a true 512 source turns up.
+
+2026-10-20 — Tagged releases, and the end of the Drive mirrors
+* v0.5.5 tagged at fbbffef and published as the first GitHub Release; the repo's Immutable Releases setting was enabled, so the tag and its assets are locked.
+* Drive .md mirrors retired: GitHub is now the only editable copy of the docs. Drive keeps saved games and user-made ZIP backups in BACKUPS, one ZIP per release. AGENTS.md lost the sync rule, PROMPT.md no longer mentions Drive copies.
+* docs/VERSIONING.md added: versions are annotated tags on main, not branches, because a branch moves and cannot record a version. It also fixes what MAJOR/MINOR/PATCH mean here and lists the seven release steps, since nothing is automated.
+* Automation considered and not adopted: Release Please would duplicate HISTORY.md as a second changelog.

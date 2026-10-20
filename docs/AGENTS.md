@@ -14,6 +14,7 @@ Keep Replies Short
 
 References & Documentation Map
 * Every doc opens with a Purpose line stating what it holds and what it does not. Keep that line accurate when you edit a file.
+* VERSIONING.md: how a release is cut. Not part of the startup read — open it when tagging.
 * HANDOVER.md: game rules and development policy.
 * ARCHITECTURE.md: deployment model and PWA requirements.
 * LIMITATIONS.md: platform and agent capability records. If you cannot perform an action, update your record or ask the user to do it.
@@ -36,5 +37,8 @@ Markdown File Integrity
 * After creating or editing an .md file, verify its MIME type is text/markdown. If the available tool cannot preserve or confirm that type, stop and ask the user rather than converting it.
 
 Canonical Storage
-* GitHub is canonical: the public repo futuredmd20-collab/jester-and-moat (docs/ folder) is the source of truth; Drive .md files are mirrors, so update the repo first and sync to Drive afterwards.
+* GitHub is canonical: the public repo futuredmd20-collab/jester-and-moat (docs/ folder) is the single source of truth. There is no second copy to keep in sync.
+* Drive holds no .md mirrors. Drive keeps saved games and the user's own ZIP backups in **BACKUPS**; agents do not maintain doc copies there.
+* Version history lives in git as annotated tags and GitHub Releases, not as one branch per version. See VERSIONING.md.
+* If the user asks for a doc copy outside the repo, treat it as a one-off export and say it will go stale.
 * Never overwrite a Drive original without asking first.
