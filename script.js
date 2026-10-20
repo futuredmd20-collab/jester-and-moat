@@ -1,6 +1,6 @@
 "use strict";
 
-/* v0.5.6 — seven drawn SVG symbols, one per piece, live in pieces.svg (built by
+/* v0.6.0 — seven drawn SVG symbols, one per piece, live in pieces.svg (built by
  * generate-piece-sprite.js) and are injected before this file runs. Fills read
  * the --p-* palette that pieces.css sets from data-color, so both sides share
  * one drawing with a distinct light/dark palette.
