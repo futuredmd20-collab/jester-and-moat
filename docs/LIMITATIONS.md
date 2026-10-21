@@ -25,6 +25,7 @@
 - Files uploaded in chat are not stored as bytes: the filesystem holds a placeholder, text extraction fails on binary uploads, and images are only viewable through a vision model's textual description. Pixel-level work on uploaded images (cropping, background removal) is therefore impossible in this session.
 - Text is the working route: SVG sources can be read verbatim from Drive (download_file_content) or GitHub (get_file_contents) and split without touching path data; the flat piece crops on this branch were produced that way.
 - The sandbox resets between some calls, so intermediate workspace files can vanish; keep durable copies on Drive or in the repo.
+- The GitHub integration can list and read tags and releases but has no function to create them, so annotated tags and GitHub Releases (VERSIONING.md steps 4-5) are cut by the user from a local clone (gh release create vX.Y.Z).
 
 ## Gemini
 - Drive access may be limited to reading and searching; copying, overwriting, or editing files may not be available.

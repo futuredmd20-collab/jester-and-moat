@@ -88,3 +88,6 @@ Purpose: dated record of decisions and changes, newest last. Not for current sta
 * Flat board sizing switched from the placeholder's stretched boxes to each crop's real aspect ratio (width = height x viewBox aspect; board squares are 1:1, so the art renders undistorted). The crops bake their own silhouette outline, so .piece.piece-set-flat { stroke: none } keeps the classic set's inherited 2.2 hairline stroke off their fill-only paths.
 * The Options label "Flat (placeholder for future artwork)" became "Flat"; sw.js cache bumped to jm-cache-v0.6.0-flat-art-1; ARCHITECTURE.md now records flat-*.svg and light-*.svg as art sources that are deliberately not precached.
 * The captured tray, promotion modal and editor palette now size flat pieces by true aspect (width = height x the crop's ratio, via a per-crop --flat-aspect variable) instead of the shared fixed boxes that stretched them; classic sizing on those surfaces is unchanged.
+
+2026-10-21 — v0.6.1 released
+* Version bumped to 0.6.1 for the merged flat piece art (PR #5): the Flat option renders the real artwork on the board, captured tray, promotion modal and editor palette. manifest.json and the sw.js cache name (jm-cache-v0.6.1-flat-art-1) carry the new number; index.html shows it in the title, header badge and info drawer.
