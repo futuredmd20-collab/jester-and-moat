@@ -214,6 +214,8 @@
     border-radius: 99px; padding: 3px 7px;
   }
 
+  .mode-tag { white-space: nowrap; }
+
   /* --- Controls --- */
   .controls-section {
     width: min(100%, 820px);

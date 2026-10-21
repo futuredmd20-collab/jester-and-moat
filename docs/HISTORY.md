@@ -91,3 +91,8 @@ Purpose: dated record of decisions and changes, newest last. Not for current sta
 
 2026-10-21 — v0.6.1 released
 * Version bumped to 0.6.1 for the merged flat piece art (PR #5): the Flat option renders the real artwork on the board, captured tray, promotion modal and editor palette. manifest.json and the sw.js cache name (jm-cache-v0.6.1-flat-art-1) carry the new number; index.html shows it in the title, header badge and info drawer.
+
+2026-10-21 — AI vs AI no longer offers a side switch
+* In AI vs AI the swap button and the Player Side dropdown are now disabled, with a tooltip explaining why. The swap handler also returns early in that mode. Previously the button reported "Player side switched to Black." without flipping the board, because the flip was skipped in AI vs AI.
+* The game mode is now shown as a small pill next to the version badge in the header (2 Players, vs AI · Easy/Medium/Hard, AI vs AI), so it stays visible without taking up space in the info bar.
+* sw.js cache bumped to jm-cache-v0.6.1-mode-pill-1 for the changed app shell.

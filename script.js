@@ -243,6 +243,7 @@ function setup(){
   } else {
     boardEl.classList.remove('flipped');
   }
+  updateModeUI();
 
   const initialTime = parseInt(document.getElementById('timeSelect').value, 10);
   const pos = document.getElementById("jesterPosSelect").value;
@@ -637,6 +638,19 @@ function getBestMove(st, depth) {
     }
   }
   return bestMove;
+}
+
+const MODE_TAG = { pvp: '2 Players', ai_easy: 'vs AI · Easy', ai_medium: 'vs AI · Medium', ai_hard: 'vs AI · Hard', ai_vs_ai: 'AI vs AI' };
+/* Header mode pill, and the controls that have no meaning in AI vs AI
+ * (there is no player side to switch). */
+function updateModeUI() {
+  const mode = document.getElementById('modeSelect').value;
+  const isSim = mode === 'ai_vs_ai';
+  document.getElementById('modeTag').textContent = MODE_TAG[mode] || '';
+  const switchBtn = document.getElementById('sideSwitchBtn');
+  switchBtn.disabled = isSim;
+  switchBtn.title = isSim ? 'Not available in AI vs AI' : 'Switch player side and board view';
+  document.getElementById('playerSideSelect').disabled = isSim;
 }
 
 function isAIMode() {
@@ -1473,6 +1487,7 @@ document.getElementById('stepBtn').addEventListener('click', stepNextMove);
 document.getElementById('autoBtn').addEventListener('click', toggleAutoPlay);
 document.getElementById('randomBtn').addEventListener('click', generateRandomMidgame);
 document.getElementById('sideSwitchBtn').addEventListener('click', () => {
+  if (document.getElementById('modeSelect').value === 'ai_vs_ai') return;
   aiRequestId++;
   clearTimeout(aiTimer);
   isAIThinking = false;
