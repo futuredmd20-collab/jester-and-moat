@@ -443,16 +443,20 @@
   #board .piece-jester { --piece-w: 47%; --piece-h: 88%; }
   #board .piece-pawn { --piece-w: 38%; --piece-h: 68%; }
 
-  /* The flat prototype is intentionally wider and shorter than the classic
-     drawings. Its symbols share a square viewBox, so the board image boxes
-     control the silhouette proportions directly rather than stretching art. */
-  #board .piece-set-flat.piece-rook,
-  #board .piece-set-flat.piece-bishop,
-  #board .piece-set-flat.piece-queen,
-  #board .piece-set-flat.piece-king,
-  #board .piece-set-flat.piece-jester { --piece-w: 82%; --piece-h: 74%; }
-  #board .piece-set-flat.piece-knight { --piece-w: 86%; --piece-h: 74%; }
-  #board .piece-set-flat.piece-pawn { --piece-w: 68%; --piece-h: 60%; }
+  /* The flat set is the real flat artwork, cropped per piece (flat-*.svg,
+     assembled into pieces-flat.svg by build-pieces-flat.js). Each crop keeps
+     its own aspect ratio, so each board box matches its art instead of
+     stretching it: width = height x the crop's viewBox aspect, squares being
+     1:1. The crops bake their own silhouette outline, so the classic set's
+     inherited hairline stroke must not repaint their fill-only paths. */
+  .piece.piece-set-flat { stroke: none; }
+  #board .piece-set-flat.piece-rook { --piece-w: 52%; --piece-h: 74%; }
+  #board .piece-set-flat.piece-knight { --piece-w: 60%; --piece-h: 74%; }
+  #board .piece-set-flat.piece-bishop { --piece-w: 46%; --piece-h: 74%; }
+  #board .piece-set-flat.piece-queen { --piece-w: 58%; --piece-h: 74%; }
+  #board .piece-set-flat.piece-king { --piece-w: 52%; --piece-h: 74%; }
+  #board .piece-set-flat.piece-jester { --piece-w: 66%; --piece-h: 74%; }
+  #board .piece-set-flat.piece-pawn { --piece-w: 42%; --piece-h: 60%; }
 
   /* Board squares only: lift the artwork off the square's bottom edge. `top`
      rather than transform, because the slide animation writes an inline
@@ -467,6 +471,21 @@
   .captured-box .piece { --piece-w: 18px; --piece-h: 20px; }
   .promotion-btn .piece { --piece-w: 32px; --piece-h: 38px; }
   .palette-btn .piece { --piece-w: 24px; --piece-h: 28px; }
+  /* The flat crops keep their true aspect ratios (viewBox width/height), so
+     the fixed boxes above stretch them on the small surfaces. Each flat piece
+     gets width = height x its own aspect instead; classic sizing above is
+     untouched. */
+  .piece-set-flat { --flat-aspect: 1; }
+  .piece-set-flat.piece-rook { --flat-aspect: 0.6986; }
+  .piece-set-flat.piece-knight { --flat-aspect: 0.8128; }
+  .piece-set-flat.piece-bishop { --flat-aspect: 0.6200; }
+  .piece-set-flat.piece-queen { --flat-aspect: 0.7818; }
+  .piece-set-flat.piece-king { --flat-aspect: 0.7084; }
+  .piece-set-flat.piece-jester { --flat-aspect: 0.8975; }
+  .piece-set-flat.piece-pawn { --flat-aspect: 0.6932; }
+  .captured-box .piece-set-flat { --piece-w: calc(20px * var(--flat-aspect)); --piece-h: 20px; }
+  .promotion-btn .piece-set-flat { --piece-w: calc(38px * var(--flat-aspect)); --piece-h: 38px; }
+  .palette-btn .piece-set-flat { --piece-w: calc(28px * var(--flat-aspect)); --piece-h: 28px; }
 
   /* Dashboard */
   .dashboard, .history-box { background: #fffaf1; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 2px 7px #4b34100a; }
