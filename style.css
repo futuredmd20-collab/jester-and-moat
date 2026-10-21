@@ -471,6 +471,21 @@
   .captured-box .piece { --piece-w: 18px; --piece-h: 20px; }
   .promotion-btn .piece { --piece-w: 32px; --piece-h: 38px; }
   .palette-btn .piece { --piece-w: 24px; --piece-h: 28px; }
+  /* The flat crops keep their true aspect ratios (viewBox width/height), so
+     the fixed boxes above stretch them on the small surfaces. Each flat piece
+     gets width = height x its own aspect instead; classic sizing above is
+     untouched. */
+  .piece-set-flat { --flat-aspect: 1; }
+  .piece-set-flat.piece-rook { --flat-aspect: 0.6986; }
+  .piece-set-flat.piece-knight { --flat-aspect: 0.8128; }
+  .piece-set-flat.piece-bishop { --flat-aspect: 0.6200; }
+  .piece-set-flat.piece-queen { --flat-aspect: 0.7818; }
+  .piece-set-flat.piece-king { --flat-aspect: 0.7084; }
+  .piece-set-flat.piece-jester { --flat-aspect: 0.8975; }
+  .piece-set-flat.piece-pawn { --flat-aspect: 0.6932; }
+  .captured-box .piece-set-flat { --piece-w: calc(20px * var(--flat-aspect)); --piece-h: 20px; }
+  .promotion-btn .piece-set-flat { --piece-w: calc(38px * var(--flat-aspect)); --piece-h: 38px; }
+  .palette-btn .piece-set-flat { --piece-w: calc(28px * var(--flat-aspect)); --piece-h: 28px; }
 
   /* Dashboard */
   .dashboard, .history-box { background: #fffaf1; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 2px 7px #4b34100a; }
