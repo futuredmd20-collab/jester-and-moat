@@ -306,15 +306,15 @@
 
   .clock-box {
     flex: 1; background: #eee4d4; border: 1px solid var(--line); border-radius: 8px;
-    padding: 6px 10px; color: var(--ink); min-height: 46px; display: flex; align-items: center; justify-content: space-between;
+    padding: 4px 8px; color: var(--ink); min-height: 36px; display: flex; align-items: center; justify-content: space-between;
   }
 
   .clock-box.active {
-    background: #fffaf1; border: 2px solid var(--burgundy); padding: 5px 9px; box-shadow: 0 0 0 2px #792f3b12;
+    background: #fffaf1; border: 2px solid var(--burgundy); padding: 3px 7px; box-shadow: 0 0 0 2px #792f3b12;
   }
 
-  .clock-label { color: var(--muted-ink); font-size: .69rem; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; }
-  .clock-time { color: var(--ink); font-size: clamp(1.1rem, 3vw, 1.3rem); font-weight: 800; font-family: monospace; font-variant-numeric: tabular-nums; }
+  .clock-label { color: var(--muted-ink); font-size: .62rem; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; }
+  .clock-time { color: var(--ink); font-size: clamp(.95rem, 2.6vw, 1.15rem); font-weight: 800; font-family: monospace; font-variant-numeric: tabular-nums; }
   .clock-box.active .clock-time { color: var(--burgundy); }
 
   /* --- Evaluation Bar --- */
