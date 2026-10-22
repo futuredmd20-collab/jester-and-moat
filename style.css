@@ -56,7 +56,7 @@
     --piece-accent-gold: #c9993f;
     --piece-queen-gem: #792f3b;
     --piece-w-outline: #161615;
-    --piece-b-outline: #d8d2c6;
+    --piece-b-outline: #5b4c60;
     /* Board-only: how far a piece sits above its centred position. Every symbol
        puts its base ~0.9% of a square above the square's bottom edge (measured
        across all 14: 0.92-0.94%, spread 0.02pp), so the artwork reads as
@@ -97,7 +97,10 @@
     --piece-accent-gold: #c9993f;
     --piece-queen-gem: #792f3b;
     --piece-w-outline: #161615;
-    --piece-b-outline: #d8d2c6;
+    --piece-b-outline: #5b4c60;
+    --piece-b-accent: #5a4a5b;
+    --piece-b-slit: #f5f0e8;
+    --piece-j-flat-accent: #7b68a0;
     --piece-b-body: #434541;
     --piece-b-ink: #161615;
     --piece-b-gloss: #cbc5bd;
@@ -452,6 +455,11 @@
      1:1. The crops bake their own silhouette outline, so the classic set's
      inherited hairline stroke must not repaint their fill-only paths. */
   .piece.piece-set-flat { stroke: none; }
+  .piece[data-color="b"] { --p-gold: var(--piece-b-accent); }
+  .piece-set-flat.piece-jester[data-color] { --p-gold: var(--piece-j-flat-accent); }
+  .piece-set-flat.piece-bishop[data-color="b"],
+  .piece-set-flat.piece-rook[data-color="b"],
+  .piece-set-flat.piece-knight[data-color="b"] { --p-ink: var(--piece-b-slit); }
   #board .piece-set-flat.piece-rook { --piece-w: 52%; --piece-h: 74%; }
   #board .piece-set-flat.piece-knight { --piece-w: 60%; --piece-h: 74%; }
   #board .piece-set-flat.piece-bishop { --piece-w: 46%; --piece-h: 74%; }
@@ -663,7 +671,10 @@
     --piece-accent-gold: #dfb24e;
     --piece-queen-gem: #ee8795;
     --piece-w-outline: #161615;
-    --piece-b-outline: #d8d2c6;
+    --piece-b-outline: #5b4c60;
+    --piece-b-accent: #5a4a5b;
+    --piece-b-slit: #f5f0e8;
+    --piece-j-flat-accent: #7b68a0;
     --piece-b-body: #1b1c1b;
     --piece-b-ink: #111111;
     --piece-b-gloss: #cbc5bd;
