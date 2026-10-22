@@ -101,3 +101,6 @@ Purpose: dated record of decisions and changes, newest last. Not for current sta
 * AGENTS.md and PR-WORKFLOW.md: task-branch commits are now free and reversible with no separate pre-commit approval; the approval gates are opening a PR and merging. The old steps 5 and 8 (diff review, then PR-scope verification) merged into one verification pass before the PR opens.
 * Agents work directly on the GitHub branch instead of local copies: the plan names the task branch, the go-ahead creates it, and every commit concentrates there — so any agent or the user can pick the work up from GitHub.
 * An agent whose environment supports it may keep a local clone as a working copy (faster reads, verify-before-publish editing), but only after asking the user and getting approval; the clone is a cache, and the work lands on the task branch before any PR.
+
+2026-10-22 — Piece accent cache bump
+* The piece-colour improvements (black outlines, dark accent, flat jester, black bishop/rook; main commit 9f0b31f) shipped without a cache suffix bump. style.css is precached, so the cache name is bumped to jm-cache-v0.6.1-piece-art-1 to reach returning clients. No version bump and no tag.
