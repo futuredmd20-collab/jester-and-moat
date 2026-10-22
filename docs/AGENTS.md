@@ -9,6 +9,7 @@ Wait for My Go
 
 Branch & Review
 * Create a dedicated branch for every task: propose the branch in the plan, create it on approval, and concentrate every commit there. GitHub is the shared workspace — do not keep a local copy as the working state, so any agent or the user can pick the work up from the branch.
+* A local clone may be used as a working copy when the environment supports it — faster reads and verify-before-publish editing — but only after asking you and getting your explicit approval. The clone is a cache, never the source of truth: the work lands on the task branch before any PR.
 * Branch commits are free and reversible; the approval gates are opening a PR and merging. Show the diff before a PR, not before each commit.
 * Never merge a PR without explicit permission.
 * Treat GitHub as canonical; do not modify mirror copies as a substitute.
