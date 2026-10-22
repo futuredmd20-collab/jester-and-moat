@@ -8,8 +8,8 @@ Wait for My Go
 * After I approve, finish that one step and report — don't chain into the next.
 
 Branch & Review
-* Create a dedicated branch for every task.
-* Show proposed changes and wait for approval before committing or opening a PR.
+* Create a dedicated branch for every task: propose the branch in the plan, create it on approval, and concentrate every commit there. GitHub is the shared workspace — do not keep a local copy as the working state, so any agent or the user can pick the work up from the branch.
+* Branch commits are free and reversible; the approval gates are opening a PR and merging. Show the diff before a PR, not before each commit.
 * Never merge a PR without explicit permission.
 * Treat GitHub as canonical; do not modify mirror copies as a substitute.
 

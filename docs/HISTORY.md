@@ -96,3 +96,7 @@ Purpose: dated record of decisions and changes, newest last. Not for current sta
 * In AI vs AI the swap button and the Player Side dropdown are now disabled, with a tooltip explaining why. The swap handler also returns early in that mode. Previously the button reported "Player side switched to Black." without flipping the board, because the flip was skipped in AI vs AI.
 * The game mode is now shown as a small pill next to the version badge in the header (2 Players, vs AI · Easy/Medium/Hard, AI vs AI), so it stays visible without taking up space in the info bar.
 * sw.js cache bumped to jm-cache-v0.6.1-mode-pill-1 for the changed app shell.
+
+2026-10-22 — PR workflow simplified
+* AGENTS.md and PR-WORKFLOW.md: task-branch commits are now free and reversible with no separate pre-commit approval; the approval gates are opening a PR and merging. The old steps 5 and 8 (diff review, then PR-scope verification) merged into one verification pass before the PR opens.
+* Agents work directly on the GitHub branch instead of local copies: the plan names the task branch, the go-ahead creates it, and every commit concentrates there — so any agent or the user can pick the work up from GitHub.

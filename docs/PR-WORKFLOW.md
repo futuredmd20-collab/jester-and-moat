@@ -14,16 +14,15 @@ This guide describes the workflow used for the flat-SVG cleanup PR. It separates
 ## Step by step
 
 1. **Describe the task — You.** Say what outcome you want. If a request could mean different things, clarify which files or behavior are in scope.
-2. **Plan and confirm scope — Me, then you.** I inspect the canonical GitHub state and relevant files, then state the intended paths and actions. I wait for your confirmation before making changes. A general "go ahead" applies to the confirmed scope; it does not authorize unrelated changes.
-3. **Create a task branch — Me.** I create or use a dedicated branch based on the current `main`. I verify the branch and base before editing. I do not work directly on `main`.
-4. **Make only the agreed changes — Me.** I edit the canonical project files on that branch, preserving unrelated and untracked files. I do not update mirror copies as a substitute for GitHub.
-5. **Review and present the diff — Me.** I inspect the changed paths and complete diff, run relevant checks when appropriate, and report limitations. I show you the proposal before committing or opening a PR.
-6. **Approve the diff — You.** Review the listed files and changes. Ask for revisions if needed. Your approval to change files is not automatically approval to commit, push, open a PR, or merge unless you explicitly included those actions.
-7. **Commit and push — Me, after authorization.** I stage only the approved files, verify the staged diff, commit, and push the task branch. I report the commit and remote branch.
-8. **Open the pull request — Me, after authorization.** I check that the branch is present on GitHub, compare it with `main`, check for an existing PR, and open a PR targeting `main`. I report its link and verify its scope.
-9. **Review the PR — You.** Inspect the PR on GitHub, including its diff, checks, and any review feedback. Request changes if anything is not right.
-10. **Merge — You authorize; I execute only if asked.** I merge only after you explicitly tell me to merge. Before merging, I check that the PR is open and mergeable and note any required checks or reviews. I then verify the merged state and resulting `main` commit. Opening a PR or approving its diff is not permission to merge.
-11. **Close the loop — Me.** I report what was completed, the resulting commit or PR, checks run or skipped, and any follow-up required. Publishing a release or deploying is a separate action and requires its own authorization.
+2. **Plan and confirm scope — Me, then you.** I inspect the canonical GitHub state and relevant files, then state the intended paths and actions, including the task branch I will create. I wait for your confirmation before making changes. A general "go ahead" applies to the confirmed scope; it does not authorize unrelated changes.
+3. **Create the task branch — Me, after your go.** I create or use a dedicated branch based on the current `main`. I verify the branch and base before editing. I do not work directly on `main`.
+4. **Make the agreed changes as commits on the branch — Me.** I edit the canonical project files directly on that branch; branch commits are free and reversible, so no separate pre-commit approval is needed. I do not keep a local copy as the working state: the branch is the shared workspace, so any agent or the user can pick the work up from GitHub.
+5. **Verify and present — Me.** One verification pass: I inspect the changed paths and complete diff on the branch, run relevant checks when appropriate, and report limitations plus the PR scope that will follow. I show you the proposal before opening a PR.
+6. **Authorize the PR — You.** Review the listed files and changes. Ask for revisions if needed. The PR opens only after you approve the diff and explicitly say to open it.
+7. **Open the pull request — Me, after authorization.** I check that the branch is present on GitHub, compare it with `main`, check for an existing PR, and open a PR targeting `main`. I report its link. (Scope verification was folded into step 5.)
+8. **Review the PR — You.** Inspect the PR on GitHub, including its diff, checks, and any review feedback. Request changes if anything is not right.
+9. **Merge — You authorize; I execute only if asked.** I merge only after you explicitly tell me to merge. Before merging, I check that the PR is open and mergeable and note any required checks or reviews. I then verify the merged state and resulting `main` commit. Opening a PR or approving its diff is not permission to merge.
+10. **Close the loop — Me.** I report what was completed, the resulting commit or PR, checks run or skipped, and any follow-up required. Publishing a release or deploying is a separate action and requires its own authorization.
 
 ## Example: flat-SVG cleanup PR
 
@@ -36,22 +35,19 @@ This guide describes the workflow used for the flat-SVG cleanup PR. It separates
 
 ```mermaid
 flowchart TD
-    A[You describe the outcome] --> B[Me: inspect canonical GitHub state and propose scope]
+    A[You describe the outcome] --> B[Me: inspect canonical GitHub state and propose scope + task branch]
     B --> C{You confirm plan and scope?}
     C -- No --> B
     C -- Yes --> D[Me: create dedicated branch from current main]
-    D --> E[Me: make only the agreed changes]
-    E --> F[Me: inspect checks and present complete diff]
-    F --> G{You approve proposed diff?}
+    D --> E[Me: make the agreed changes as commits on the branch]
+    E --> F[Me: one verification pass - diff, checks, PR scope]
+    F --> G{You approve diff and authorize PR?}
     G -- No --> H[You request revisions]
     H --> E
-    G -- Yes --> I{Explicit authorization to commit, push, and open PR?}
-    I -- No --> J[Stop with changes uncommitted]
-    I -- Yes --> K[Me: stage approved paths, commit, and push branch]
-    K --> L[Me: verify branch and open PR against main]
-    L --> M[You review PR and checks]
-    M --> N{You explicitly authorize merge?}
-    N -- No --> O[Leave PR open; wait for instructions]
-    N -- Yes --> P[Me: verify merge readiness and merge]
-    P --> Q[Me: verify merged PR and main; report outcome]
+    G -- Yes --> I[Me: open PR against main]
+    I --> J[You review PR and checks]
+    J --> K{You explicitly authorize merge?}
+    K -- No --> L[Leave PR open; wait for instructions]
+    K -- Yes --> M[Me: verify merge readiness and merge]
+    M --> N[Me: verify merged PR and main; report outcome]
 ```
