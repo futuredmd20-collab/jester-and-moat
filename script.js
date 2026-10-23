@@ -1,1 +1,1 @@
-<content>
+<base64_of_full_script.js>
