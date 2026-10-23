@@ -14,7 +14,7 @@ Each engine is a plugin object:
 
 * `name`: display label (UI).
 * `phases`: which phases the plugin can serve.
-* `strength`: level parameter (search depth + move-selection temperature/randomness), labelled with an estimated rating.
+* `strength`: level parameter (search depth + moveselection temperature/randomness), labelled with an estimated rating.
 * `getMove(gameState)`: returns the chosen move; same signature for all plugins.
 
 The existing MinMax engine becomes plugin #1, unchanged in behavior.
@@ -37,8 +37,7 @@ The existing MinMax engine becomes plugin #1, unchanged in behavior.
 
 
 ## Current Engine — Investigation Findings (script.js, v0.6.x)
-* All engine code lives inline in script.js (~1657 lines): `evaluateBoard` (L541), `minimax` alpha-beta (L564), `getBestMove` (L613), `ai
-Move` (L710).
+* All engine code lives inline in script.js (~1657 lines): `evaluateBoard` (L541), `minimax` alpha-beta (L564), `getBestMove` (L613), `aiMove` (L710).
 * Strength today = search depth only, keyed by mode: ai_easy 1, ai_medium/ai_vs_ai 2, ai_hard 3 (`aiMove` L716-719).
 * No per-side engine identity: one global engine serves whichever side the AI plays; modes are pvp / ai_easy / ai_medium / ai_hard / ai_vs_ai.
 * **Worker constraint:** `ensureAIWorker` (L663) builds the worker source via `fn.toString()` over an explicit `engineFunctions` list and runs `getBestMove(state, depth)` inside the worker. Any plugin engine must be a self-contained serializable function (or the worker message protocol must be extended to carry a plugin id + per-side config).
@@ -62,9 +61,9 @@ Out (for now):
 
 ## Progress Log
 * 2026-10-22: Draft created on branch engine-plugins-design from design discussion (interface, phases, per-side mapping, levels).
-* 2026-10-23: Investigation of script.js complete; findings section added (worker toString constraint, depth-by-mode, getJesterValue
- phase seed, promotion sentinel).
+* 2026-10-23: Investigation of script.js complete; findings section added (worker toString constraint, depth-by-mode, getJesterValue phase seed, promotion sentinel).
 * 2026-10-23: Drafted answers added for Q1 (ship with MinMax per side, MCTS opt-in) and Q2 (piece-count thresholds, constants provisional) — confirmed by the user. First plugin #2 (MCTS) merged to main via PR #16.
+* 2026-10-24: Implementation step 3 done on branch engine-plugins-design — plugin interface + MinMax wrapped as plugin #1 (MinMaxLegacy) landed in script.js (ENGINE_PHASES, MinMaxLegacy, enginePlugins Map, defaultEngineForSide). Behaviour unchanged: MinMaxLegacy reads modeSelect and replicates aiMove's depth buckets, so AI play is identical until step 4 reroutes aiMove through the pipeline. The wrapper is inline in script.js (not in engines/) because it is an adapter around getBestMove() that must read modeSelect from the DOM to keep behaviour identical; engines/ is reserved for self-contained, worker-serializable engine implementations (MCTS, future engines) that take config from strength at construction time. Plugin #2 (MCTS) is not yet wired into enginePlugins or the worker — that is steps 4-5.
 * Open questions (decided):
   * Q1: Default configuration per side when the system ships? Decision: both sides ship in single-engine mode with plugin #1 (MinMax) at the current mode depths — shipped behavior identical to today; MCTS selectable per side but default-off until its ratings are calibrated. Rationale: zero-risk rollout, every new option is opt-in.
   * Q2: Phase thresholds in material points or piece count? Decision: piece count (total pieces on board), seeded from getJesterValue's existing pieceCount logic; proposed opening = ply < 10 OR total >= 34, endgame = total <= 16, else midgame. Rationale: material points are circular here (the jester's own value is phase-dependent, and moats distort material), while piece count is cheap, capture-driven, and already computed in the hot path; calibrate the two constants from real games later.
