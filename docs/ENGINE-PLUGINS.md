@@ -35,6 +35,16 @@ The existing MinMax engine becomes plugin #1, unchanged in behavior.
 * Level = search depth + deliberate randomness temperature, not depth alone.
 * Each side's configuration gets an approximate rating label (ELO-like), shown in UI, similar to player scores in classic games.
 
+
+## Current Engine — Investigation Findings (script.js, v0.6.x)
+* All engine code lives inline in script.js (~1657 lines): `evaluateBoard` (L541), `minimax` alpha-beta (L564), `getBestMove` (L613), `aiMove` (L710).
+* Strength today = search depth only, keyed by mode: ai_easy 1, ai_medium/ai_vs_ai 2, ai_hard 3 (`aiMove` L716-719).
+* No per-side engine identity: one global engine serves whichever side the AI plays; modes are pvp / ai_easy / ai_medium / ai_hard / ai_vs_ai.
+* **Worker constraint:** `ensureAIWorker` (L663) builds the worker source via `fn.toString()` over an explicit `engineFunctions` list and runs `getBestMove(state, depth)` inside the worker. Any plugin engine must be a self-contained serializable function (or the worker message protocol must be extended to carry a plugin id + per-side config).
+* `getJesterValue` (L521) already contains implicit phase logic: ply < 10 -> 4.0, pieceCount > 18 -> 5.5, else 3.5 — a natural seed for the PhasePolicy thresholds.
+* Promotion sentinel: AI passes promoChoice 'pending'; applyRaw falls back to queen. Plugins must keep this contract.
+* AI scheduling is spread across play()/setup()/side-switch handlers via `setTimeout(aiMove, getSpeed())`; the plugin system should replace the body of aiMove, not its call sites.
+
 ## Scope
 In:
 * Plugin interface, phase detection, per-side mapping, strength levels, UI labels.
@@ -51,6 +61,7 @@ Out (for now):
 
 ## Progress Log
 * 2026-10-22: Draft created on branch engine-plugins-design from design discussion (interface, phases, per-side mapping, levels).
+* 2026-10-23: Investigation of script.js complete; findings section added (worker toString constraint, depth-by-mode, getJesterValue phase seed, promotion sentinel).
 * Open questions:
   * Q1: Default configuration per side when the system ships?
   * Q2: Phase thresholds in material points or piece count?
