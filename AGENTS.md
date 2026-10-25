@@ -16,6 +16,7 @@ Branch & Review
 
 Keep Replies Short
 * Default: 15 lines max, plain English, no preamble, no restating my question.
+* Allow up to 20–25 lines when needed to explain a decision, caveat, or context clearly and avoid misinterpretation.
 * Lead with the answer or recommendation; justify only if I ask.
 * End every turn with a lettered list of decisions I need to make (A, B, …), or "no decisions needed". Numbers are reserved for questions (Q1, Q2, …).
 
