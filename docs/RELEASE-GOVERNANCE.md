@@ -1,79 +1,20 @@
-## When to cut a release
+# RELEASE-GOVERNANCE.md — Release Decisions
+Purpose: when to make a release checkpoint and how its version files stay aligned. Not for the project’s version-number definitions (SEMVER.md) or the full release procedure (VERSIONING.md).
 
-Cut a release, meaning create a `v<semver>` tag and GitHub release, when the
-work on `main` behind that tag is something the user is willing to call a
-publicly visible checkpoint.
+## When to release
 
-In practice, on this repo, that usually means:
+A release is an intentional, user-facing checkpoint. A PR merge to `main` does not automatically mean a release or version bump; intermediate work, documentation, and changes not selected as a checkpoint can remain untagged.
 
-- a PR merged to `main`, and
-- the user has said the change is worth releasing now rather than holding.
+Choose whether a change is worth releasing. When it is, bump the version in the same release change, using the project’s established rules in `SEMVER.md`. Do not create a version bump merely because files changed or a PR merged.
 
-Do not assume every merge is a release. Some merges are intermediate steps,
-cleanup, or work that is not worth a user-facing tag yet. In that case leave
-the code on `main` but do not tag until enough has landed to be worth calling
-a release.
+## Version and cache consistency
 
-## When to bump a version
+The annotated `v<semver>` tag is the authority for a release. In the release change, make the version in `manifest.json` and the version component of the `sw.js` cache name agree with that tag. Keep the visible version label in `index.html` in sync while it is shown to players; it is display text, not a separate source of version truth.
 
-Bump the version in the same merge that introduces the releasable change.
+A service-worker cache suffix is separate from the app version. Whenever a precached asset changes, bump the `sw.js` cache suffix so installed clients receive the changed app shell, even when the change is not being released and the app version is unchanged.
 
-The version bump is not a separate later action. If a PR is worth releasing,
-it should also carry the new version in the files that expose it to users and
-the browser: at minimum `manifest.json` and `sw.js`, and the visible user-facing
-places the repo already keeps in sync, such as `index.html`.
+## Release procedure
 
-VERSIONING.md is explicit that the tag is the authority and that
-`manifest.json` and `sw.js` are copies of the tag. Do the bump in those files
-so the working tree is internally consistent before the tag is cut.
+Follow `VERSIONING.md` for the release sequence, deployment checks, tagging, release notes, and HISTORY.md entry. Do not tag a commit before the release has been chosen and the version-bearing files describe it.
 
-## What “releasable” means here
-
-A change is releasable when the user has chosen to make it a checkpoint. Do not
-invent a separate technical bar on top of that. The practical signal is:
-
-- the user asked for a release, or
-- the user asked for a version bump, which on this repo should be treated as
-  “this change is worth a release tag as well,” or
-- the user has indicated the current state of `main` should be tagged.
-
-If the user has not indicated that, do not tag just because a merge happened.
-
-## Pre-1.0 exception
-
-This project is pre-1.0. That means the usual promise of semver is looser.
-User-facing features can land in minor bumps. Treat 0.x y as a sequence of
-usable checkpoints, not as a promise that every minor is only a feature and
-every patch is only a fix.
-
-Even so, do not tag purely mechanical changes just because they landed. If the
-change is a build touch-up, a cache rename, or a doc-only note with no user-facing
-meaning the user wants to preserve as a checkpoint, ask whether a tag is wanted
-before cutting one.
-
-## What a release should include
-
-A release tag should point at a clean `main` state that the version files already
-describe. The release notes are the place to say what changed, what was verified,
-and what is still limited. Keep them short and concrete.
-
-If the release includes a service-worker cache change, say so, because that affects
-installed PWAs. If it includes user-visible UI, say what a user can now see or do
-that they could not before.
-
-## When main is ahead of the latest tag
-
-If `main` has unreleasable work-in-progress after the latest tag, that is normal
-pre-release state. The latest tag is still the latest release; the newer commits
-on `main` are not yet a release until the user wants one.
-
-Do not retroactively relabel the latest tag just because `main` moved on. Do not
-pretend `main` is already at the next release if the user has not asked for one.
-
-## Quick decision rule
-
-- Merge to main? Yes.
-- User said release or version bump, or clearly wants the current main tagged?
-  Yes.
-- Then: bump version in the same merge, then tag and release.
-- Otherwise: keep the code, skip the tag until there is a reason.
+Keep release notes short and concrete: explain what changed, what was verified, and any remaining limitations. Mention service-worker cache changes because they affect installed PWAs, and describe user-visible changes in terms of what players can now see or do.

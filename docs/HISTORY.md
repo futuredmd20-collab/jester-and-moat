@@ -104,3 +104,9 @@ Purpose: dated record of decisions and changes, newest last. Not for current sta
 
 2026-10-22 — Piece accent cache bump
 * The piece-colour improvements (black outlines, dark accent, flat jester, black bishop/rook; main commit 9f0b31f) shipped without a cache suffix bump. style.css is precached, so the cache name is bumped to jm-cache-v0.6.1-piece-art-1 to reach returning clients. No version bump and no tag.
+
+2026-10-25 — Release and version guidance aligned
+* Updated RELEASE-GOVERNANCE.md so release decisions are intentional and version numbers follow VERSIONING.md: tagging is an explicit checkpoint, `manifest.json` and the `sw.js` version component match the tag, and the visible `index.html` version label stays in sync when shown.
+* Clarified that precached asset changes need a service-worker cache-suffix bump even when the app version does not change.
+* Rewrote SEMVER.md to match VERSIONING.md: MAJOR for incompatible saved-game/storage formats, MINOR for backward-compatible features, and PATCH for fixes or internal changes that preserve saves and features.
+* Added Purpose lines to both policy documents.
