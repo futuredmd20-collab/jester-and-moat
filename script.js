@@ -31,6 +31,26 @@ function renderPalettePieces() {
 const ROWS = 8, COLS = 10;
 const DIRS = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
 
+/* Plugin System: Phase Constants */
+const ENGINE_PHASES = {
+  OPENING: 'opening',
+  MIDGAME: 'midgame',
+  ENDGAME: 'endgame'
+};
+
+/* Plugin System: Phase Detection */
+function getGamePhase(st) {
+  let pieceCount = 0;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (st.board[r][c]) pieceCount++;
+    }
+  }
+  if (st.ply < 10 || pieceCount >= 34) return ENGINE_PHASES.OPENING;
+  if (pieceCount <= 16) return ENGINE_PHASES.ENDGAME;
+  return ENGINE_PHASES.MIDGAME;
+}
+
 let state;
 let selected = null;
 let animateNextMove = false;
@@ -640,6 +660,36 @@ function getBestMove(st, depth) {
   return bestMove;
 }
 
+
+/* Plugin System: MinMaxLegacy Plugin #1
+ * Wraps the existing MinMax engine as a plugin.
+ * Reads modeSelect from DOM to replicate aiMove's depth buckets.
+ * Behavior unchanged from current implementation. */
+const MinMaxLegacy = {
+  name: 'MinMax (Legacy)',
+  phases: [ENGINE_PHASES.OPENING, ENGINE_PHASES.MIDGAME, ENGINE_PHASES.ENDGAME],
+  strength: 'default',
+  getMove: function(gameState, side) {
+    const mode = document.getElementById('modeSelect').value;
+    let depth = 2;
+    if (mode === 'ai_easy') depth = 1;
+    if (mode === 'ai_medium' || mode === 'ai_vs_ai') depth = 2;
+    if (mode === 'ai_hard') depth = 3;
+    return getBestMove(gameState, depth);
+  }
+};
+
+/* Plugin System: Engine Registry */
+const enginePlugins = new Map();
+enginePlugins.set('minmax_legacy', MinMaxLegacy);
+
+/* Plugin System: Per-side default engine configuration
+ * Both sides default to MinMaxLegacy for all phases (single-engine mode)
+ * Format: { engineId: string, phaseOverrides: { [phase]: engineId } | null } */
+const defaultEngineForSide = {
+  w: { engineId: 'minmax_legacy', phaseOverrides: null },
+  b: { engineId: 'minmax_legacy', phaseOverrides: null }
+};
 const MODE_TAG = { pvp: '2 Players', ai_easy: 'vs AI · Easy', ai_medium: 'vs AI · Medium', ai_hard: 'vs AI · Hard', ai_vs_ai: 'AI vs AI' };
 /* Header mode pill, and the controls that have no meaning in AI vs AI
  * (there is no player side to switch). */
@@ -707,26 +757,48 @@ onmessage = function(event) {
   return aiWorker;
 }
 
+/* Plugin System: Get engine for a side based on current phase */
+function getEngineForSide(side) {
+  const config = defaultEngineForSide[side];
+  const phase = getGamePhase(state);
+  
+  if (config.phaseOverrides) {
+    const phaseEngineId = config.phaseOverrides[phase];
+    if (phaseEngineId && enginePlugins.has(phaseEngineId)) {
+      return enginePlugins.get(phaseEngineId);
+    }
+  }
+  
+  if (enginePlugins.has(config.engineId)) {
+    return enginePlugins.get(config.engineId);
+  }
+  
+  return enginePlugins.get('minmax_legacy');
+}
+
 function aiMove(){
   if (gameOver || isAIThinking) return;
   isAIThinking = true;
-  status("⏳ AI thinking...");
+  status("\u23f3 AI thinking...");
 
-  const mode = document.getElementById('modeSelect').value;
-  let depth = 2;
-  if (mode === 'ai_easy') depth = 1;
-  if (mode === 'ai_medium' || mode === 'ai_vs_ai') depth = 2;
-  if (mode === 'ai_hard') depth = 3;
-
+  const engine = getEngineForSide(state.turn);
+  
   const worker = ensureAIWorker();
   if (worker) {
     const id = ++aiRequestId;
+    const depth = engine === MinMaxLegacy ? (() => {
+      const mode = document.getElementById('modeSelect').value;
+      if (mode === 'ai_easy') return 1;
+      if (mode === 'ai_medium' || mode === 'ai_vs_ai') return 2;
+      if (mode === 'ai_hard') return 3;
+      return 2;
+    })() : 2;
     worker.postMessage({ id, state: clone(state), depth });
     return;
   }
   setTimeout(() => {
     if (gameOver) { isAIThinking = false; return; }
-    const bestMove = getBestMove(state, depth);
+    const bestMove = engine.getMove(clone(state), state.turn);
     isAIThinking = false;
     if (bestMove) play(bestMove, 'pending');
   }, 20);
