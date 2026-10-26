@@ -14,9 +14,17 @@ Branch & Review
 * Never merge a PR without explicit permission.
 * Treat GitHub as canonical; do not modify mirror copies as a substitute.
 
+Workflow Options
+When you request a change, I will ask which workflow you want:
+- **A**: Local commit only (no push, no remote changes)
+- **B**: Commit + push to existing remote branch (branch must already exist on GitHub)
+- **C**: Create new branch from main + commit + push to remote
+- **D**: Full workflow (create new branch from main + commit + push + open draft PR)
+- **E**: Custom (describe your exact steps)
+
 Keep Replies Short
 * Default: 15 lines max, plain English, no preamble, no restating my question.
-* Allow up to 20–25 lines when needed to explain a decision, caveat, or context clearly and avoid misinterpretation.
+* Allow up to 20–25 additional lines when needed to explain a decision, caveat, or context clearly and avoid misinterpretation. 
 * Lead with the answer or recommendation; justify only if I ask.
 * End every turn with a lettered list of decisions I need to make (A, B, …), or "no decisions needed". Numbers are reserved for questions (Q1, Q2, …).
 
