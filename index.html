@@ -30,7 +30,7 @@
       <circle cx="50" cy="15" r="3.8" fill="#b49353" stroke="#292723" stroke-width="1"/>
       <circle cx="79" cy="23" r="3.8" fill="#b49353" stroke="#292723" stroke-width="1"/>
     </svg>
-    <h1>Jester & Moat <span class="version-tag">v0.7.0</span> <span class="version-tag mode-tag" id="modeTag">vs AI · Medium</span></h1>
+    <h1>Jester & Moat <span class="version-tag">v0.7.1</span> <span class="version-tag mode-tag" id="modeTag">vs AI · Medium</span></h1>
   </div>
 </header>
 
@@ -170,6 +170,36 @@
    <option value="white" selected>White (Play as White)</option>
    <option value="black">Black (Play as Black)</option>
    <option value="random">Random Side</option>
+  </select>
+ </div>
+ <div class="drawer-row">
+  <label>White Engine:</label>
+  <select id="whiteEngineSelect">
+   <option value="minmax_legacy">MinMax Legacy</option>
+   <option value="mcts">MCTS (~1200 ELO)</option>
+  </select>
+ </div>
+ <div class="drawer-row">
+  <label>White Engine Phase:</label>
+  <select id="whiteEnginePhaseSelect">
+   <option value="opening">Opening</option>
+   <option value="midgame" selected>Midgame</option>
+   <option value="endgame">Endgame</option>
+  </select>
+ </div>
+ <div class="drawer-row">
+  <label>Black Engine:</label>
+  <select id="blackEngineSelect">
+   <option value="minmax_legacy">MinMax Legacy</option>
+   <option value="mcts">MCTS (~1200 ELO)</option>
+  </select>
+ </div>
+ <div class="drawer-row">
+  <label>Black Engine Phase:</label>
+  <select id="blackEnginePhaseSelect">
+   <option value="opening">Opening</option>
+   <option value="midgame" selected>Midgame</option>
+   <option value="endgame">Endgame</option>
   </select>
  </div>
  <div class="drawer-row">
