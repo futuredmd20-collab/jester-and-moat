@@ -328,7 +328,11 @@
     .then(function (sprites) {
       document.getElementById("pieceSprite").innerHTML = sprites[0];
       document.getElementById("pieceFlatSprite").innerHTML = sprites[1];
-      boot();
+      var mctsScript = document.createElement("script");
+      mctsScript.src = "engines/mcts-engine.js";
+      mctsScript.onload = boot;
+      mctsScript.onerror = boot;
+      document.body.appendChild(mctsScript);
     })
     .catch(function (error) {
       console.error("Piece sprite failed to load:", error);
