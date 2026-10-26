@@ -682,13 +682,14 @@ const MinMaxLegacy = {
 /* Plugin System: Engine Registry */
 const enginePlugins = new Map();
 enginePlugins.set('minmax_legacy', MinMaxLegacy);
+enginePlugins.set('mcts', mctsEngine(2));
 
 /* Plugin System: Per-side default engine configuration
  * Both sides default to MinMaxLegacy for all phases (single-engine mode)
  * Format: { engineId: string, phaseOverrides: { [phase]: engineId } | null } */
 const defaultEngineForSide = {
-  w: { engineId: 'minmax_legacy', phaseOverrides: null },
-  b: { engineId: 'minmax_legacy', phaseOverrides: null }
+  w: { engineId: 'minmax_legacy', phaseOverrides: { opening: 'minmax_legacy', midgame: 'minmax_legacy', endgame: 'minmax_legacy' } },
+  b: { engineId: 'minmax_legacy', phaseOverrides: { opening: 'minmax_legacy', midgame: 'minmax_legacy', endgame: 'minmax_legacy' } }
 };
 const MODE_TAG = { pvp: '2 Players', ai_easy: 'vs AI · Easy', ai_medium: 'vs AI · Medium', ai_hard: 'vs AI · Hard', ai_vs_ai: 'AI vs AI' };
 /* Header mode pill, and the controls that have no meaning in AI vs AI
@@ -710,7 +711,7 @@ function isAIMode() {
 
 function ensureAIWorker() {
   if (aiWorker || !('Worker' in window)) return aiWorker;
-  const engineFunctions = [clone, inside, other, pieceAt, getMoatCells, isMoatCell, checkMoatDestructionState, attacked, kingPos, inCheck, pseudoMoves, applyRaw, legalMovesFromState, allLegalState, getJesterValue, evaluateBoard, minimax, getBestMove];
+  const engineFunctions = [clone, inside, other, pieceAt, getMoatCells, isMoatCell, checkMoatDestructionState, attacked, kingPos, inCheck, pseudoMoves, applyRaw, legalMovesFromState, allLegalState, getJesterValue, evaluateBoard, minimax, getBestMove, mctsLevelFor, mctsApplyMove, mctsPlayout, mctsNode, mctsUctChild, mctsSearch, mctsGetMove];
   const workerSource = `"use strict";
 const ROWS = 8, COLS = 10;
 const DIRS = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
@@ -742,7 +743,9 @@ onmessage = function(event) {
       status(`AI error: ${data.error}`);
       return;
     }
-    if (data.move) play(data.move, 'pending');
+    // Support workerFn directive: 'mctsGetMove' or 'getBestMove'
+    const move = data.move;
+    if (data.move) play(move, 'pending');
     else {
       gameOver = true;
       stopAutoPlay();
@@ -776,29 +779,53 @@ function getEngineForSide(side) {
   return enginePlugins.get('minmax_legacy');
 }
 
+/* Plugin System: Get engine config for a side based on current phase
+ * Returns { engine, depth } where depth is derived from modeSelect.
+ * Used by aiMove() to set the correct search depth for each engine type.
+ */
+function getEngineConfig(side) {
+  const engine = getEngineForSide(side);
+  const mode = document.getElementById('modeSelect').value;
+  const isMinMax = engine === MinMaxLegacy;
+  const isMCTS = engine.name && engine.name.includes('MCTS');
+  
+  if (isMCTS) {
+    // MCTS uses level 1-3 corresponding to depth 1-3 from modeSelect
+    if (mode === 'ai_easy') return { engine, depth: 1 };
+    if (mode === 'ai_medium' || mode === 'ai_vs_ai') return { engine, depth: 2 };
+    if (mode === 'ai_hard') return { engine, depth: 3 };
+    return { engine, depth: 2 };
+  }
+  
+  if (isMinMax) {
+    let depth = 2;
+    if (mode === 'ai_easy') depth = 1;
+    if (mode === 'ai_medium' || mode === 'ai_vs_ai') depth = 2;
+    if (mode === 'ai_hard') depth = 3;
+    return { engine, depth };
+  }
+  
+  return { engine, depth: 2 };
+}
+
 function aiMove(){
   if (gameOver || isAIThinking) return;
   isAIThinking = true;
   status("\u23f3 AI thinking...");
 
-  const engine = getEngineForSide(state.turn);
+  const { engine, depth } = getEngineConfig(state.turn);
   
   const worker = ensureAIWorker();
   if (worker) {
     const id = ++aiRequestId;
-    const depth = engine === MinMaxLegacy ? (() => {
-      const mode = document.getElementById('modeSelect').value;
-      if (mode === 'ai_easy') return 1;
-      if (mode === 'ai_medium' || mode === 'ai_vs_ai') return 2;
-      if (mode === 'ai_hard') return 3;
-      return 2;
-    })() : 2;
-    worker.postMessage({ id, state: clone(state), depth });
+    // Route to mctsGetMove for MCTS, getBestMove for MinMax
+    const workerFn = engine.name && engine.name.includes('MCTS') ? 'mctsGetMove' : 'getBestMove';
+    worker.postMessage({ id, state: clone(state), depth, workerFn });
     return;
   }
   setTimeout(() => {
     if (gameOver) { isAIThinking = false; return; }
-    const bestMove = engine.getMove(clone(state), state.turn);
+    const bestMove = engine.getMove ? engine.getMove(clone(state), state.turn) : null;
     isAIThinking = false;
     if (bestMove) play(bestMove, 'pending');
   }, 20);
