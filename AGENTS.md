@@ -16,11 +16,11 @@ Branch & Review
 
 Workflow Options
 When you request a change, I will ask which workflow you want:
-- **A**: Local commit only
-- **B**: Commit + push to current branch
-- **C**: New branch + commit + push
-- **D**: Full workflow (new branch + commit + push + PR)
-- **E**: Custom (describe your steps, I'll propose a plan)
+- **A**: Local commit only (no push, no remote changes)
+- **B**: Commit + push to existing remote branch (branch must already exist on GitHub)
+- **C**: Create new branch from main + commit + push to remote
+- **D**: Full workflow (create new branch from main + commit + push + open draft PR)
+- **E**: Custom (describe your exact steps)
 
 Keep Replies Short
 * Default: 15 lines max, plain English, no preamble, no restating my question.
