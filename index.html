@@ -173,6 +173,36 @@
   </select>
  </div>
  <div class="drawer-row">
+  <label>White Engine:</label>
+  <select id="whiteEngineSelect">
+   <option value="minmax_legacy">MinMax Legacy</option>
+   <option value="mcts">MCTS (~1200 ELO)</option>
+  </select>
+ </div>
+ <div class="drawer-row">
+  <label>White Engine Phase:</label>
+  <select id="whiteEnginePhaseSelect">
+   <option value="opening">Opening</option>
+   <option value="midgame" selected>Midgame</option>
+   <option value="endgame">Endgame</option>
+  </select>
+ </div>
+ <div class="drawer-row">
+  <label>Black Engine:</label>
+  <select id="blackEngineSelect">
+   <option value="minmax_legacy">MinMax Legacy</option>
+   <option value="mcts">MCTS (~1200 ELO)</option>
+  </select>
+ </div>
+ <div class="drawer-row">
+  <label>Black Engine Phase:</label>
+  <select id="blackEnginePhaseSelect">
+   <option value="opening">Opening</option>
+   <option value="midgame" selected>Midgame</option>
+   <option value="endgame">Endgame</option>
+  </select>
+ </div>
+ <div class="drawer-row">
   <label>Clock Setting:</label>
   <select id="timeSelect">
    <option value="0" selected>Clock: Untimed</option>

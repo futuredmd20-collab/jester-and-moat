@@ -702,12 +702,48 @@ function updateModeUI() {
   switchBtn.disabled = isSim;
   switchBtn.title = isSim ? 'Not available in AI vs AI' : 'Switch player side and board view';
   document.getElementById('playerSideSelect').disabled = isSim;
+}function updateEngineConfigUI() {
+  // Read White engine/phase selects
+  const whiteEngine = document.getElementById('whiteEngineSelect').value;
+  const whitePhase = document.getElementById('whiteEnginePhaseSelect').value;
+  const blackEngine = document.getElementById('blackEngineSelect').value;
+  const blackPhase = document.getElementById('blackEnginePhaseSelect').value;
+
+  // Helper: build phaseOverrides where only the selected phase gets the chosen engine
+  function buildPhaseOverrides(engine, phase) {
+    const base = { opening: 'minmax_legacy', midgame: 'minmax_legacy', endgame: 'minmax_legacy' };
+    if (engine === 'mcts') {
+      base[phase] = 'mcts';
+    }
+    return base;
+  }
+
+  defaultEngineForSide.w.phaseOverrides = buildPhaseOverrides(whiteEngine, whitePhase);
+  defaultEngineForSide.b.phaseOverrides = buildPhaseOverrides(blackEngine, blackPhase);
+  defaultEngineForSide.w.engineId = whiteEngine;
+  defaultEngineForSide.b.engineId = blackEngine;
+
+  // Persist to localStorage for reload persistence
+  try {
+    localStorage.setItem('engineConfig', JSON.stringify({
+      whiteEngine, whitePhase,
+      blackEngine, blackPhase
+    }));
+  } catch (e) {
+    // localStorage not available (e.g. private browsing); ignore
+  }
 }
 
 function isAIMode() {
   const m = document.getElementById('modeSelect').value;
   return m.startsWith('ai_');
 }
+
+// Wire up engine/phase per-side configuration UI
+document.getElementById('whiteEngineSelect').onchange = updateEngineConfigUI;
+document.getElementById('whiteEnginePhaseSelect').onchange = updateEngineConfigUI;
+document.getElementById('blackEngineSelect').onchange = updateEngineConfigUI;
+document.getElementById('blackEnginePhaseSelect').onchange = updateEngineConfigUI;
 
 function ensureAIWorker() {
   if (aiWorker || !('Worker' in window)) return aiWorker;
