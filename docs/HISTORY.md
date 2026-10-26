@@ -110,3 +110,7 @@ Purpose: dated record of decisions and changes, newest last. Not for current sta
 * Clarified that precached asset changes need a service-worker cache-suffix bump even when the app version does not change.
 * Rewrote SEMVER.md to match VERSIONING.md: MAJOR for incompatible saved-game/storage formats, MINOR for backward-compatible features, and PATCH for fixes or internal changes that preserve saves and features.
 * Added Purpose lines to both policy documents.
+
+2026-10-26 — Agent guidance consolidated
+* Shared limitations guidance now lives in .agents/limitations.md; removed duplicate docs/LIMITATIONS.md.
+* Updated AGENTS.md guidance and corrected docs/RESUME.md's active limitations reference.
