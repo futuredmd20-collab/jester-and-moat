@@ -124,3 +124,9 @@ Purpose: dated record of decisions and changes, newest last. Not for current sta
 * Fixed the generated AI worker to honor its `workerFn` message selector: MCTS calls `mctsGetMove`, MinMax calls `getBestMove`, and unsupported selectors report an explicit worker error instead of silently falling back to MinMax.
 * Refreshed the MCTS module integration comments and updated `docs/ENGINE-PLUGINS.md` to distinguish the source fix from still-pending browser/runtime verification.
 * Static source inspection only; no browser tests, build, dependency installation, or runtime execution were performed.
+
+2026-10-27 — Engine startup and single-file build hardening
+* Fixed the single-file builder to embed the MCTS module before script.js; previously the registry called mctsEngine even though the build omitted that module, which could stop initialization before the board rendered.
+* Made MCTS registration and worker-helper serialization conditional when the module is unavailable, allowing the board and MinMax engine to remain usable with a visible console warning. The page loader now logs MCTS load failures before starting in fallback mode.
+* Bumped the service-worker cache to jm-cache-v0.7.2-engine-startup-1 so clients retire the prior precached app shell.
+* Static source inspection only. No build execution or browser/runtime verification was performed.
