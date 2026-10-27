@@ -3988,6 +3988,49 @@ if (debugModeToggle) {
   debugModeToggle.checked = debugLogger.enabled;
 }
 
+
+/* Reliable mobile settings accordion */
+function initCollapsibleSections() {
+  document.querySelectorAll('.collapsible-section').forEach(section => {
+    const header = section.querySelector('.section-header');
+    const toggle = section.querySelector('.section-toggle');
+    if (!header || !toggle || section.dataset.collapseReady === 'true') return;
+    section.dataset.collapseReady = 'true';
+    const setCollapsed = (collapsed) => {
+      section.classList.toggle('collapsed', collapsed);
+      header.setAttribute('aria-expanded', String(!collapsed));
+      toggle.textContent = collapsed ? '▸' : '▾';
+    };
+    setCollapsed(window.innerWidth <= 768);
+    header.addEventListener('click', (event) => {
+      if (event.target.closest('button, input, select, a')) return;
+      setCollapsed(!section.classList.contains('collapsed'));
+    });
+    toggle.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setCollapsed(!section.classList.contains('collapsed'));
+    });
+    header.addEventListener('keydown', (event) => {
+      if (event.target !== header || (event.key !== 'Enter' && event.key !== ' ')) return;
+      event.preventDefault();
+      setCollapsed(!section.classList.contains('collapsed'));
+    });
+  });
+}
+initCollapsibleSections();
+window.addEventListener('resize', () => {
+  if (window.innerWidth > 768) {
+    document.querySelectorAll('.collapsible-section').forEach(section => {
+      section.classList.remove('collapsed');
+      const header = section.querySelector('.section-header');
+      const toggle = section.querySelector('.section-toggle');
+      if (header) header.setAttribute('aria-expanded', 'true');
+      if (toggle) toggle.textContent = '▾';
+    });
+  }
+});
+
 applyTheme();
 applyBoardStyle();
 renderPalettePieces();
