@@ -1971,55 +1971,55 @@ if (debugModeToggle) {
 
 /* Collapsible Sections in Options Drawer */
 function initCollapsibleSections() {
-  const sections = document.querySelectorAll('.collapsible-section');
-  
-  sections.forEach(section => {
+  document.querySelectorAll('.collapsible-section').forEach(section => {
     const header = section.querySelector('.section-header');
     const toggle = section.querySelector('.section-toggle');
-    const content = section.querySelector('.section-content');
-    
-    if (header && toggle) {
-      header.addEventListener('click', () => {
-        section.classList.toggle('collapsed');
-      });
-      toggle.addEventListener('click', (e) => {
-        e.stopPropagation();
-        section.classList.toggle('collapsed');
-      });
-    }
-    
-    // On mobile, start with sections collapsed
-    if (window.innerWidth <= 768) {
-      section.classList.add('collapsed');
-    }
+    if (!header || !toggle || section.dataset.collapseReady === 'true') return;
+    section.dataset.collapseReady = 'true';
+
+    const setCollapsed = (collapsed) => {
+      section.classList.toggle('collapsed', collapsed);
+      header.setAttribute('aria-expanded', String(!collapsed));
+      toggle.textContent = collapsed ? '▸' : '▾';
+    };
+
+    if (window.innerWidth <= 768) setCollapsed(true);
+    else setCollapsed(false);
+
+    header.addEventListener('click', (event) => {
+      if (event.target.closest('button, input, select, a')) return;
+      setCollapsed(!section.classList.contains('collapsed'));
+    });
+    toggle.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setCollapsed(!section.classList.contains('collapsed'));
+    });
+    header.addEventListener('keydown', (event) => {
+      if (event.target !== header || (event.key !== 'Enter' && event.key !== ' ')) return;
+      event.preventDefault();
+      setCollapsed(!section.classList.contains('collapsed'));
+    });
   });
 }
 
-// Initialize collapsible sections after DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initCollapsibleSections);
+  document.addEventListener('DOMContentLoaded', initCollapsibleSections, { once: true });
 } else {
   initCollapsibleSections();
 }
 
-// Also handle window resize
 window.addEventListener('resize', () => {
-  const sections = document.querySelectorAll('.collapsible-section');
-  const isMobile = window.innerWidth <= 768;
-  
-  sections.forEach(section => {
-    if (isMobile) {
-      // On mobile, respect collapsed state
-      if (!section.classList.contains('collapsed')) {
-        section.classList.add('collapsed');
-      }
-    } else {
-      // On desktop, ensure all are expanded
+  if (window.innerWidth > 768) {
+    document.querySelectorAll('.collapsible-section').forEach(section => {
       section.classList.remove('collapsed');
-    }
-  });
+      const header = section.querySelector('.section-header');
+      const toggle = section.querySelector('.section-toggle');
+      if (header) header.setAttribute('aria-expanded', 'true');
+      if (toggle) toggle.textContent = '▾';
+    });
+  }
 });
-
 
 applyTheme();
 applyBoardStyle();
