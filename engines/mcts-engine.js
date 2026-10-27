@@ -1,10 +1,9 @@
 /* engines/mcts-engine.js — MCTS AI engine (plugin #2) for Jester & Moat
  *
- * FOLDER CONVENTION: plugin AI engines live in engines/. When plugin #1
- * (minimax) is wrapped as a plugin (plan step 3 in docs/ENGINE-PLUGINS.md),
- * its plugin wrapper should follow the same convention; wiring (index.html
- * reference + sw.js precache) happens at integration time, not per engine
- * file, so nothing in engines/ is fetched at runtime until then.
+ * This module is loaded by index.html and precached by sw.js. The worker
+ * serializes its search functions from script.js, including the MCTS helpers,
+ * so worker dispatch can select mctsGetMove without importing this file in
+ * the worker itself.
  *
  * PURPOSE
  *   A second, structurally different AI engine: Monte Carlo Tree Search
@@ -17,16 +16,13 @@
  *   phase-specific logic, so covering all phases costs nothing extra.
  *
  * INTEGRATION CONDITIONS (what must be true for this file to work as-is)
- *   1. It relies on the canonical engine helpers that the current AI worker
- *      (ensureAIWorker in script.js) already serializes via fn.toString():
- *      clone, other, allLegalState, applyRaw, inCheck, evaluateBoard,
- *      ROWS, COLS. It defines no copies of those, so it cannot drift from
- *      the real rules. When wiring this plugin into the worker, add the
- *      mcts* functions below to the same engineFunctions list.
- *   2. Under the CURRENT worker protocol ({ id, state, depth }), the drop-in
- *      entry point is mctsGetMove(state, depth) — same signature and return
- *      shape as getBestMove, so integration is: add functions to the list,
- *      route the message to mctsGetMove instead of getBestMove.
+ *   1. It relies on canonical rule/search helpers serialized by
+ *      ensureAIWorker in script.js (clone, other, allLegalState, applyRaw,
+ *      inCheck, evaluateBoard, ROWS, COLS). It defines no copies of those,
+ *      so it cannot drift from the real rules.
+ *   2. The worker message carries { id, state, depth, workerFn }; the worker
+ *      dispatches workerFn to mctsGetMove or getBestMove. Both entry points
+ *      use the same move signature and return shape.
  *   3. mctsEngine(level) returns the plugin object per the drafted
  *      interface, for when the extended protocol (plugin id + per-side
  *      config) lands. strength = { playouts, capDepth, temperature, rating }.
@@ -56,9 +52,9 @@
  *   - Strength semantics: level numbers below are provisional ELO-like
  *     estimates, not calibrated ratings.
  *
- * NOT YET WIRED: this file is not referenced by index.html and is not in
- * the sw.js precache list. That happens at integration time (steps 3-5 of
- * the ENGINE-PLUGINS.md plan), per ARCHITECTURE.md.
+ * INTEGRATION STATUS: this module is referenced by index.html and included
+ * in the sw.js precache list. The AI worker serializes these functions from
+ * script.js; its dispatch must remain aligned with the workerFn protocol.
  */
 
 'use strict';
