@@ -290,7 +290,23 @@
    </div>
   </div>
  </div>
-</div>
+  <div class="drawer-section collapsible-section debug-diagnostics-section collapsed" data-section="debug">
+   <div class="section-header" role="button" tabindex="0" aria-expanded="false">
+    <span class="section-title">Debug &amp; Diagnostics</span>
+    <button class="section-toggle" type="button" aria-label="Toggle Debug & Diagnostics section">▸</button>
+   </div>
+   <div class="section-content">
+    <div class="drawer-row"><label for="debugModeToggle">Debug logging:</label><input type="checkbox" id="debugModeToggle" style="width:22px;height:22px;accent-color:var(--burgundy);"></div>
+    <div class="debug-panel" id="debugPanel" hidden>
+     <div class="debug-header"><span class="debug-title">Debug Log</span><div class="debug-controls">
+      <button class="debug-btn" id="debugClearBtn" type="button" title="Clear log">Clear</button>
+      <button class="debug-btn" id="debugDownloadBtn" type="button" title="Download log">Download</button>
+      <button class="debug-btn" id="debugToggleBtn" type="button" title="Toggle auto-scroll">Auto-scroll: On</button>
+     </div></div><div class="debug-log" id="debugLog"></div>
+    </div>
+   </div>
+  </div>
+ </div>
 
 <main>
 <div id="board" role="grid" aria-label="Chess board 10 by 8"></div>
@@ -335,17 +351,7 @@
 
 </div><!-- /.app-shell -->
 
-<!-- Debug Panel -->
-<div class="debug-panel" id="debugPanel" hidden>
-  <div class="debug-header">
-    <span class="debug-title">Debug Log</span>
-    <div class="debug-controls">
-      <button class="debug-btn" id="debugClearBtn" title="Clear log"></button>
-      <button class="debug-btn" id="debugDownloadBtn" title="Download log"></button>
-      <button class="debug-btn" id="debugToggleBtn" title="Toggle auto-scroll"></button>
-    </div>
-  </div>
-  <div class="debug-log" id="debugLog"></div>
+
 </div>
 
 <!-- GAME-BOOT:BEGIN — build.js swaps this block for an inline script in the single-file build. -->
