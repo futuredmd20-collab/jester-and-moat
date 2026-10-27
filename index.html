@@ -311,6 +311,19 @@
 
 </div><!-- /.app-shell -->
 
+<!-- Debug Panel -->
+<div class="debug-panel" id="debugPanel" hidden>
+  <div class="debug-header">
+    <span class="debug-title">Debug Log</span>
+    <div class="debug-controls">
+      <button class="debug-btn" id="debugClearBtn" title="Clear log"></button>
+      <button class="debug-btn" id="debugDownloadBtn" title="Download log"></button>
+      <button class="debug-btn" id="debugToggleBtn" title="Toggle auto-scroll"></button>
+    </div>
+  </div>
+  <div class="debug-log" id="debugLog"></div>
+</div>
+
 <!-- GAME-BOOT:BEGIN — build.js swaps this block for an inline script in the single-file build. -->
 <script>
 (function () {

@@ -8,6 +8,141 @@
 const PIECE_NAME = { k: 'king', q: 'queen', r: 'rook', b: 'bishop', n: 'knight', p: 'pawn', j: 'jester' };
 
 /* One markup function for board squares, captured boxes, the promotion modal and
+
+/* Debug Mode */
+const DEBUG_MODE_KEY = 'debugMode';
+const DEBUG_LOG_KEY = 'debugLog';
+const DEBUG_LOG_MAX = 1000;
+
+class DebugLogger {
+  constructor() {
+    this.enabled = false;
+    this.autoScroll = true;
+    this.logs = [];
+    this.loadState();
+    this.checkUrl();
+  }
+
+  checkUrl() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('debug') && params.get('debug') === '1') {
+      this.enable();
+    }
+  }
+
+  loadState() {
+    try {
+      const saved = localStorage.getItem(DEBUG_MODE_KEY);
+      if (saved === 'true') this.enabled = true;
+      const logs = localStorage.getItem(DEBUG_LOG_KEY);
+      if (logs) this.logs = JSON.parse(logs);
+    } catch (e) {
+      // localStorage not available
+    }
+  }
+
+  saveState() {
+    try {
+      localStorage.setItem(DEBUG_MODE_KEY, String(this.enabled));
+      localStorage.setItem(DEBUG_LOG_KEY, JSON.stringify(this.logs));
+    } catch (e) {
+      // localStorage not available
+    }
+  }
+
+  enable() {
+    this.enabled = true;
+    this.add('Debug mode enabled', 'info');
+    this.showPanel();
+    this.saveState();
+  }
+
+  disable() {
+    this.enabled = false;
+    this.add('Debug mode disabled', 'info');
+    this.hidePanel();
+    this.saveState();
+  }
+
+  toggle() {
+    if (this.enabled) this.disable();
+    else this.enable();
+  }
+
+  showPanel() {
+    const panel = document.getElementById('debugPanel');
+    if (panel) panel.hidden = false;
+  }
+
+  hidePanel() {
+    const panel = document.getElementById('debugPanel');
+    if (panel) panel.hidden = true;
+  }
+
+  add(message, level = 'info') {
+    if (!this.enabled) return;
+
+    const timestamp = new Date().toISOString();
+    const entry = { timestamp, level, message };
+    this.logs.push(entry);
+    
+    if (this.logs.length > DEBUG_LOG_MAX) {
+      this.logs.shift();
+    }
+
+    this.saveState();
+    this.render();
+    console[level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log'](message);
+  }
+
+  render() {
+    const logEl = document.getElementById('debugLog');
+    if (!logEl) return;
+
+    const html = this.logs.map(entry => {
+      const levelClass = `debug-${entry.level}`;
+      return `<div class="debug-entry ${levelClass}"><span class="debug-time">[${entry.timestamp.slice(11, 23)}]</span> <span class="debug-msg">${this.escapeHtml(entry.message)}</span></div>`;
+    }).join('');
+
+    const wasScrolled = logEl.scrollHeight - logEl.clientHeight <= logEl.scrollTop + 1;
+    logEl.innerHTML = html;
+    if (this.autoScroll || wasScrolled) {
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+  }
+
+  clear() {
+    this.logs = [];
+    this.saveState();
+    this.render();
+    this.add('Log cleared', 'info');
+  }
+
+  download() {
+    const blob = new Blob([this.logs.map(e => `[${e.timestamp}] [${e.level}] ${e.message}`).join('
+')], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `jester-moat-debug-${new Date().toISOString().slice(0, 19)}.log`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  toggleAutoScroll() {
+    this.autoScroll = !this.autoScroll;
+    this.add(`Auto-scroll ${this.autoScroll ? 'enabled' : 'disabled'}`, 'info');
+  }
+
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+}
+
+const debugLogger = new DebugLogger();
+
  * the editor palette, so every surface uses the currently selected art set. */
 let activePieceSet = 'classic';
 function pieceMarkup(type, color, extraClass = "") {
@@ -40,6 +175,22 @@ const ENGINE_PHASES = {
 
 /* Plugin System: Phase Detection */
 function getGamePhase(st) {
+  const phase = _getGamePhaseImpl(st);
+  debugLogger.add(`Phase: ${phase} (ply: ${st.ply}, pieces: ${_countPieces(st)})`, 'info');
+  return phase;
+}
+
+function _countPieces(st) {
+  let count = 0;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (st.board[r][c]) count++;
+    }
+  }
+  return count;
+}
+
+function _getGamePhaseImpl(st) {function getGamePhase(st) {
   let pieceCount = 0;
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
@@ -314,8 +465,14 @@ function setup(){
 }
 
 function status(s) {
+  let fullMsg = s;
+  if (debugLogger.enabled && state) {
+    const phase = getGamePhase(state);
+    fullMsg = `[Phase: ${phase}] ${s}`;
+  }
   const statusEl = document.getElementById("status");
-  statusEl.textContent = s;
+  statusEl.textContent = fullMsg;
+  debugLogger.add(fullMsg, 'info');
 }
 
 function pieceAt(r, c, b = state.board) { return inside(r, c) ? b[r][c] : null; }
@@ -794,7 +951,9 @@ onmessage = function(event) {
     aiWorker = null;
     return null;
   }
-  aiWorker.onmessage = (event) => {
+  aiWorker.onmessage =() => {
+  debugLogger.add('Worker message received', 'info');
+  event) => {
     const data = event.data;
     if (data.id !== aiRequestId) return;
     isAIThinking = false;
@@ -812,7 +971,8 @@ onmessage = function(event) {
       stopClock();
       status('No legal moves available.');
     }
-  };
+  }  // Remove the => { and keep the body
+};
   aiWorker.onerror = (event) => {
     isAIThinking = false;
     status('AI worker error. Please restart the game.');
@@ -1809,6 +1969,34 @@ document.getElementById('pieceSetSelect').addEventListener('change', () => {
 });
 
 loadOptions();
+
+/* Debug Panel Event Listeners */
+const debugClearBtn = document.getElementById('debugClearBtn');
+const debugDownloadBtn = document.getElementById('debugDownloadBtn');
+const debugToggleBtn = document.getElementById('debugToggleBtn');
+
+if (debugClearBtn) debugClearBtn.addEventListener('click', () => debugLogger.clear());
+if (debugDownloadBtn) debugDownloadBtn.addEventListener('click', () => debugLogger.download());
+if (debugToggleBtn) debugToggleBtn.addEventListener('click', () => debugLogger.toggleAutoScroll());
+
+// Add debug mode toggle to options drawer
+const optionsDrawer = document.getElementById('optionsDrawer');
+if (optionsDrawer) {
+  const debugRow = document.createElement('div');
+  debugRow.className = 'drawer-row';
+  debugRow.innerHTML = `
+    <label for="debugModeToggle">Debug Mode:</label>
+    <input type="checkbox" id="debugModeToggle" style="width:18px;height:18px;accent-color:var(--burgundy);">
+  `;
+  optionsDrawer.appendChild(debugRow);
+  document.getElementById('debugModeToggle').addEventListener('change', (e) => {
+    if (e.target.checked) debugLogger.enable();
+    else debugLogger.disable();
+  });
+  // Sync checkbox with debug mode state
+  document.getElementById('debugModeToggle').checked = debugLogger.enabled;
+}
+
 applyTheme();
 applyBoardStyle();
 renderPalettePieces();
