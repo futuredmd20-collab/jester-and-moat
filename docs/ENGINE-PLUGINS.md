@@ -46,17 +46,17 @@ The current MinMax plugin is a legacy adapter around `getBestMove`, preserving t
 - **PR #23** — service-worker precache and version alignment.
 - **PR #24** — fix for loading `engines/mcts-engine.js`.
 
-Current files show `getGamePhase()`, an `enginePlugins` registry containing MinMax and MCTS, per-side configuration, engine/phase selectors, MCTS script loading, and MCTS in the service-worker precache. This confirms code has landed; it does not establish that every path works at runtime.
+Current files show `getGamePhase()`, an `enginePlugins` registry containing MinMax and MCTS when the module is available, per-side configuration, engine/phase selectors, MCTS script loading, and MCTS in the service-worker precache. The single-file builder now embeds the MCTS module before `script.js`. If MCTS fails to load on the multi-file page, startup logs a warning and keeps the board/MinMax path available; MCTS selection then falls back to MinMax until the module is restored. These source changes do not establish that every path works at runtime.
 
-### Known verification gap / likely integration defect
+### Worker dispatch fix and verification status
 
-The worker source currently receives `workerFn` in the message, but the worker's `onmessage` handler still calls `getBestMove(state, data.depth)` unconditionally. Consequently, the worker path appears to ignore the requested `mctsGetMove` entry point and run MinMax instead. The main-thread fallback calls the selected engine's `getMove`. This must be reproduced and fixed in a separate implementation task; it is not being changed in this documentation-only pass.
+The worker's `onmessage` handler now dispatches `workerFn: 'mctsGetMove'` to `mctsGetMove` and `workerFn: 'getBestMove'` (or an omitted legacy selector) to `getBestMove`. Unknown selectors return an explicit worker error rather than silently running the wrong engine. The main-thread fallback continues to call the selected plugin's `getMove`.
 
-The MCTS module's own header still says it is not wired, which is stale relative to the current HTML and service-worker references. Its comments should be updated during a future code fix, not as part of this documentation-only reconciliation.
+Static source review confirms both MCTS functions are serialized into the worker source and the message selector is now used. Browser/runtime execution has not been performed in this task, so actual worker execution, engine choice, and fallback behavior remain to be verified. The stale MCTS integration comments were updated to reflect the existing HTML and service-worker wiring.
 
 ## Revised remaining plan
 
-1. **Fix and verify worker dispatch (implementation task):** make the worker honor the requested engine function or use an explicit, validated dispatch; confirm both MinMax and MCTS actually run through the worker and the fallback.
+1. **Verify worker dispatch at runtime:** source dispatch now honors the requested engine function and rejects unknown selectors; confirm MinMax and MCTS actually run through the worker and fallback in a browser.
 2. **Verify configuration behavior:** test White and Black independently, selected-phase-only MCTS behavior, MinMax fallback in other phases, and whether choices survive reload. Fix persistence/initialization if needed.
 3. **Verify phase classification:** exercise opening/midgame/endgame boundaries, including ply < 10, 34+ pieces, and 16 or fewer pieces. Keep thresholds provisional until reviewed against representative games.
 4. **Calibrate strength labels:** measure repeatable results before presenting ELO-like numbers as anything beyond rough estimates. Ensure UI labels accurately describe the configured strength.
@@ -75,4 +75,4 @@ The MCTS module's own header still says it is not wired, which is stale relative
 - **2026-10-22:** Initial design draft created on `engine-plugins-design`.
 - **2026-10-23:** Engine investigation and initial decisions recorded; MCTS implementation merged via PR #16.
 - **2026-10-24:** MinMax legacy adapter and registry groundwork landed.
-- **2026-10-26:** PRs #20–#24 added per-side/per-phase controls and integration/loading fixes. Current code contains the registry, phase selector logic, MCTS loader, and precache entry. Follow-up audit identifies the worker handler's unconditional MinMax call as an unresolved issue; runtime verification and rating calibration are not recorded as complete.
+- **2026-10-26:** PRs #20–#24 added per-side/per-phase controls and integration/loading fixes. Current code contains the registry, phase selector logic, MCTS loader, and precache entry. Follow-up audit identified the worker handler's unconditional MinMax call; the dispatch code fix is now on `fix/engine-worker-dispatch`, but browser/runtime verification and rating calibration are not recorded as complete.

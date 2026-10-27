@@ -9,6 +9,139 @@ const PIECE_NAME = { k: 'king', q: 'queen', r: 'rook', b: 'bishop', n: 'knight',
 
 /* One markup function for board squares, captured boxes, the promotion modal and
  * the editor palette, so every surface uses the currently selected art set. */
+
+/* Debug Mode */
+const DEBUG_MODE_KEY = 'debugMode';
+const DEBUG_LOG_KEY = 'debugLog';
+const DEBUG_LOG_MAX = 1000;
+
+class DebugLogger {
+  constructor() {
+    this.enabled = false;
+    this.autoScroll = true;
+    this.logs = [];
+    this.loadState();
+    this.checkUrl();
+  }
+
+  checkUrl() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('debug') && params.get('debug') === '1') {
+      this.enable();
+    }
+  }
+
+  loadState() {
+    try {
+      const saved = localStorage.getItem(DEBUG_MODE_KEY);
+      if (saved === 'true') this.enabled = true;
+      const logs = localStorage.getItem(DEBUG_LOG_KEY);
+      if (logs) this.logs = JSON.parse(logs);
+    } catch (e) {
+      // localStorage not available
+    }
+  }
+
+  saveState() {
+    try {
+      localStorage.setItem(DEBUG_MODE_KEY, String(this.enabled));
+      localStorage.setItem(DEBUG_LOG_KEY, JSON.stringify(this.logs));
+    } catch (e) {
+      // localStorage not available
+    }
+  }
+
+  enable() {
+    this.enabled = true;
+    this.add('Debug mode enabled', 'info');
+    this.showPanel();
+    this.saveState();
+  }
+
+  disable() {
+    this.enabled = false;
+    this.add('Debug mode disabled', 'info');
+    this.hidePanel();
+    this.saveState();
+  }
+
+  toggle() {
+    if (this.enabled) this.disable();
+    else this.enable();
+  }
+
+  showPanel() {
+    const panel = document.getElementById('debugPanel');
+    if (panel) panel.hidden = false;
+  }
+
+  hidePanel() {
+    const panel = document.getElementById('debugPanel');
+    if (panel) panel.hidden = true;
+  }
+
+  add(message, level = 'info') {
+    if (!this.enabled) return;
+
+    const timestamp = new Date().toISOString();
+    const entry = { timestamp, level, message };
+    this.logs.push(entry);
+    
+    if (this.logs.length > DEBUG_LOG_MAX) {
+      this.logs.shift();
+    }
+
+    this.saveState();
+    this.render();
+    console[level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log'](message);
+  }
+
+  render() {
+    const logEl = document.getElementById('debugLog');
+    if (!logEl) return;
+
+    const html = this.logs.map(entry => {
+      const levelClass = `debug-${entry.level}`;
+      return `<div class="debug-entry ${levelClass}"><span class="debug-time">[${entry.timestamp.slice(11, 23)}]</span> <span class="debug-msg">${this.escapeHtml(entry.message)}</span></div>`;
+    }).join('');
+
+    const wasScrolled = logEl.scrollHeight - logEl.clientHeight <= logEl.scrollTop + 1;
+    logEl.innerHTML = html;
+    if (this.autoScroll || wasScrolled) {
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+  }
+
+  clear() {
+    this.logs = [];
+    this.saveState();
+    this.render();
+    this.add('Log cleared', 'info');
+  }
+
+  download() {
+    const blob = new Blob([this.logs.map(e => `[${e.timestamp}] [${e.level}] ${e.message}`).join('\n')], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `jester-moat-debug-${new Date().toISOString().slice(0, 19)}.log`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  toggleAutoScroll() {
+    this.autoScroll = !this.autoScroll;
+    this.add(`Auto-scroll ${this.autoScroll ? 'enabled' : 'disabled'}`, 'info');
+  }
+
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+}
+
+const debugLogger = new DebugLogger();
 let activePieceSet = 'classic';
 function pieceMarkup(type, color, extraClass = "") {
   const name = PIECE_NAME[type] || 'pawn';
@@ -46,9 +179,11 @@ function getGamePhase(st) {
       if (st.board[r][c]) pieceCount++;
     }
   }
-  if (st.ply < 10 || pieceCount >= 34) return ENGINE_PHASES.OPENING;
-  if (pieceCount <= 16) return ENGINE_PHASES.ENDGAME;
-  return ENGINE_PHASES.MIDGAME;
+  const phase = st.ply < 10 || pieceCount >= 34 ? ENGINE_PHASES.OPENING :
+               pieceCount <= 16 ? ENGINE_PHASES.ENDGAME :
+               ENGINE_PHASES.MIDGAME;
+  debugLogger.add(`Phase: ${phase} (ply: ${st.ply}, pieces: ${pieceCount})`, 'info');
+  return phase;
 }
 
 let state;
@@ -314,8 +449,14 @@ function setup(){
 }
 
 function status(s) {
+  let fullMsg = s;
+  if (debugLogger.enabled && state) {
+    const phase = getGamePhase(state);
+    fullMsg = `[Phase: ${phase}] ${s}`;
+  }
   const statusEl = document.getElementById("status");
-  statusEl.textContent = s;
+  statusEl.textContent = fullMsg;
+  debugLogger.add(fullMsg, 'info');
 }
 
 function pieceAt(r, c, b = state.board) { return inside(r, c) ? b[r][c] : null; }
@@ -682,7 +823,12 @@ const MinMaxLegacy = {
 /* Plugin System: Engine Registry */
 const enginePlugins = new Map();
 enginePlugins.set('minmax_legacy', MinMaxLegacy);
-enginePlugins.set('mcts', mctsEngine(2));
+if (typeof mctsEngine === 'function') {
+  enginePlugins.set('mcts', mctsEngine(2));
+} else {
+  // Keep the board and legacy engine usable if the optional MCTS module fails to load.
+  console.warn('MCTS engine failed to load; falling back to MinMax.');
+}
 
 /* Plugin System: Per-side default engine configuration
  * Both sides default to MinMaxLegacy for all phases (single-engine mode)
@@ -747,15 +893,34 @@ document.getElementById('blackEnginePhaseSelect').onchange = updateEngineConfigU
 
 function ensureAIWorker() {
   if (aiWorker || !('Worker' in window)) return aiWorker;
-  const engineFunctions = [clone, inside, other, pieceAt, getMoatCells, isMoatCell, checkMoatDestructionState, attacked, kingPos, inCheck, pseudoMoves, applyRaw, legalMovesFromState, allLegalState, getJesterValue, evaluateBoard, minimax, getBestMove, mctsLevelFor, mctsApplyMove, mctsPlayout, mctsNode, mctsUctChild, mctsSearch, mctsGetMove];
+  const engineFunctions = [clone, inside, other, pieceAt, getMoatCells, isMoatCell, checkMoatDestructionState, attacked, kingPos, inCheck, pseudoMoves, applyRaw, legalMovesFromState, allLegalState, getJesterValue, evaluateBoard, minimax, getBestMove];
+  // MCTS helpers live in engines/mcts-engine.js. Serialize them only when that module loaded.
+  if (typeof mctsGetMove === 'function' && typeof mctsSearch === 'function') {
+    engineFunctions.push(mctsLevelFor, mctsApplyMove, mctsPlayout, mctsNode, mctsUctChild, mctsSearch, mctsGetMove);
+  }
   const workerSource = `"use strict";
 const ROWS = 8, COLS = 10;
 const DIRS = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+// MCTS constants must be defined inside the serialized worker scope too.
+const MCTS_LEVELS = {
+  1: { playouts: 200, capDepth: 10, temperature: 0.35, rating: '~800' },
+  2: { playouts: 700, capDepth: 14, temperature: 0.15, rating: '~1200' },
+  3: { playouts: 2000, capDepth: 18, temperature: 0.00, rating: '~1600' }
+};
+const MCTS_EXPLORATION = 0.7;
 let state = null;
 ${engineFunctions.map(fn => fn.toString()).join('\n')}
 onmessage = function(event) {
   const data = event.data;
-  try { state = data.state; const move = getBestMove(state, data.depth); postMessage({ id: data.id, move }); }
+  try {
+    state = data.state;
+    const moveFn = data.workerFn === 'mctsGetMove' ? mctsGetMove
+      : data.workerFn === 'getBestMove' || data.workerFn == null ? getBestMove
+      : null;
+    if (!moveFn) throw new Error('Unsupported worker function: ' + data.workerFn);
+    const move = moveFn(state, data.depth);
+    postMessage({ id: data.id, move });
+  }
   catch (error) { postMessage({ id: data.id, error: String(error && error.message || error) }); }
 };`;
   let blob, url;
@@ -771,6 +936,7 @@ onmessage = function(event) {
     return null;
   }
   aiWorker.onmessage = (event) => {
+    debugLogger.add('Worker message received', 'info');
     const data = event.data;
     if (data.id !== aiRequestId) return;
     isAIThinking = false;
@@ -788,7 +954,7 @@ onmessage = function(event) {
       stopClock();
       status('No legal moves available.');
     }
-  };
+};
   aiWorker.onerror = (event) => {
     isAIThinking = false;
     status('AI worker error. Please restart the game.');
@@ -1785,6 +1951,76 @@ document.getElementById('pieceSetSelect').addEventListener('change', () => {
 });
 
 loadOptions();
+
+/* Debug Panel Event Listeners */
+const debugClearBtn = document.getElementById('debugClearBtn');
+const debugDownloadBtn = document.getElementById('debugDownloadBtn');
+const debugToggleBtn = document.getElementById('debugToggleBtn');
+
+if (debugClearBtn) debugClearBtn.addEventListener('click', () => debugLogger.clear());
+if (debugDownloadBtn) debugDownloadBtn.addEventListener('click', () => debugLogger.download());
+if (debugToggleBtn) debugToggleBtn.addEventListener('click', () => { debugLogger.toggleAutoScroll(); debugToggleBtn.textContent = `Auto-scroll: ${debugLogger.autoScroll ? 'On' : 'Off'}`; });
+if (debugToggleBtn) debugToggleBtn.textContent = `Auto-scroll: ${debugLogger.autoScroll ? 'On' : 'Off'}`;
+
+// Debug mode toggle is part of the Debug & Diagnostics section in the markup.
+const debugModeToggle = document.getElementById('debugModeToggle');
+if (debugModeToggle) {
+  debugModeToggle.addEventListener('change', (e) => e.target.checked ? debugLogger.enable() : debugLogger.disable());
+  debugModeToggle.checked = debugLogger.enabled;
+}
+
+/* Collapsible Sections in Options Drawer */
+function initCollapsibleSections() {
+  document.querySelectorAll('.collapsible-section').forEach(section => {
+    const header = section.querySelector('.section-header');
+    const toggle = section.querySelector('.section-toggle');
+    if (!header || !toggle || section.dataset.collapseReady === 'true') return;
+    section.dataset.collapseReady = 'true';
+
+    const setCollapsed = (collapsed) => {
+      section.classList.toggle('collapsed', collapsed);
+      header.setAttribute('aria-expanded', String(!collapsed));
+      toggle.textContent = collapsed ? '▸' : '▾';
+    };
+
+    if (window.innerWidth <= 768) setCollapsed(true);
+    else setCollapsed(false);
+
+    header.addEventListener('click', (event) => {
+      if (event.target.closest('button, input, select, a')) return;
+      setCollapsed(!section.classList.contains('collapsed'));
+    });
+    toggle.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setCollapsed(!section.classList.contains('collapsed'));
+    });
+    header.addEventListener('keydown', (event) => {
+      if (event.target !== header || (event.key !== 'Enter' && event.key !== ' ')) return;
+      event.preventDefault();
+      setCollapsed(!section.classList.contains('collapsed'));
+    });
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initCollapsibleSections, { once: true });
+} else {
+  initCollapsibleSections();
+}
+
+window.addEventListener('resize', () => {
+  if (window.innerWidth > 768) {
+    document.querySelectorAll('.collapsible-section').forEach(section => {
+      section.classList.remove('collapsed');
+      const header = section.querySelector('.section-header');
+      const toggle = section.querySelector('.section-toggle');
+      if (header) header.setAttribute('aria-expanded', 'true');
+      if (toggle) toggle.textContent = '▾';
+    });
+  }
+});
+
 applyTheme();
 applyBoardStyle();
 renderPalettePieces();
