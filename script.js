@@ -1959,22 +1959,14 @@ const debugToggleBtn = document.getElementById('debugToggleBtn');
 
 if (debugClearBtn) debugClearBtn.addEventListener('click', () => debugLogger.clear());
 if (debugDownloadBtn) debugDownloadBtn.addEventListener('click', () => debugLogger.download());
-if (debugToggleBtn) debugToggleBtn.addEventListener('click', () => debugLogger.toggleAutoScroll());
+if (debugToggleBtn) debugToggleBtn.addEventListener('click', () => { debugLogger.toggleAutoScroll(); debugToggleBtn.textContent = `Auto-scroll: ${debugLogger.autoScroll ? 'On' : 'Off'}`; });
+if (debugToggleBtn) debugToggleBtn.textContent = `Auto-scroll: ${debugLogger.autoScroll ? 'On' : 'Off'}`;
 
-// Add debug mode toggle to options drawer
-const optionsDrawer = document.getElementById('optionsDrawer');
-if (optionsDrawer) {
-  const debugRow = document.createElement('div');
-  debugRow.className = 'drawer-row';
-  debugRow.innerHTML = '<label for="debugModeToggle">Debug Mode:</label>' +
-    '<input type="checkbox" id="debugModeToggle" style="width:18px;height:18px;accent-color:var(--burgundy);">';
-  optionsDrawer.appendChild(debugRow);
-  document.getElementById('debugModeToggle').addEventListener('change', (e) => {
-    if (e.target.checked) debugLogger.enable();
-    else debugLogger.disable();
-  });
-  // Sync checkbox with debug mode state
-  document.getElementById('debugModeToggle').checked = debugLogger.enabled;
+// Debug mode toggle is part of the Debug & Diagnostics section in the markup.
+const debugModeToggle = document.getElementById('debugModeToggle');
+if (debugModeToggle) {
+  debugModeToggle.addEventListener('change', (e) => e.target.checked ? debugLogger.enable() : debugLogger.disable());
+  debugModeToggle.checked = debugLogger.enabled;
 }
 
 /* Collapsible Sections in Options Drawer */
