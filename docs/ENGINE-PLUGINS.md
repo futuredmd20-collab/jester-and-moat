@@ -46,7 +46,7 @@ The current MinMax plugin is a legacy adapter around `getBestMove`, preserving t
 - **PR #23** — service-worker precache and version alignment.
 - **PR #24** — fix for loading `engines/mcts-engine.js`.
 
-Current files show `getGamePhase()`, an `enginePlugins` registry containing MinMax and MCTS, per-side configuration, engine/phase selectors, MCTS script loading, and MCTS in the service-worker precache. This confirms code has landed; it does not establish that every path works at runtime.
+Current files show `getGamePhase()`, an `enginePlugins` registry containing MinMax and MCTS when the module is available, per-side configuration, engine/phase selectors, MCTS script loading, and MCTS in the service-worker precache. The single-file builder now embeds the MCTS module before `script.js`. If MCTS fails to load on the multi-file page, startup logs a warning and keeps the board/MinMax path available; MCTS selection then falls back to MinMax until the module is restored. These source changes do not establish that every path works at runtime.
 
 ### Worker dispatch fix and verification status
 
