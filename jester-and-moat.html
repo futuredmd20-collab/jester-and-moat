@@ -1991,6 +1991,7 @@ function mctsEngine(level) {
 const PIECE_NAME = { k: 'king', q: 'queen', r: 'rook', b: 'bishop', n: 'knight', p: 'pawn', j: 'jester' };
 
 /* One markup function for board squares, captured boxes, the promotion modal and
+ * the editor palette, so every surface uses the currently selected art set. */
 
 /* Debug Mode */
 const DEBUG_MODE_KEY = 'debugMode';
@@ -2102,8 +2103,7 @@ class DebugLogger {
   }
 
   download() {
-    const blob = new Blob([this.logs.map(e => `[${e.timestamp}] [${e.level}] ${e.message}`).join('
-')], { type: 'text/plain' });
+    const blob = new Blob([this.logs.map(e => `[${e.timestamp}] [${e.level}] ${e.message}`).join('\n')], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -2125,8 +2125,6 @@ class DebugLogger {
 }
 
 const debugLogger = new DebugLogger();
-
- * the editor palette, so every surface uses the currently selected art set. */
 let activePieceSet = 'classic';
 function pieceMarkup(type, color, extraClass = "") {
   const name = PIECE_NAME[type] || 'pawn';
@@ -2939,7 +2937,6 @@ onmessage = function(event) {
       stopClock();
       status('No legal moves available.');
     }
-  }  // Remove the => { and keep the body
 };
   aiWorker.onerror = (event) => {
     isAIThinking = false;
