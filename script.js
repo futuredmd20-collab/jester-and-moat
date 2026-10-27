@@ -1969,68 +1969,14 @@ const optionsDrawer = document.getElementById('optionsDrawer');
 if (optionsDrawer) {
   const debugRow = document.createElement('div');
   debugRow.className = 'drawer-row';
-  debugRow.innerHTML = `
-    <label for="debugModeToggle">Debug Mode:</label>
-    <input type="checkbox" id="debugModeToggle" style="width:18px;height:18px;accent-color:var(--burgundy);">
-  `;
+  debugRow.innerHTML = '<label for="debugModeToggle">Debug Mode:</label>' +
+    '<input type="checkbox" id="debugModeToggle" style="width:18px;height:18px;accent-color:var(--burgundy);">';
   optionsDrawer.appendChild(debugRow);
   document.getElementById('debugModeToggle').addEventListener('change', (e) => {
     if (e.target.checked) debugLogger.enable();
     else debugLogger.disable();
   });
   // Sync checkbox with debug mode state
-
-/* Collapsible Sections in Options Drawer */
-function initCollapsibleSections() {
-  const sections = document.querySelectorAll('.collapsible-section');
-  
-  sections.forEach(section => {
-    const header = section.querySelector('.section-header');
-    const toggle = section.querySelector('.section-toggle');
-    const content = section.querySelector('.section-content');
-    
-    if (header && toggle) {
-      header.addEventListener('click', () => {
-        section.classList.toggle('collapsed');
-      });
-      toggle.addEventListener('click', (e) => {
-        e.stopPropagation();
-        section.classList.toggle('collapsed');
-      });
-    }
-    
-    // On mobile, start with sections collapsed
-    if (window.innerWidth <= 768) {
-      section.classList.add('collapsed');
-    }
-  });
-}
-
-// Initialize collapsible sections after DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initCollapsibleSections);
-} else {
-  initCollapsibleSections();
-}
-
-// Also handle window resize
-window.addEventListener('resize', () => {
-  const sections = document.querySelectorAll('.collapsible-section');
-  const isMobile = window.innerWidth <= 768;
-  
-  sections.forEach(section => {
-    if (isMobile) {
-      // On mobile, respect collapsed state
-      if (!section.classList.contains('collapsed')) {
-        section.classList.add('collapsed');
-      }
-    } else {
-      // On desktop, ensure all are expanded
-      section.classList.remove('collapsed');
-    }
-  });
-});
-
   document.getElementById('debugModeToggle').checked = debugLogger.enabled;
 }
 
