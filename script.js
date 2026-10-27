@@ -1980,6 +1980,58 @@ if (optionsDrawer) {
   document.getElementById('debugModeToggle').checked = debugLogger.enabled;
 }
 
+/* Collapsible Sections in Options Drawer */
+function initCollapsibleSections() {
+  const sections = document.querySelectorAll('.collapsible-section');
+  
+  sections.forEach(section => {
+    const header = section.querySelector('.section-header');
+    const toggle = section.querySelector('.section-toggle');
+    const content = section.querySelector('.section-content');
+    
+    if (header && toggle) {
+      header.addEventListener('click', () => {
+        section.classList.toggle('collapsed');
+      });
+      toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        section.classList.toggle('collapsed');
+      });
+    }
+    
+    // On mobile, start with sections collapsed
+    if (window.innerWidth <= 768) {
+      section.classList.add('collapsed');
+    }
+  });
+}
+
+// Initialize collapsible sections after DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initCollapsibleSections);
+} else {
+  initCollapsibleSections();
+}
+
+// Also handle window resize
+window.addEventListener('resize', () => {
+  const sections = document.querySelectorAll('.collapsible-section');
+  const isMobile = window.innerWidth <= 768;
+  
+  sections.forEach(section => {
+    if (isMobile) {
+      // On mobile, respect collapsed state
+      if (!section.classList.contains('collapsed')) {
+        section.classList.add('collapsed');
+      }
+    } else {
+      // On desktop, ensure all are expanded
+      section.classList.remove('collapsed');
+    }
+  });
+});
+
+
 applyTheme();
 applyBoardStyle();
 renderPalettePieces();
