@@ -10,5 +10,5 @@ Deployment Model: PWA
 * Served over HTTPS with no backend or build step required for deployment.
 
 Optional Single-File Build ("Test Build")
-* A single self-contained HTML file (jester-and-moat.html) may be compiled using the build.js script to concatenate index.html, style.css, pieces.css, the inlined piece sprite, and script.js only upon explicit request for quick local phone testing on Android over file:// via Acode.
+* A single self-contained HTML file (jester-and-moat.html) may be compiled using build.js to combine index.html, inline style.css and pieces.css, both piece sprites, the MCTS engine module, and script.js. The MCTS module must be embedded before script.js because the engine registry initializes during script evaluation. Build only upon explicit request for quick local phone testing on Android over file:// via Acode.
 * Keep the single-file build out of the primary PWA deployment path.
