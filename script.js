@@ -755,7 +755,15 @@ let state = null;
 ${engineFunctions.map(fn => fn.toString()).join('\n')}
 onmessage = function(event) {
   const data = event.data;
-  try { state = data.state; const move = getBestMove(state, data.depth); postMessage({ id: data.id, move }); }
+  try {
+    state = data.state;
+    const moveFn = data.workerFn === 'mctsGetMove' ? mctsGetMove
+      : data.workerFn === 'getBestMove' || data.workerFn == null ? getBestMove
+      : null;
+    if (!moveFn) throw new Error('Unsupported worker function: ' + data.workerFn);
+    const move = moveFn(state, data.depth);
+    postMessage({ id: data.id, move });
+  }
   catch (error) { postMessage({ id: data.id, error: String(error && error.message || error) }); }
 };`;
   let blob, url;
