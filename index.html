@@ -331,7 +331,7 @@
       var mctsScript = document.createElement("script");
       mctsScript.src = "engines/mcts-engine.js";
       mctsScript.onload = boot;
-      mctsScript.onerror = boot;
+      mctsScript.onerror = function () { console.error('MCTS engine failed to load; starting with MinMax fallback.'); boot(); };
       document.body.appendChild(mctsScript);
     })
     .catch(function (error) {
