@@ -9,6 +9,31 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="theme-color" content="#655749">
+<style>
+/* Mobile drawer/debug layout repair */
+.options-drawer { box-sizing: border-box; min-width: 0; }
+.options-drawer.open { display: flex; }
+.options-drawer .drawer-section { min-width: 0; }
+.options-drawer .section-header { min-height: 48px; gap: 8px; }
+.options-drawer .section-title { min-width: 0; overflow-wrap: anywhere; }
+.options-drawer .section-toggle { flex: 0 0 40px; width: 40px; height: 40px; font-size: 1.1rem; }
+.options-drawer .section-content { min-width: 0; overflow: visible; }
+.options-drawer .collapsible-section.collapsed .section-content { overflow: hidden; }
+.debug-diagnostics-section .section-content { min-width: 0; }
+.debug-panel { position: static !important; inset: auto !important; display: flex; flex-direction: column; width: 100%; max-width: 100%; max-height: none; box-sizing: border-box; margin-top: 8px; z-index: auto; }
+.debug-panel[hidden] { display: none !important; }
+.debug-header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.debug-title { flex: 1 1 100%; }
+.debug-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; width: 100%; }
+.debug-btn { width: 100% !important; min-width: 0; min-height: 40px; height: auto; padding: 8px 10px; white-space: normal; overflow-wrap: anywhere; line-height: 1.2; }
+.debug-log { box-sizing: border-box; width: 100%; max-height: 30vh; min-height: 100px; overflow: auto; }
+@media (max-width: 768px) {
+ .options-drawer { max-height: 72dvh; overflow-y: auto; overscroll-behavior: contain; }
+ .options-drawer .collapsible-section:not(.collapsed) .section-content { max-height: none; }
+ .debug-controls { grid-template-columns: 1fr; }
+ .debug-title { flex-basis: 100%; }
+}
+</style>
 </head>
 <body>
 <!-- PIECE-SPRITE:HOST — the seven <symbol>s are generated into pieces.svg by generate-piece-sprite.js and injected here before script.js runs. The single-file build inlines them into this div instead. -->
@@ -156,8 +181,8 @@
 <div class="options-drawer" id="optionsDrawer">
  <div class="drawer-section collapsible-section" data-section="game">
   <div class="section-header">
-    <span class="section-title"> Game</span>
-    <button class="section-toggle" aria-label="Toggle Game section"></button>
+    <span class="section-title">Game</span>
+    <button class="section-toggle" aria-label="Toggle Game section">▾</button>
   </div>
   <div class="section-content">
    <div class="drawer-row">
@@ -209,8 +234,8 @@
  </div>
  <div class="drawer-section collapsible-section" data-section="ai">
   <div class="section-header">
-    <span class="section-title"> AI Engines</span>
-    <button class="section-toggle" aria-label="Toggle AI Engines section"></button>
+    <span class="section-title">AI Engines</span>
+    <button class="section-toggle" aria-label="Toggle AI Engines section">▾</button>
   </div>
   <div class="section-content">
    <div class="drawer-row">
@@ -247,8 +272,8 @@
  </div>
  <div class="drawer-section collapsible-section" data-section="display">
   <div class="section-header">
-    <span class="section-title"> Display</span>
-    <button class="section-toggle" aria-label="Toggle Display section"></button>
+    <span class="section-title">Display</span>
+    <button class="section-toggle" aria-label="Toggle Display section">▾</button>
   </div>
   <div class="section-content">
    <div class="drawer-row">
