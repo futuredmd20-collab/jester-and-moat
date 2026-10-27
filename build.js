@@ -32,11 +32,13 @@ combined = combined.replace(
 
 // Inline the MCTS module before script.js: the engine registry is initialized
 // during script.js evaluation and needs mctsEngine to exist at that point.
-const strictDirective = '"use strict;"';
-const scriptBody = scriptJs.replace(/^"use strict;"\s*/, "");
+const strictDirective = '"use strict";';
+const scriptBody = scriptJs.replace(/^"use strict";\s*/, "");
 const mctsBody = mctsEngineJs.replace(/^'use strict;'\s*/, "");
 combined = combined.replace(
   /<!-- GAME-BOOT:BEGIN[\s\S]*?<!-- GAME-BOOT:END -->/,
   `<script>\n${strictDirective}\n${mctsBody}\n${scriptBody}\n</script>`
-);fs.writeFileSync(path.join(__dirname, "jester-and-moat.html"), combined, "utf8");
+);
+
+fs.writeFileSync(path.join(__dirname, "jester-and-moat.html"), combined, "utf8");
 console.log("jester-and-moat.html har skapats!");
