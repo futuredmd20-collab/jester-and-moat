@@ -682,7 +682,12 @@ const MinMaxLegacy = {
 /* Plugin System: Engine Registry */
 const enginePlugins = new Map();
 enginePlugins.set('minmax_legacy', MinMaxLegacy);
-enginePlugins.set('mcts', mctsEngine(2));
+if (typeof mctsEngine === 'function') {
+  enginePlugins.set('mcts', mctsEngine(2));
+} else {
+  // Keep the board and legacy engine usable if the optional MCTS module fails to load.
+  console.warn('MCTS engine failed to load; falling back to MinMax.');
+}
 
 /* Plugin System: Per-side default engine configuration
  * Both sides default to MinMaxLegacy for all phases (single-engine mode)
@@ -747,7 +752,11 @@ document.getElementById('blackEnginePhaseSelect').onchange = updateEngineConfigU
 
 function ensureAIWorker() {
   if (aiWorker || !('Worker' in window)) return aiWorker;
-  const engineFunctions = [clone, inside, other, pieceAt, getMoatCells, isMoatCell, checkMoatDestructionState, attacked, kingPos, inCheck, pseudoMoves, applyRaw, legalMovesFromState, allLegalState, getJesterValue, evaluateBoard, minimax, getBestMove, mctsLevelFor, mctsApplyMove, mctsPlayout, mctsNode, mctsUctChild, mctsSearch, mctsGetMove];
+  const engineFunctions = [clone, inside, other, pieceAt, getMoatCells, isMoatCell, checkMoatDestructionState, attacked, kingPos, inCheck, pseudoMoves, applyRaw, legalMovesFromState, allLegalState, getJesterValue, evaluateBoard, minimax, getBestMove];
+  // MCTS helpers live in engines/mcts-engine.js. Serialize them only when that module loaded.
+  if (typeof mctsGetMove === 'function' && typeof mctsSearch === 'function') {
+    engineFunctions.push(mctsLevelFor, mctsApplyMove, mctsPlayout, mctsNode, mctsUctChild, mctsSearch, mctsGetMove);
+  }
   const workerSource = `"use strict";
 const ROWS = 8, COLS = 10;
 const DIRS = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
