@@ -114,4 +114,12 @@ Use the selected workflow consistently. Do not silently substitute a different w
 - When reporting completion, summarize the changes and provide relevant branch, commit, diff, or PR references where available.
 - If blocked, state what was attempted, the actual result, and the next viable option.
 - Avoid unnecessary clarification questions when the user's intent is clear from the conversation and approved plan.
-- End every turn with a lettered list of decisions the user needs to make (A, B, …), or `no decisions needed`. Numbers are reserved for questions (`Q1`, `Q2`, …).
+- Determine whether the user needs to make a decision or provide input before concluding a response.
+- When no decision or input is needed, end naturally without a decision list or a "no decisions needed" statement.
+- When the user must choose between two or more alternatives, present the alternatives in an ordered, lettered list (A, B, C, …) and clearly state what decision is needed.
+- When only one viable alternative exists, explain the recommendation or next step directly without a decision list.
+- When one option is preferable but the user still needs to choose, identify the recommendation and briefly explain why, while presenting the alternatives.
+- Distinguish actual decisions from completed actions, status updates, blockers, and recommendations. Never manufacture decisions to satisfy a formatting rule.
+- Prioritize clear, natural, and accurate communication over mechanical formatting. Do not add headings, lists, summaries, or closing statements solely to satisfy a template.
+- Scale the response to the task: keep ordinary conversation conversational and provide an appropriate status summary for multi-step work.
+- When a user corrects a recurring behavior, address the underlying instruction or process where possible rather than merely acknowledging the correction.
