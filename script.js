@@ -175,31 +175,17 @@ const ENGINE_PHASES = {
 
 /* Plugin System: Phase Detection */
 function getGamePhase(st) {
-  const phase = _getGamePhaseImpl(st);
-  debugLogger.add(`Phase: ${phase} (ply: ${st.ply}, pieces: ${_countPieces(st)})`, 'info');
-  return phase;
-}
-
-function _countPieces(st) {
-  let count = 0;
-  for (let r = 0; r < ROWS; r++) {
-    for (let c = 0; c < COLS; c++) {
-      if (st.board[r][c]) count++;
-    }
-  }
-  return count;
-}
-
-function _getGamePhaseImpl(st) {function getGamePhase(st) {
   let pieceCount = 0;
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       if (st.board[r][c]) pieceCount++;
     }
   }
-  if (st.ply < 10 || pieceCount >= 34) return ENGINE_PHASES.OPENING;
-  if (pieceCount <= 16) return ENGINE_PHASES.ENDGAME;
-  return ENGINE_PHASES.MIDGAME;
+  const phase = st.ply < 10 || pieceCount >= 34 ? ENGINE_PHASES.OPENING :
+               pieceCount <= 16 ? ENGINE_PHASES.ENDGAME :
+               ENGINE_PHASES.MIDGAME;
+  debugLogger.add(`Phase: ${phase} (ply: ${st.ply}, pieces: ${pieceCount})`, 'info');
+  return phase;
 }
 
 let state;
@@ -951,9 +937,8 @@ onmessage = function(event) {
     aiWorker = null;
     return null;
   }
-  aiWorker.onmessage =() => {
-  debugLogger.add('Worker message received', 'info');
-  event) => {
+  aiWorker.onmessage = (event) => {
+    debugLogger.add('Worker message received', 'info');
     const data = event.data;
     if (data.id !== aiRequestId) return;
     isAIThinking = false;
