@@ -921,3 +921,102 @@ html.theme-dark .debug-entry.debug-error {
 html.theme-dark .debug-time {
   color: var(--muted-ink);
 }
+
+/* Collapsible Sections in Options Drawer */
+.drawer-section.collapsible-section {
+  margin-bottom: 4px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background: var(--paper-deep);
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.section-title {
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: var(--burgundy);
+}
+
+.section-toggle {
+  background: transparent;
+  border: none;
+  color: var(--burgundy);
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.section-toggle:hover {
+  background: rgba(121, 47, 59, 0.1);
+}
+
+.section-content {
+  padding: 4px 0;
+  overflow: hidden;
+  transition: max-height 0.2s ease-out;
+}
+
+.collapsible-section.collapsed .section-content {
+  max-height: 0;
+  padding: 0;
+}
+
+.collapsible-section .section-toggle {
+  transform: rotate(0deg);
+  transition: transform 0.2s ease-out;
+}
+
+.collapsible-section.collapsed .section-toggle {
+  transform: rotate(-90deg);
+}
+
+/* Desktop: all sections expanded by default */
+@media (min-width: 769px) {
+  .collapsible-section .section-content {
+    max-height: none;
+  }
+  .collapsible-section.collapsed .section-content {
+    max-height: none;
+    padding: 4px 0;
+  }
+}
+
+/* Mobile: sections collapsed by default */
+@media (max-width: 768px) {
+  .collapsible-section:not(.expanded) .section-content {
+    max-height: 0;
+    padding: 0;
+  }
+  .collapsible-section:not(.expanded) .section-toggle {
+    transform: rotate(-90deg);
+  }
+}
+
+html.theme-dark .section-header {
+  background: #3a352f;
+}
+
+html.theme-dark .section-title {
+  color: var(--gold);
+}
+
+html.theme-dark .section-toggle {
+  color: var(--gold);
+}
+
+html.theme-dark .section-toggle:hover {
+  background: rgba(180, 147, 83, 0.1);
+}

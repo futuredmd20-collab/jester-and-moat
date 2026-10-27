@@ -154,117 +154,141 @@
 </div>
 
 <div class="options-drawer" id="optionsDrawer">
- <div class="drawer-row">
-  <label>Game Mode:</label>
-  <select id="modeSelect">
-   <option value="pvp">2 Players (Pass & Play)</option>
-   <option value="ai_easy">VS AI (Easy / Depth 1)</option>
-   <option value="ai_medium" selected>VS AI (Medium / Depth 2)</option>
-   <option value="ai_hard">VS AI (Hard / Minimax Depth 3)</option>
-   <option value="ai_vs_ai">AI vs AI (Simulation)</option>
-  </select>
+ <div class="drawer-section collapsible-section" data-section="game">
+  <div class="section-header">
+    <span class="section-title"> Game</span>
+    <button class="section-toggle" aria-label="Toggle Game section"></button>
+  </div>
+  <div class="section-content">
+   <div class="drawer-row">
+    <label>Game Mode:</label>
+    <select id="modeSelect">
+     <option value="pvp">2 Players (Pass & Play)</option>
+     <option value="ai_easy">VS AI (Easy / Depth 1)</option>
+     <option value="ai_medium" selected>VS AI (Medium / Depth 2)</option>
+     <option value="ai_hard">VS AI (Hard / Minimax Depth 3)</option>
+     <option value="ai_vs_ai">AI vs AI (Simulation)</option>
+    </select>
+   </div>
+   <div class="drawer-row">
+    <label>Player Side:</label>
+    <select id="playerSideSelect">
+     <option value="white" selected>White (Play as White)</option>
+     <option value="black">Black (Play as Black)</option>
+     <option value="random">Random Side</option>
+    </select>
+   </div>
+   <div class="drawer-row">
+    <label>Clock Setting:</label>
+    <select id="timeSelect">
+     <option value="0" selected>Clock: Untimed</option>
+     <option value="180">Clock: 3 min (Blitz)</option>
+     <option value="300">Clock: 5 min (Blitz)</option>
+     <option value="600">Clock: 10 min (Rapid)</option>
+    </select>
+   </div>
+   <div class="drawer-row">
+    <label>Jester Starting Position:</label>
+    <select id="jesterPosSelect">
+     <option value="edges">Jester on B/I (Flanks)</option>
+     <option value="center">Jester on D/G (Center)</option>
+    </select>
+   </div>
+   <div class="drawer-row">
+    <label>Auto-Play Speed:</label>
+    <select id="speedSelect">
+     <option value="3000">Speed: 3.0s (Very Slow)</option>
+     <option value="2000">Speed: 2.0s (Slow)</option>
+     <option value="1000">Speed: 1.0s (Normal)</option>
+     <option value="500" selected>Speed: 0.5s (Fast)</option>
+     <option value="250">Speed: 0.25s (Very Fast)</option>
+     <option value="100">Speed: 0.1s (Turbo)</option>
+    </select>
+   </div>
+  </div>
  </div>
- <div class="drawer-row">
-  <label>Player Side:</label>
-  <select id="playerSideSelect">
-   <option value="white" selected>White (Play as White)</option>
-   <option value="black">Black (Play as Black)</option>
-   <option value="random">Random Side</option>
-  </select>
+ <div class="drawer-section collapsible-section" data-section="ai">
+  <div class="section-header">
+    <span class="section-title"> AI Engines</span>
+    <button class="section-toggle" aria-label="Toggle AI Engines section"></button>
+  </div>
+  <div class="section-content">
+   <div class="drawer-row">
+    <label>White Engine:</label>
+    <select id="whiteEngineSelect">
+     <option value="minmax_legacy">MinMax Legacy</option>
+     <option value="mcts">MCTS (~1200 ELO)</option>
+    </select>
+   </div>
+   <div class="drawer-row">
+    <label>White Engine Phase:</label>
+    <select id="whiteEnginePhaseSelect">
+     <option value="opening">Opening</option>
+     <option value="midgame" selected>Midgame</option>
+     <option value="endgame">Endgame</option>
+    </select>
+   </div>
+   <div class="drawer-row">
+    <label>Black Engine:</label>
+    <select id="blackEngineSelect">
+     <option value="minmax_legacy">MinMax Legacy</option>
+     <option value="mcts">MCTS (~1200 ELO)</option>
+    </select>
+   </div>
+   <div class="drawer-row">
+    <label>Black Engine Phase:</label>
+    <select id="blackEnginePhaseSelect">
+     <option value="opening">Opening</option>
+     <option value="midgame" selected>Midgame</option>
+     <option value="endgame">Endgame</option>
+    </select>
+   </div>
+  </div>
  </div>
- <div class="drawer-row">
-  <label>White Engine:</label>
-  <select id="whiteEngineSelect">
-   <option value="minmax_legacy">MinMax Legacy</option>
-   <option value="mcts">MCTS (~1200 ELO)</option>
-  </select>
- </div>
- <div class="drawer-row">
-  <label>White Engine Phase:</label>
-  <select id="whiteEnginePhaseSelect">
-   <option value="opening">Opening</option>
-   <option value="midgame" selected>Midgame</option>
-   <option value="endgame">Endgame</option>
-  </select>
- </div>
- <div class="drawer-row">
-  <label>Black Engine:</label>
-  <select id="blackEngineSelect">
-   <option value="minmax_legacy">MinMax Legacy</option>
-   <option value="mcts">MCTS (~1200 ELO)</option>
-  </select>
- </div>
- <div class="drawer-row">
-  <label>Black Engine Phase:</label>
-  <select id="blackEnginePhaseSelect">
-   <option value="opening">Opening</option>
-   <option value="midgame" selected>Midgame</option>
-   <option value="endgame">Endgame</option>
-  </select>
- </div>
- <div class="drawer-row">
-  <label>Clock Setting:</label>
-  <select id="timeSelect">
-   <option value="0" selected>Clock: Untimed</option>
-   <option value="180">Clock: 3 min (Blitz)</option>
-   <option value="300">Clock: 5 min (Blitz)</option>
-   <option value="600">Clock: 10 min (Rapid)</option>
-  </select>
- </div>
- <div class="drawer-row">
-  <label>Jester Starting Position:</label>
-  <select id="jesterPosSelect">
-   <option value="edges">Jester on B/I (Flanks)</option>
-   <option value="center">Jester on D/G (Center)</option>
-  </select>
- </div>
- <div class="drawer-row">
-  <label>Auto-Play Speed:</label>
-  <select id="speedSelect">
-   <option value="3000">Speed: 3.0s (Very Slow)</option>
-   <option value="2000">Speed: 2.0s (Slow)</option>
-   <option value="1000">Speed: 1.0s (Normal)</option>
-   <option value="500" selected>Speed: 0.5s (Fast)</option>
-   <option value="250">Speed: 0.25s (Very Fast)</option>
-   <option value="100">Speed: 0.1s (Turbo)</option>
-  </select>
- </div>
- <div class="drawer-row">
-  <label>Eval & Score Display:</label>
-  <select id="uiDisplaySelect">
-   <option value="full" selected>Full (Clocks, Bar, Name & Pts)</option>
-   <option value="bar_pts">Compact (Bar, Name & Pts / No Clocks)</option>
-   <option value="bar_only">Minimal Bar Only (No Text)</option>
-   <option value="clocks_only">Clocks Only (No Eval Bar)</option>
-   <option value="hidden">Hidden All</option>
-  </select>
- </div>
- <div class="drawer-row">
-  <label for="coordsToggle">Board Coordinates:</label>
-  <input type="checkbox" id="coordsToggle" checked style="width:18px;height:18px;accent-color:var(--burgundy);">
- </div>
- <div class="drawer-row">
-  <label for="pieceSetSelect">Piece design:</label>
-  <select id="pieceSetSelect">
-   <option value="classic" selected>Classic</option>
-   <option value="flat">Flat</option>
-  </select>
- </div>
- <div class="drawer-row">
-  <label for="boardStyleSelect">Board style:</label>
-  <select id="boardStyleSelect">
-   <option value="soft-stone" selected>Soft Stone</option>
-   <option value="warm-wood">Warm Wood</option>
-   <option value="cool-slate">Cool Slate</option>
-  </select>
- </div>
- <div class="drawer-row">
-  <label for="themeSelect">Theme:</label>
-  <select id="themeSelect">
-   <option value="auto" selected>Auto (Follow System)</option>
-   <option value="light">Light</option>
-   <option value="dark">Dark</option>
-  </select>
+ <div class="drawer-section collapsible-section" data-section="display">
+  <div class="section-header">
+    <span class="section-title"> Display</span>
+    <button class="section-toggle" aria-label="Toggle Display section"></button>
+  </div>
+  <div class="section-content">
+   <div class="drawer-row">
+    <label>Eval & Score Display:</label>
+    <select id="uiDisplaySelect">
+     <option value="full" selected>Full (Clocks, Bar, Name & Pts)</option>
+     <option value="bar_pts">Compact (Bar, Name & Pts / No Clocks)</option>
+     <option value="bar_only">Minimal Bar Only (No Text)</option>
+     <option value="clocks_only">Clocks Only (No Eval Bar)</option>
+     <option value="hidden">Hidden All</option>
+    </select>
+   </div>
+   <div class="drawer-row">
+    <label for="coordsToggle">Board Coordinates:</label>
+    <input type="checkbox" id="coordsToggle" checked style="width:18px;height:18px;accent-color:var(--burgundy);">
+   </div>
+   <div class="drawer-row">
+    <label for="pieceSetSelect">Piece design:</label>
+    <select id="pieceSetSelect">
+     <option value="classic" selected>Classic</option>
+     <option value="flat">Flat</option>
+    </select>
+   </div>
+   <div class="drawer-row">
+    <label for="boardStyleSelect">Board style:</label>
+    <select id="boardStyleSelect">
+     <option value="soft-stone" selected>Soft Stone</option>
+     <option value="warm-wood">Warm Wood</option>
+     <option value="cool-slate">Cool Slate</option>
+    </select>
+   </div>
+   <div class="drawer-row">
+    <label for="themeSelect">Theme:</label>
+    <select id="themeSelect">
+     <option value="auto" selected>Auto (Follow System)</option>
+     <option value="light">Light</option>
+     <option value="dark">Dark</option>
+    </select>
+   </div>
+  </div>
  </div>
 </div>
 
