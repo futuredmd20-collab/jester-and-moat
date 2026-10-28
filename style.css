@@ -1091,3 +1091,94 @@ html.theme-dark .section-toggle {
 html.theme-dark .section-toggle:hover {
   background: rgba(180, 147, 83, 0.1);
 }
+
+
+/* Compact, monochrome primary controls — consistent across viewport sizes. */
+.controls-row { gap: 6px; align-items: center; }
+.controls-row button {
+  min-height: 38px;
+  padding: 6px 9px;
+  gap: 6px;
+}
+.controls-row button.undo,
+.controls-row button.redo,
+.controls-row button.auto-icon,
+.controls-row button.step,
+.controls-row button.random,
+.controls-row button.side-switch-btn,
+.controls-row button.icon-only-btn {
+  box-sizing: border-box;
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 7px;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+.controls-row button.side-switch-btn { flex: 0 0 40px; }
+.control-glyph { display: inline-block; font-size: 1.05em; line-height: 1; }
+.info-glyph, .legend-glyph.info-glyph {
+  box-sizing: border-box;
+  width: 1.05em;
+  height: 1.05em;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  font-family: Georgia, serif;
+  font-size: .9em;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+}
+.control-svg { display: block; width: 21px; height: 21px; fill: currentColor; }
+.dice-icon rect { fill: none; }
+.dice-icon circle { fill: currentColor; }
+button.icon-only-btn { flex: 0 0 40px; }
+button.icon-only-btn .control-svg { width: 22px; height: 22px; }
+.control-legend {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 7px;
+  margin: 10px 0 0;
+}
+.control-legend > div {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+.control-legend dt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  color: var(--burgundy);
+  font-weight: 700;
+}
+.control-legend dd { margin: 0; }
+.legend-glyph { font-size: 1.35rem; line-height: 1; }
+.legend-svg { width: 22px; height: 22px; fill: currentColor; }
+.legend-svg rect { fill: none; }
+.legend-svg circle { fill: currentColor; }
+@media (max-width: 640px) {
+  .controls-row button {
+    min-height: 38px;
+    min-width: 0;
+    padding: 5px 8px;
+    font-size: .82rem;
+  }
+  .controls-row button.undo,
+  .controls-row button.redo,
+  .controls-row button.auto-icon,
+  .controls-row button.step,
+  .controls-row button.random,
+  .controls-row button.side-switch-btn,
+  .controls-row button.icon-only-btn {
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    min-height: 40px;
+    padding: 7px;
+    font-size: 1.2rem;
+  }
+}
