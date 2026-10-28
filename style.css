@@ -217,7 +217,41 @@
     border-radius: 99px; padding: 3px 7px;
   }
 
-  .mode-tag { white-space: nowrap; }
+  .game-mode-row {
+    width: min(100%, 820px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* Compact strip between the points/evaluation row and the clocks. */
+    margin: 2px auto 3px;
+    padding: 0;
+  }
+
+  .game-mode-row[hidden] { display: none !important; }
+
+  .game-mode-pill {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+    /* Keep the full-width pill readable while adding virtually no height. */
+    padding: 1px 8px;
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--gold);
+    border-radius: 999px;
+    background: #eee4d4;
+    color: var(--muted-ink);
+    font-size: .75rem;
+    line-height: 1.15;
+    font-weight: 700;
+  }
+
+  .theme-dark .game-mode-pill {
+    background: #2b2926;
+    border-color: var(--line);
+    border-left-color: var(--gold);
+    color: var(--muted-ink);
+  }
 
   /* --- Controls --- */
   .controls-section {

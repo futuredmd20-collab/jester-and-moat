@@ -55,7 +55,7 @@
       <circle cx="50" cy="15" r="3.8" fill="#b49353" stroke="#292723" stroke-width="1"/>
       <circle cx="79" cy="23" r="3.8" fill="#b49353" stroke="#292723" stroke-width="1"/>
     </svg>
-    <h1>Jester & Moat <span class="version-tag">v0.7.3</span> <span class="version-tag mode-tag" id="modeTag">vs AI · Medium</span></h1>
+    <h1>Jester & Moat <span class="version-tag">v0.7.3</span></h1>
   </div>
 </header>
 
@@ -94,6 +94,10 @@
    <span id="blackPtsWrapper">(<span id="blackBoardPoints">0 pts</span>)</span> <span>Black</span>
  </div>
  <div class="move-count-summary" aria-live="polite">Moves <strong id="moveCounter">0</strong></div>
+</div>
+
+<div class="game-mode-row" id="gameModeRow">
+ <span class="game-mode-pill" id="gameModePill" aria-label="Current game mode">vs AI · Medium</span>
 </div>
 
 <!-- Board Editor Toolbar -->
@@ -274,6 +278,10 @@
      <option value="clocks_only">Clocks Only (No Eval Bar)</option>
      <option value="hidden">Hidden All</option>
     </select>
+   </div>
+   <div class="drawer-row">
+    <label for="showModeIndicatorToggle">Show game mode pill:</label>
+    <input type="checkbox" id="showModeIndicatorToggle" checked style="width:18px;height:18px;accent-color:var(--burgundy);">
    </div>
    <div class="drawer-row">
     <label for="coordsToggle">Board Coordinates:</label>
