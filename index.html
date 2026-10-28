@@ -81,18 +81,6 @@
 
 <div class="status" id="status" aria-live="polite">Loading game…</div>
 
-<!-- Clock Bar -->
-<div class="clock-container" id="clockContainerEl">
- <div class="clock-box" id="clockBoxW">
-  <span class="clock-label">White</span>
-  <span class="clock-time" id="clockW">00:00</span>
- </div>
- <div class="clock-box" id="clockBoxB">
-  <span class="clock-time" id="clockB">00:00</span>
-  <span class="clock-label">Black</span>
- </div>
-</div>
-
 <!-- Evaluation Bar -->
 <div class="eval-bar-container" id="evalBarContainer">
  <div class="eval-side-info" id="evalWhiteInfo">
@@ -105,6 +93,7 @@
  <div class="eval-side-info" id="evalBlackInfo" style="justify-content: flex-end;">
    <span id="blackPtsWrapper">(<span id="blackBoardPoints">0 pts</span>)</span> <span>Black</span>
  </div>
+ <div class="move-count-summary" aria-live="polite">Moves <strong id="moveCounter">0</strong></div>
 </div>
 
 <!-- Board Editor Toolbar -->
@@ -334,15 +323,25 @@
  </div>
 
 <main>
-<div id="board" role="grid" aria-label="Chess board 10 by 8"></div>
+<div class="board-layout">
+ <div id="board" role="grid" aria-label="Chess board 10 by 8"></div>
+ <!-- Clock indicators sit beside the board on wider screens; mobile CSS keeps the board full-width. -->
+ <div class="clock-container" id="clockContainerEl" aria-label="Player clocks">
+  <div class="clock-box" id="clockBoxW">
+   <span class="clock-label">White</span>
+   <span class="clock-time" id="clockW">00:00</span>
+  </div>
+  <div class="clock-box" id="clockBoxB">
+   <span class="clock-label">Black</span>
+   <span class="clock-time" id="clockB">00:00</span>
+  </div>
+ </div>
+</div>
 
 <div class="dashboard">
  <div class="captured-container">
   <span style="font-size:0.75rem;opacity:0.8;font-weight:bold;">Captured by White:</span>
   <div id="capturedByWhite" class="captured-box"></div>
- </div>
- <div style="margin: 0 8px; text-align:center;">
-  <strong>Moves: <span id="moveCounter">0</span></strong>
  </div>
  <div class="captured-container" style="align-items:flex-end;">
   <span style="font-size:0.75rem;opacity:0.8;font-weight:bold;">Captured by Black:</span>
@@ -351,7 +350,15 @@
 </div>
 
 <div class="history-box">
- <strong>Move History</strong>
+ <div class="history-heading">
+  <strong>Move History</strong>
+  <label class="history-order-control">Order
+   <select id="historyOrderSelect" aria-label="Move history order">
+    <option value="oldest">Oldest first</option>
+    <option value="newest">Newest first</option>
+   </select>
+  </label>
+ </div>
  <div id="history">No moves yet.</div>
 </div>
 </main>
