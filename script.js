@@ -388,7 +388,7 @@ function setup(){
   editMode = false;
   isAIThinking = false;
   document.getElementById('editorPanel').classList.remove('active');
-  document.getElementById('editorToggleBtn').textContent = '🛠️ Edit Board';
+  document.getElementById('editorToggleBtn').textContent = '🛠 Edit';
 
   const mode = document.getElementById('modeSelect').value;
   const sideSetting = document.getElementById('playerSideSelect').value;
@@ -1327,7 +1327,7 @@ function toggleEditor(){
     selected = null; legalTargets = [];
   } else {
     panel.classList.remove('active');
-    toggleBtn.textContent = '🛠️ Edit Board';
+    toggleBtn.textContent = '🛠 Edit';
     status(`Game Resumed. Turn: ${state.turn==='w'?'White':'Black'}`);
   }
   render();
@@ -1385,7 +1385,7 @@ function validateAndPlayPosition(){
 
   editMode = false;
   document.getElementById('editorPanel').classList.remove('active');
-  document.getElementById('editorToggleBtn').textContent = '🛠️ Edit Board';
+  document.getElementById('editorToggleBtn').textContent = '🛠 Edit';
   gameStarted = true;
   history = [clone(state)];
   redoStack = [];
