@@ -61,15 +61,15 @@
 
 <div class="controls-section">
  <div class="controls-row">
-  <button class="editor-btn" id="editorToggleBtn">🛠️ Edit Board</button>
-  <button class="reset-btn" id="resetBtn">New Game</button>
-  <button class="info-btn" id="infoToggleBtn">ℹ️ Info</button>
-  <button class="options-btn" id="optionsToggleBtn">⚙️ Options</button>
+  <button class="editor-btn" id="editorToggleBtn">🛠 Edit</button>
+  <button class="reset-btn" id="resetBtn">New</button>
+  <button class="info-btn" id="infoToggleBtn">ℹ Info</button>
+  <button class="options-btn" id="optionsToggleBtn">⚙ Options</button>
  </div>
  <div class="controls-row">
   <button class="undo" id="undoBtn" title="Undo" aria-label="Undo move">↩</button>
   <button class="redo" id="redoBtn" title="Redo" aria-label="Redo move">↪</button>
-  <button class="confirm-moat-btn" id="confirmMoatBtn" style="display:none;">✅ Confirm Moat</button>
+  <button class="confirm-moat-btn" id="confirmMoatBtn" style="display:none;">✓ Confirm</button>
   <button class="auto-icon" id="autoBtn" title="Toggle Auto-Play" aria-label="Toggle auto-play">▶</button>
   <button class="step" id="stepBtn" title="Step" aria-label="Make one AI move">⏭</button>
   <button class="random" id="randomBtn" title="Random Midgame" aria-label="Generate random midgame">🎲</button>
@@ -135,9 +135,9 @@
 
  <div class="editor-controls-row">
   <div>
-   <button class="palette-btn tool-btn selected" id="eraserToolBtn" data-tool="eraser">❌ Eraser</button>
-   <button class="options-btn" id="clearBoardBtn">🧹 Clear Board</button>
-   <button class="options-btn" id="resetDefaultBoardBtn">🔄 Reset Default</button>
+   <button class="palette-btn tool-btn selected" id="eraserToolBtn" data-tool="eraser">Erase</button>
+   <button class="options-btn" id="clearBoardBtn">Clear</button>
+   <button class="options-btn" id="resetDefaultBoardBtn">Reset</button>
   </div>
   <div>
    <label style="font-size:0.8rem;font-weight:bold;">Side to move: </label>
@@ -145,7 +145,7 @@
     <option value="w" selected>White</option>
     <option value="b">Black</option>
    </select>
-   <button class="confirm-moat-btn" id="playPositionBtn" style="margin-left:6px;">▶ Play Position</button>
+   <button class="confirm-moat-btn" id="playPositionBtn" style="margin-left:6px;">Play</button>
   </div>
  </div>
 </div>
@@ -159,8 +159,8 @@
   <h3>💾 Save / Load Game (JSON)</h3>
   <div class="save-box">
    <div class="btn-group" style="display:flex;gap:8px;margin-top:6px;">
-    <button class="file-btn" id="exportFileBtn">💾 Save to File (.json)</button>
-    <button class="file-btn" id="importFileBtn">📂 Load from File</button>
+    <button class="file-btn" id="exportFileBtn">Save JSON</button>
+    <button class="file-btn" id="importFileBtn">Load JSON</button>
     <input type="file" id="fileInput" accept=".json" style="display:none;">
    </div>
   </div>
