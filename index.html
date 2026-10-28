@@ -61,20 +61,20 @@
 
 <div class="controls-section">
  <div class="controls-row">
-  <button class="editor-btn" id="editorToggleBtn">🛠️ Edit Board</button>
-  <button class="reset-btn" id="resetBtn">New Game</button>
-  <button class="info-btn" id="infoToggleBtn">ℹ️ Info</button>
-  <button class="options-btn" id="optionsToggleBtn">⚙️ Options</button>
+  <button class="editor-btn" id="editorToggleBtn"><span class="control-glyph" aria-hidden="true">✎</span> Edit Board</button>
+  <button class="reset-btn" id="resetBtn"><span class="control-glyph" aria-hidden="true">↻</span> New Game</button>
+  <button class="info-btn" id="infoToggleBtn"><span class="control-glyph info-glyph" aria-hidden="true">i</span> Info</button>
+  <button class="options-btn icon-only-btn" id="optionsToggleBtn" title="Options" aria-label="Open options"><svg class="control-svg gear-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94a7.5 7.5 0 0 0 0-1.88l2.03-1.58-2-3.46-2.39.96a7.35 7.35 0 0 0-1.63-.94L14.79 3h-4l-.36 3.04a7.35 7.35 0 0 0-1.63.94l-2.39-.96-2 3.46 2.03 1.58a7.5 7.5 0 0 0 0 1.88l-2.03 1.58 2 3.46 2.39-.96c.5.4 1.04.71 1.63.94L10.79 21h4l.36-3.04c.59-.23 1.13-.54 1.63-.94l2.39.96 2-3.46-2.03-1.58ZM12.79 15.5a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z"/></svg></button>
  </div>
  <div class="controls-row">
-  <button class="undo" id="undoBtn" title="Undo" aria-label="Undo move">↩</button>
-  <button class="redo" id="redoBtn" title="Redo" aria-label="Redo move">↪</button>
+  <button class="undo" id="undoBtn" title="Undo" aria-label="Undo move">↶</button>
+  <button class="redo" id="redoBtn" title="Redo" aria-label="Redo move">↷</button>
   <button class="confirm-moat-btn" id="confirmMoatBtn" style="display:none;">✅ Confirm Moat</button>
-  <button class="auto-icon" id="autoBtn" title="Toggle Auto-Play" aria-label="Toggle auto-play">▶</button>
-  <button class="step" id="stepBtn" title="Step" aria-label="Make one AI move">⏭</button>
-  <button class="random" id="randomBtn" title="Random Midgame" aria-label="Generate random midgame">🎲</button>
+  <button class="auto-icon" id="autoBtn" title="Toggle Auto-Play" aria-label="Start auto-play">▶</button>
+  <button class="step" id="stepBtn" title="Step" aria-label="Make one AI move"><svg class="control-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16l10-8L4 4Zm10 0v16l8-8-8-8Zm8 0h-2v16h2V4Z"/></svg></button>
+  <button class="random" id="randomBtn" title="Random Midgame" aria-label="Generate random midgame"><svg class="control-svg dice-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="8" r="1.6"/><circle cx="16" cy="8" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="8" cy="16" r="1.6"/><circle cx="16" cy="16" r="1.6"/></svg></button>
   <button class="side-switch-btn" id="sideSwitchBtn" title="Switch player side and board view" aria-label="Switch player side and board view">
-    <svg viewBox="0 0 24 24"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM17 5l-3.99-4v3H3v2h10.01v3L17 5z"/></svg>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h13l-3-3 1.4-1.4L21 8l-5.6 5.4L14 12l3-3H4V7Zm16 10H7l3 3-1.4 1.4L3 16l5.6-5.4L10 12l-3 3h13v2Z"/></svg>
   </button>
  </div>
 </div>
@@ -154,6 +154,21 @@
  <div class="drawer-section">
   <h3>📖 Rules & Moat</h3>
   <p>After 4 moves each, White and Black place their 1x3 moats in sequence. Sliding pieces stop at the moat, knights jump over. 2 opponent pieces destroy the moat. Re-deploying a moat is available on promotion if destroyed!</p>
+ </div>
+ <div class="drawer-section controls-guide">
+  <h3>Controls Guide</h3>
+  <dl class="control-legend">
+   <div><dt><span class="legend-glyph" aria-hidden="true">↶</span></dt><dd>Undo the last move</dd></div>
+   <div><dt><span class="legend-glyph" aria-hidden="true">↷</span></dt><dd>Redo an undone move</dd></div>
+   <div><dt><span class="legend-glyph" aria-hidden="true">▶ / Ⅱ</span></dt><dd>Start or pause auto-play</dd></div>
+   <div><dt><svg class="legend-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16l10-8L4 4Zm10 0v16l8-8-8-8Zm8 0h-2v16h2V4Z"/></svg></dt><dd>Make one AI move</dd></div>
+   <div><dt><svg class="legend-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="8" r="1.6"/><circle cx="16" cy="8" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="8" cy="16" r="1.6"/><circle cx="16" cy="16" r="1.6"/></svg></dt><dd>Generate a random midgame position</dd></div>
+   <div><dt><span class="legend-glyph" aria-hidden="true">⇄</span></dt><dd>Switch player side and board view</dd></div>
+   <div><dt><svg class="legend-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94a7.5 7.5 0 0 0 0-1.88l2.03-1.58-2-3.46-2.39.96a7.35 7.35 0 0 0-1.63-.94L14.79 3h-4l-.36 3.04a7.35 7.35 0 0 0-1.63.94l-2.39-.96-2 3.46 2.03 1.58a7.5 7.5 0 0 0 0 1.88l-2.03 1.58 2 3.46 2.39-.96c.5.4 1.04.71 1.63.94L10.79 21h4l.36-3.04c.59-.23 1.13-.54 1.63-.94l2.39.96 2-3.46-2.03-1.58ZM12.79 15.5a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z"/></svg></dt><dd>Open game options</dd></div>
+   <div><dt><span class="legend-glyph" aria-hidden="true">✎</span></dt><dd>Open the board editor</dd></div>
+   <div><dt><span class="legend-glyph" aria-hidden="true">↻</span></dt><dd>Start a new game</dd></div>
+   <div><dt><span class="legend-glyph info-glyph" aria-hidden="true">i</span></dt><dd>Open this information panel</dd></div>
+  </dl>
  </div>
  <div class="drawer-section">
   <h3>💾 Save / Load Game (JSON)</h3>
