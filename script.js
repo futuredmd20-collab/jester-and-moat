@@ -1573,7 +1573,7 @@ function render(){
       sq.innerHTML = pieceMarkup(p.type, p.color);
     }
     
-    if (c === COLS - 1){ const x = document.createElement('span'); x.className = 'coord row'; x.textContent = ROWS - r; sq.appendChild(x); }
+    if (c === 0){ const x = document.createElement('span'); x.className = 'coord row'; x.textContent = ROWS - r; sq.appendChild(x); }
     if (r === ROWS - 1){ const x = document.createElement('span'); x.className = 'coord col'; x.textContent = String.fromCharCode(65 + c); sq.appendChild(x); }
     
     sq.addEventListener('click', () => clickSquare(r, c));
