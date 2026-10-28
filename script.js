@@ -1522,8 +1522,8 @@ function updateDashboard(){
   if (totalVal > 0) {
     whitePercent = Math.max(5, Math.min(95, (whiteBoardVal / totalVal) * 100));
   }
-  document.getElementById('evalFillWhite').style.width = `${whitePercent}%`;
-  document.getElementById('evalFillBlack').style.width = `${100 - whitePercent}%`;
+  document.getElementById('evalFillWhite').style.height = `${whitePercent}%`;
+  document.getElementById('evalFillBlack').style.height = `${100 - whitePercent}%`;
 
   const whiteCapEl = document.getElementById('capturedByWhite');
   const blackCapEl = document.getElementById('capturedByBlack');
@@ -1830,6 +1830,22 @@ window.addEventListener('keydown', e => {
 });
 
 /* === v0.4.6: Move list (two-column notation) === */
+let moveHistoryOrder = 'oldest';
+try {
+  const savedHistoryOrder = localStorage.getItem('jm_move_history_order');
+  if (savedHistoryOrder === 'newest' || savedHistoryOrder === 'oldest') moveHistoryOrder = savedHistoryOrder;
+} catch (err) { /* storage unavailable */ }
+
+const historyOrderSelect = document.getElementById('historyOrderSelect');
+if (historyOrderSelect) {
+  historyOrderSelect.value = moveHistoryOrder;
+  historyOrderSelect.addEventListener('change', () => {
+    moveHistoryOrder = historyOrderSelect.value === 'newest' ? 'newest' : 'oldest';
+    try { localStorage.setItem('jm_move_history_order', moveHistoryOrder); } catch (err) { /* storage unavailable */ }
+    renderMoveList();
+  });
+}
+
 function renderMoveList(){
   const el = document.getElementById('history');
   if (!moveLog.length){ el.textContent = 'No moves yet.'; return; }
@@ -1853,6 +1869,7 @@ function renderMoveList(){
     }
   }
   flushPending();
+  if (moveHistoryOrder === 'newest') rows.reverse();
   for (const r of rows){
     const div = document.createElement('div');
     if (r.note){ div.className = 'mv-row'; div.innerHTML = `<span class="mv-note">${r.note}</span>`; }
@@ -1865,7 +1882,7 @@ function renderMoveList(){
     }
     el.appendChild(div);
   }
-  el.scrollTop = el.scrollHeight;
+  el.scrollTop = moveHistoryOrder === 'newest' ? 0 : el.scrollHeight;
 }
 
 /* === v0.4.6: Game-over overlay === */
