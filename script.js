@@ -346,30 +346,36 @@ function updateDisplayPreferences() {
   const displayMode = document.getElementById('uiDisplaySelect').value;
   const clockContainer = document.getElementById('clockContainerEl');
   const evalBarContainer = document.getElementById('evalBarContainer');
+  const scoreMoveRow = document.getElementById('scoreMoveRow');
   const whiteInfo = document.getElementById('evalWhiteInfo');
   const blackInfo = document.getElementById('evalBlackInfo');
 
   if (displayMode === 'full') {
     clockContainer.style.display = 'flex';
     evalBarContainer.style.display = 'flex';
+    scoreMoveRow.style.display = 'flex';
     whiteInfo.style.display = 'flex';
     blackInfo.style.display = 'flex';
   } else if (displayMode === 'bar_pts') {
     clockContainer.style.display = 'none';
     evalBarContainer.style.display = 'flex';
+    scoreMoveRow.style.display = 'flex';
     whiteInfo.style.display = 'flex';
     blackInfo.style.display = 'flex';
   } else if (displayMode === 'bar_only') {
     clockContainer.style.display = 'none';
     evalBarContainer.style.display = 'flex';
+    scoreMoveRow.style.display = 'none';
     whiteInfo.style.display = 'none';
     blackInfo.style.display = 'none';
   } else if (displayMode === 'clocks_only') {
     clockContainer.style.display = 'flex';
     evalBarContainer.style.display = 'none';
+    scoreMoveRow.style.display = 'none';
   } else if (displayMode === 'hidden') {
     clockContainer.style.display = 'none';
     evalBarContainer.style.display = 'none';
+    scoreMoveRow.style.display = 'none';
   }
 }
 
