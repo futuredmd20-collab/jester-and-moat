@@ -665,6 +665,25 @@
     .app-shell { padding: 8px; }
     .controls-row { justify-content: center; }
     .controls-row button { min-height: 44px; min-width: 44px; padding: 6px 10px; font-size: .86rem; }
+  .editor-controls-row button,
+  .editor-controls-row .palette-btn.tool-btn,
+  button.editor-btn,
+  button.options-btn,
+  button.file-btn {
+    min-height: 40px;
+    padding: 7px 9px;
+    font-size: .82rem;
+    gap: 6px;
+  }
+  .editor-controls-row button .control-svg,
+  .editor-controls-row .palette-btn.tool-btn .control-svg,
+  button.editor-btn .control-svg,
+  button.options-btn .control-svg,
+  button.file-btn .control-svg {
+    width: 18px;
+    height: 18px;
+    flex-basis: 18px;
+  }
     .controls-row button.undo, .controls-row button.redo, .controls-row button.auto-icon,
     .controls-row button.step, .controls-row button.random, .controls-row button.side-switch-btn {
       min-width: 44px; min-height: 44px; font-size: 1.1rem;
@@ -1131,6 +1150,35 @@ html.theme-dark .section-toggle:hover {
   text-align: center;
 }
 .control-svg { display: block; width: 21px; height: 21px; fill: currentColor; }
+
+/* Keep SVG action buttons compact outside the main controls row too. */
+button.editor-btn,
+button.options-btn,
+button.file-btn,
+.editor-controls-row button,
+.editor-controls-row .palette-btn.tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: .84rem;
+  line-height: 1.2;
+  padding: 8px 10px;
+  min-height: 40px;
+}
+button.editor-btn .control-svg,
+button.options-btn .control-svg,
+button.file-btn .control-svg,
+.editor-controls-row button .control-svg,
+.editor-controls-row .palette-btn.tool-btn .control-svg {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 19px;
+}
+.editor-controls-row .palette-btn.tool-btn {
+  min-width: 0;
+  min-height: 40px;
+}
 .dice-icon rect { fill: none; }
 .dice-icon circle { fill: currentColor; }
 button.icon-only-btn { flex: 0 0 40px; }
