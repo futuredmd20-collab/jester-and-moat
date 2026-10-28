@@ -217,7 +217,31 @@
     border-radius: 99px; padding: 3px 7px;
   }
 
-  .mode-tag { white-space: nowrap; }
+  .game-mode-row {
+    width: min(100%, 820px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: -2px auto 6px;
+    min-height: 0;
+  }
+
+  .game-mode-row[hidden] { display: none !important; }
+
+  .game-mode-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
+    padding: 3px 9px;
+    border: 1px solid var(--line);
+    border-radius: 99px;
+    background: var(--paper-deep);
+    color: var(--muted-ink);
+    font: 650 .7rem/1.25 system-ui, sans-serif;
+    letter-spacing: .15px;
+    white-space: nowrap;
+  }
 
   /* --- Controls --- */
   .controls-section {
