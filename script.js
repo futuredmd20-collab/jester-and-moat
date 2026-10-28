@@ -843,7 +843,7 @@ function updateModeUI() {
   const mode = document.getElementById('modeSelect').value;
   const isSim = mode === 'ai_vs_ai';
   const modeRow = document.getElementById('gameModeRow');
-  const modeIndicator = document.getElementById('gameModeIndicator');
+  const modeIndicator = document.getElementById('gameModePill');
   const showModeIndicator = document.getElementById('showModeIndicatorToggle');
   if (modeIndicator) modeIndicator.textContent = MODE_TAG[mode] || '';
   if (modeRow) modeRow.hidden = !(showModeIndicator && showModeIndicator.checked);
