@@ -61,7 +61,7 @@
 
 <div class="controls-section">
  <div class="controls-row">
-  <button class="editor-btn" id="editorToggleBtn"><span class="control-glyph" aria-hidden="true">✎</span> Edit Board</button>
+  <button class="editor-btn" id="editorToggleBtn"><svg class="control-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25Zm17.71-10.04a1 1 0 0 0 0-1.41l-2.51-2.51a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 2-1.66Z"/></svg> Edit Board</button>
   <button class="reset-btn" id="resetBtn"><span class="control-glyph" aria-hidden="true">↻</span> New Game</button>
   <button class="info-btn" id="infoToggleBtn"><span class="control-glyph info-glyph" aria-hidden="true">i</span> Info</button>
   <button class="options-btn icon-only-btn" id="optionsToggleBtn" title="Options" aria-label="Open options"><svg class="control-svg gear-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94a7.5 7.5 0 0 0 0-1.88l2.03-1.58-2-3.46-2.39.96a7.35 7.35 0 0 0-1.63-.94L14.79 3h-4l-.36 3.04a7.35 7.35 0 0 0-1.63.94l-2.39-.96-2 3.46 2.03 1.58a7.5 7.5 0 0 0 0 1.88l-2.03 1.58 2 3.46 2.39-.96c.5.4 1.04.71 1.63.94L10.79 21h4l.36-3.04c.59-.23 1.13-.54 1.63-.94l2.39.96 2-3.46-2.03-1.58ZM12.79 15.5a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z"/></svg></button>
@@ -135,9 +135,9 @@
 
  <div class="editor-controls-row">
   <div>
-   <button class="palette-btn tool-btn selected" id="eraserToolBtn" data-tool="eraser">❌ Eraser</button>
-   <button class="options-btn" id="clearBoardBtn">🧹 Clear Board</button>
-   <button class="options-btn" id="resetDefaultBoardBtn">🔄 Reset Default</button>
+   <button class="palette-btn tool-btn selected" id="eraserToolBtn" data-tool="eraser"><svg class="control-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m16.24 3.56 4.2 4.2a2 2 0 0 1 0 2.83l-8.49 8.48a2 2 0 0 1-2.82 0l-5.3-5.3a2 2 0 0 1 0-2.83l8.48-8.48a2 2 0 0 1 2.83 0ZM5.24 12.36l5.3 5.3 3.54-3.54-5.3-5.3-3.54 3.54ZM15.2 6.64l-4.99 4.99 5.3 5.3 4.99-4.99-5.3-5.3Z"/></svg> Eraser</button>
+   <button class="options-btn" id="clearBoardBtn"><svg class="control-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 17.25 1.41-1.41 3.75 3.75L6.75 21H3v-3.75ZM20.71 5.04 18.96 3.3a1 1 0 0 0-1.41 0L8.4 12.45l5.3 5.3 7.01-7.01a4.03 4.03 0 0 0 0-5.7ZM6.99 13.86l-2.12 2.12 3.18 3.18h12.49v-2H9.29l-2.3-3.3Z"/></svg> Clear Board</button>
+   <button class="options-btn" id="resetDefaultBoardBtn"><svg class="control-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V2L7.5 6.5 12 11V8a6 6 0 1 1-5.65 8H3.18A9 9 0 1 0 12 5Z"/></svg> Reset Default</button>
   </div>
   <div>
    <label style="font-size:0.8rem;font-weight:bold;">Side to move: </label>
@@ -175,8 +175,8 @@
   <h3>💾 Save / Load Game (JSON)</h3>
   <div class="save-box">
    <div class="btn-group" style="display:flex;gap:8px;margin-top:6px;">
-    <button class="file-btn" id="exportFileBtn">💾 Save to File (.json)</button>
-    <button class="file-btn" id="importFileBtn">📂 Load from File</button>
+    <button class="file-btn" id="exportFileBtn"><svg class="control-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20h14v-2H5v2ZM11 3v10.17l-3.59-3.58L6 11l6 6 6-6-1.41-1.41L13 13.17V3h-2Z"/></svg> Save to File (.json)</button>
+    <button class="file-btn" id="importFileBtn"><svg class="control-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20h14v-2H5v2ZM11 17V6.83L7.41 10.4 6 9l6-6 6 6-1.41 1.41L13 6.83V17h-2Z"/></svg> Load from File</button>
     <input type="file" id="fileInput" accept=".json" style="display:none;">
    </div>
   </div>
