@@ -93,18 +93,11 @@
  </div>
 </div>
 
-<!-- Evaluation Bar -->
-<div class="eval-bar-container" id="evalBarContainer">
- <div class="eval-side-info" id="evalWhiteInfo">
-   <span>White</span> <span id="whitePtsWrapper">(<span id="whiteBoardPoints">0 pts</span>)</span>
- </div>
- <div class="eval-bar-track">
-  <div class="eval-fill-white" id="evalFillWhite" style="width: 50%;"></div>
-  <div class="eval-fill-black" id="evalFillBlack" style="width: 50%;"></div>
- </div>
- <div class="eval-side-info" id="evalBlackInfo" style="justify-content: flex-end;">
-   <span id="blackPtsWrapper">(<span id="blackBoardPoints">0 pts</span>)</span> <span>Black</span>
- </div>
+<!-- Compact points and move count row -->
+<div class="score-move-row" id="scoreMoveRow">
+ <div class="score-item">White <strong id="whiteBoardPoints">0 pts</strong></div>
+ <div class="score-item">Black <strong id="blackBoardPoints">0 pts</strong></div>
+ <div class="score-item move-count-item">Moves <strong id="moveCounter">0</strong></div>
 </div>
 
 <!-- Board Editor Toolbar -->
@@ -334,15 +327,22 @@
  </div>
 
 <main>
-<div id="board" role="grid" aria-label="Chess board 10 by 8"></div>
+<div class="board-stage">
+ <div id="board" role="grid" aria-label="Chess board 10 by 8"></div>
+ <div class="eval-bar-container" id="evalBarContainer" aria-label="Board evaluation by player">
+  <div class="eval-side-info" id="evalWhiteInfo"><span>White</span></div>
+  <div class="eval-bar-track">
+   <div class="eval-fill-white" id="evalFillWhite" style="height: 50%;"></div>
+   <div class="eval-fill-black" id="evalFillBlack" style="height: 50%;"></div>
+  </div>
+  <div class="eval-side-info" id="evalBlackInfo"><span>Black</span></div>
+ </div>
+</div>
 
 <div class="dashboard">
  <div class="captured-container">
   <span style="font-size:0.75rem;opacity:0.8;font-weight:bold;">Captured by White:</span>
   <div id="capturedByWhite" class="captured-box"></div>
- </div>
- <div style="margin: 0 8px; text-align:center;">
-  <strong>Moves: <span id="moveCounter">0</span></strong>
  </div>
  <div class="captured-container" style="align-items:flex-end;">
   <span style="font-size:0.75rem;opacity:0.8;font-weight:bold;">Captured by Black:</span>
@@ -351,7 +351,15 @@
 </div>
 
 <div class="history-box">
- <strong>Move History</strong>
+ <div class="history-heading">
+  <strong>Move History</strong>
+  <label class="history-order-label" for="historyOrderSelect">Order
+   <select id="historyOrderSelect" aria-label="Move History order">
+    <option value="oldest">Oldest first</option>
+    <option value="newest">Newest first</option>
+   </select>
+  </label>
+ </div>
  <div id="history">No moves yet.</div>
 </div>
 </main>
