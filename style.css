@@ -222,25 +222,35 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    margin: -2px auto 6px;
-    min-height: 0;
+    /* Compact strip between the points/evaluation row and the clocks. */
+    margin: 2px auto 3px;
+    padding: 0;
   }
 
   .game-mode-row[hidden] { display: none !important; }
 
   .game-mode-pill {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    max-width: 100%;
-    padding: 3px 9px;
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+    /* Keep the full-width pill readable while adding virtually no height. */
+    padding: 1px 8px;
     border: 1px solid var(--line);
-    border-radius: 99px;
-    background: var(--paper-deep);
+    border-left: 3px solid var(--gold);
+    border-radius: 999px;
+    background: #eee4d4;
     color: var(--muted-ink);
-    font: 650 .7rem/1.25 system-ui, sans-serif;
-    letter-spacing: .15px;
-    white-space: nowrap;
+    font-size: .75rem;
+    line-height: 1.15;
+    font-weight: 700;
+  }
+
+  .theme-dark .game-mode-pill {
+    background: #2b2926;
+    border-color: var(--line);
+    border-left-color: var(--gold);
+    color: var(--muted-ink);
   }
 
   /* --- Controls --- */
