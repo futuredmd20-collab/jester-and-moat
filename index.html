@@ -69,7 +69,7 @@
  <div class="controls-row">
   <button class="undo" id="undoBtn" title="Undo" aria-label="Undo move">↶</button>
   <button class="redo" id="redoBtn" title="Redo" aria-label="Redo move">↷</button>
-  <button class="confirm-moat-btn" id="confirmMoatBtn" style="display:none;">✅ Confirm Moat</button>
+  <button class="confirm-moat-btn" id="confirmMoatBtn" style="display:none;"><span class="control-glyph" aria-hidden="true">✓</span> Confirm Moat</button>
   <button class="auto-icon" id="autoBtn" title="Toggle Auto-Play" aria-label="Start auto-play">▶</button>
   <button class="step" id="stepBtn" title="Step" aria-label="Make one AI move"><svg class="control-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16l10-8L4 4Zm10 0v16l8-8-8-8Zm8 0h-2v16h2V4Z"/></svg></button>
   <button class="random" id="randomBtn" title="Random Midgame" aria-label="Generate random midgame"><svg class="control-svg dice-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="8" r="1.6"/><circle cx="16" cy="8" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="8" cy="16" r="1.6"/><circle cx="16" cy="16" r="1.6"/></svg></button>
@@ -159,6 +159,7 @@
   <h3>Controls Guide</h3>
   <dl class="control-legend">
    <div><dt><span class="legend-glyph" aria-hidden="true">↶</span></dt><dd>Undo the last move</dd></div>
+   <div><dt><span class="legend-glyph" aria-hidden="true">✓</span></dt><dd>Confirm moat placement (when prompted)</dd></div>
    <div><dt><span class="legend-glyph" aria-hidden="true">↷</span></dt><dd>Redo an undone move</dd></div>
    <div><dt><span class="legend-glyph" aria-hidden="true">▶ / Ⅱ</span></dt><dd>Start or pause auto-play</dd></div>
    <div><dt><svg class="legend-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16l10-8L4 4Zm10 0v16l8-8-8-8Zm8 0h-2v16h2V4Z"/></svg></dt><dd>Make one AI move</dd></div>
