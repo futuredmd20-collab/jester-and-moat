@@ -1853,7 +1853,8 @@ function renderMoveList(){
     }
   }
   flushPending();
-  for (const r of rows){
+  const displayRows = historyOrder === 'newest' ? rows.reverse() : rows;
+  for (const r of displayRows){
     const div = document.createElement('div');
     if (r.note){ div.className = 'mv-row'; div.innerHTML = `<span class="mv-note">${r.note}</span>`; }
     else {
@@ -1865,7 +1866,22 @@ function renderMoveList(){
     }
     el.appendChild(div);
   }
-  el.scrollTop = el.scrollHeight;
+  el.scrollTop = historyOrder === 'newest' ? 0 : el.scrollHeight;
+}
+
+let historyOrder = 'oldest';
+const historyOrderSelect = document.getElementById('historyOrderSelect');
+try {
+  const savedHistoryOrder = localStorage.getItem('jm_history_order_v1');
+  if (savedHistoryOrder === 'newest' || savedHistoryOrder === 'oldest') historyOrder = savedHistoryOrder;
+} catch (err) { /* storage unavailable; use the default order */ }
+if (historyOrderSelect) {
+  historyOrderSelect.value = historyOrder;
+  historyOrderSelect.addEventListener('change', () => {
+    historyOrder = historyOrderSelect.value === 'newest' ? 'newest' : 'oldest';
+    try { localStorage.setItem('jm_history_order_v1', historyOrder); } catch (err) { /* ignore unavailable storage */ }
+    renderMoveList();
+  });
 }
 
 /* === v0.4.6: Game-over overlay === */
