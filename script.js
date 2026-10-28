@@ -339,6 +339,7 @@ function stopAutoPlay(){
     clearInterval(autoPlayInterval);
     autoPlayInterval = null;
     document.getElementById('autoBtn').textContent = '▶';
+    document.getElementById('autoBtn').setAttribute('aria-label', 'Start auto-play');
   }
 }
 
@@ -1476,7 +1477,8 @@ function toggleAutoPlay(){
     status("Game Paused.");
     updateClockUI();
   } else {
-    document.getElementById('autoBtn').textContent = '⏸';
+    document.getElementById('autoBtn').textContent = 'Ⅱ';
+    document.getElementById('autoBtn').setAttribute('aria-label', 'Pause auto-play');
     gameStarted = true;
     status("Game Running / Auto-play active...");
     autoPlayInterval = setInterval(() => {
