@@ -838,12 +838,15 @@ const defaultEngineForSide = {
   b: { engineId: 'minmax_legacy', phaseOverrides: { opening: 'minmax_legacy', midgame: 'minmax_legacy', endgame: 'minmax_legacy' } }
 };
 const MODE_TAG = { pvp: '2 Players', ai_easy: 'vs AI · Easy', ai_medium: 'vs AI · Medium', ai_hard: 'vs AI · Hard', ai_vs_ai: 'AI vs AI' };
-/* Header mode pill, and the controls that have no meaning in AI vs AI
- * (there is no player side to switch). */
+/* Game-mode indicator and controls that have no meaning in AI vs AI. */
 function updateModeUI() {
   const mode = document.getElementById('modeSelect').value;
   const isSim = mode === 'ai_vs_ai';
-  document.getElementById('modeTag').textContent = MODE_TAG[mode] || '';
+  const modeRow = document.getElementById('gameModeRow');
+  const modeIndicator = document.getElementById('gameModeIndicator');
+  const showModeIndicator = document.getElementById('showModeIndicatorToggle');
+  if (modeIndicator) modeIndicator.textContent = MODE_TAG[mode] || '';
+  if (modeRow) modeRow.hidden = !(showModeIndicator && showModeIndicator.checked);
   const switchBtn = document.getElementById('sideSwitchBtn');
   switchBtn.disabled = isSim;
   switchBtn.title = isSim ? 'Not available in AI vs AI' : 'Switch player side and board view';
@@ -1908,6 +1911,7 @@ function saveOptions(){
       speed: document.getElementById('speedSelect').value,
       disp: document.getElementById('uiDisplaySelect').value,
       coords: (document.getElementById('coordsToggle').checked ? '1' : '0'),
+      showModeIndicator: (document.getElementById('showModeIndicatorToggle').checked ? '1' : '0'),
       theme: document.getElementById('themeSelect').value,
       boardStyle: document.getElementById('boardStyleSelect').value,
       pieceSet: activePieceSet,
@@ -1927,10 +1931,12 @@ function loadOptions(){
     setVal('pieceSetSelect', o.pieceSetVersion === 4 && o.pieceSet === 'flat' ? 'flat' : 'classic');
     activePieceSet = document.getElementById('pieceSetSelect').value;
     if (o.coords !== undefined) document.getElementById('coordsToggle').checked = (o.coords === '1');
+    document.getElementById('showModeIndicatorToggle').checked = o.showModeIndicator === undefined ? true : o.showModeIndicator === '1';
   } catch(err) { /* ignore */ }
 }
 
 document.getElementById('coordsToggle').addEventListener('change', () => { saveOptions(); render(); });
+document.getElementById('showModeIndicatorToggle').addEventListener('change', () => { saveOptions(); updateModeUI(); });
 
 /* === v0.4.6: Theme switcher (Auto / Light / Dark) === */
 let themeMq = null;
