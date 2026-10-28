@@ -37,19 +37,20 @@ Use these documents to understand the current state, architecture, constraints, 
 - Treat GitHub as canonical; do not modify mirror copies as a substitute for updating the repository.
 
 ## Branch & Review
-- Every task involving repository changes must use its own dedicated branch.
-- Do not make project changes directly on the default branch.
-- Include the proposed branch in the plan. Create it after the plan is approved.
-- Before editing, confirm the intended working branch and repository state.
-- Concentrate all commits for the task on its dedicated branch.
+- Protect the default branch (`main`): do not make project changes directly on it.
+- Use one branch per distinct task or feature, not per individual change. Group related changes together and keep unrelated work separate.
+- Include the proposed branch in the plan and create it only after the plan is approved.
+- Reuse an existing branch when continuing the same task, but first verify its purpose, current state, and relationship to `main`. If its scope or state is unclear, stop and clarify before editing.
+- Before editing, confirm the intended working branch and repository state. Keep all commits for the task on that branch.
 - GitHub is the shared workspace so the user or another agent can continue work from the branch.
 - A local clone may be used as a working copy when the environment supports it, but only after asking the user and receiving explicit approval. A local clone is a cache, never the source of truth; the work must land on the task branch before any PR.
 - Branch commits are free and reversible; they do not require separate approval when covered by the approved plan.
-- Review the resulting diff before committing or publishing changes, as appropriate to the selected workflow.
+- Review the diff against the intended base branch before committing or publishing changes. Check for unrelated changes and run relevant checks or tests when appropriate and authorized.
 - Show the diff to the user before creating a pull request.
 - Never open a PR without explicit permission. Approval of a plan that explicitly includes opening a draft PR counts as that permission.
 - Never merge a pull request unless the user explicitly authorizes the merge.
 - Permission to edit, commit, or push is not permission to open or merge a PR unless that action was explicitly included in the approved plan.
+- After a successful merge and verification, clean up the task branch if it is no longer needed and cleanup is appropriate.
 
 ## Workflow Options
 When a change is requested, use the established workflow choice if one is clear. Otherwise, ask which workflow the user wants:
