@@ -1,20 +1,20 @@
-# RELEASE-GOVERNANCE.md — Release Decisions
-Purpose: when to make a release checkpoint and how its version files stay aligned. Not for the project’s version-number definitions (SEMVER.md) or the full release procedure (VERSIONING.md).
+# Release decisions
+
+Defines when a change becomes a release checkpoint and the consistency rules for release metadata. Version-number meanings are in [SEMVER.md](SEMVER.md); the release procedure is in [VERSIONING.md](VERSIONING.md).
 
 ## When to release
 
-A release is an intentional, user-facing checkpoint. A PR merge to `main` does not automatically mean a release or version bump; intermediate work, documentation, and changes not selected as a checkpoint can remain untagged.
+A release is an intentional, user-facing checkpoint. Merging a PR to `main` does not automatically trigger a release or version bump. Intermediate work, documentation and changes not selected as a checkpoint may remain untagged.
 
-Choose whether a change is worth releasing. When it is, bump the version in the same release change, using the project’s established rules in `SEMVER.md`. Do not create a version bump merely because files changed or a PR merged.
+When a change is chosen for release, bump the version in the same release change using [SEMVER.md](SEMVER.md). Do not bump solely because files changed or a PR merged.
 
 ## Version and cache consistency
 
-The annotated `v<semver>` tag is the authority for a release. In the release change, make the version in `manifest.json` and the version component of the `sw.js` cache name agree with that tag. Keep the visible version label in `index.html` in sync while it is shown to players; it is display text, not a separate source of version truth.
+- The annotated `v<semver>` tag is the source of truth for a release.
+- In a release change, make `manifest.json` and the version component of the `sw.js` cache name agree with the tag.
+- Keep the visible version label in `index.html` in sync while it is shown to players. It is display text, not an independent source of truth.
+- Bump the service-worker cache suffix whenever a precached asset changes, even if there is no release or app-version bump.
 
-A service-worker cache suffix is separate from the app version. Whenever a precached asset changes, bump the `sw.js` cache suffix so installed clients receive the changed app shell, even when the change is not being released and the app version is unchanged.
+Follow [VERSIONING.md](VERSIONING.md) for deployment checks, tagging, release notes and the `HISTORY.md` entry. Do not tag before the release is chosen and the version-bearing files describe it.
 
-## Release procedure
-
-Follow `VERSIONING.md` for the release sequence, deployment checks, tagging, release notes, and HISTORY.md entry. Do not tag a commit before the release has been chosen and the version-bearing files describe it.
-
-Keep release notes short and concrete: explain what changed, what was verified, and any remaining limitations. Mention service-worker cache changes because they affect installed PWAs, and describe user-visible changes in terms of what players can now see or do.
+Keep release notes short and concrete: say what changed, what was verified and what limitations remain. Mention cache changes that affect installed PWAs, and describe user-visible changes in terms of what players can see or do.
