@@ -374,6 +374,16 @@ function updateDisplayPreferences() {
   }
 }
 
+function setEditorToggleLabel(label){
+  const button = document.getElementById('editorToggleBtn');
+  const textNode = Array.from(button.childNodes).find(node => node.nodeType === Node.TEXT_NODE);
+  if (textNode) {
+    textNode.textContent = ` ${label}`;
+  } else {
+    button.appendChild(document.createTextNode(` ${label}`));
+  }
+}
+
 function setup(){
   aiRequestId++;
   clearTimeout(aiTimer);
@@ -383,7 +393,7 @@ function setup(){
   editMode = false;
   isAIThinking = false;
   document.getElementById('editorPanel').classList.remove('active');
-  document.getElementById('editorToggleBtn').textContent = '🛠️ Edit Board';
+  setEditorToggleLabel('Edit Board');
 
   const mode = document.getElementById('modeSelect').value;
   const sideSetting = document.getElementById('playerSideSelect').value;
@@ -1318,14 +1328,14 @@ function toggleEditor(){
   
   if (editMode){
     panel.classList.add('active');
-    toggleBtn.textContent = '🎮 Resume Game';
+    setEditorToggleLabel('Resume Game');
     document.getElementById('editorClockW').value = formatTime(state.clocks.w);
     document.getElementById('editorClockB').value = formatTime(state.clocks.b);
     status("BOARD EDITOR ACTIVE: Select pieces/tools or adjust clocks below.");
     selected = null; legalTargets = [];
   } else {
     panel.classList.remove('active');
-    toggleBtn.textContent = '🛠️ Edit Board';
+    setEditorToggleLabel('Edit Board');
     status(`Game Resumed. Turn: ${state.turn==='w'?'White':'Black'}`);
   }
   render();
@@ -1383,7 +1393,7 @@ function validateAndPlayPosition(){
 
   editMode = false;
   document.getElementById('editorPanel').classList.remove('active');
-  document.getElementById('editorToggleBtn').textContent = '🛠️ Edit Board';
+  setEditorToggleLabel('Edit Board');
   gameStarted = true;
   history = [clone(state)];
   redoStack = [];
