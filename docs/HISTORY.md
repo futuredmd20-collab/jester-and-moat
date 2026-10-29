@@ -1,39 +1,33 @@
-HISTORY.md — Change Log
-Purpose: dated record of decisions and changes, newest last. Not for current state (the repo shows that) or rules (HANDOVER.md).
+# HISTORY.md — Change Log
+
+Purpose: dated record of decisions and changes, oldest first. Use the repository for current state and HANDOVER.md for rules.
 
 2026-10-18 — Earlier clean-up
-* Project structure cleaned up to remove cross-file redundancy across the .md files.
-* Documentation standardized in English across all docs.
+* Reduced cross-file duplication and standardized documentation in English.
 
 2026-10-18 — GitHub as canonical storage
-* Canonical project storage moved to the public repo futuredmd20-collab/jester-and-moat (docs/ folder); GitHub Pages at https://futuredmd20-collab.github.io/jester-and-moat/.
-* Drive .md files became mirrors. Saved games stay in Drive only; the Backups folder remains out of AI scope.
-* AGENTS.md gained a Canonical Storage section; the older "Google Drive is canonical" wording was removed.
+* Canonical storage moved to `futuredmd20-collab/jester-and-moat`; GitHub Pages serves the app. Drive Markdown became mirrors; saved games remain in Drive and BACKUPS stays out of AI scope.
+* AGENTS.md now names GitHub as canonical storage.
 
 2026-10-18 — Agent capability notes
-* LIMITATIONS.md gained a GitHub section: this sandbox has no git credentials, so writes go through the GitHub integration; the integration is account-scoped, so no per-session login is needed.
+* Added GitHub integration constraints: sandbox Git credentials may be absent and integration access is account-scoped.
 
 2026-10-18 — Documentation restructure
-* Docs split by purpose rather than by which agent requested them: AGENTS.md (behaviour), PROMPT.md (kickoff prompt), ARCHITECTURE.md (deployment), HANDOVER.md (game rules), LIMITATIONS.md (constraints), RESUME.md (agent scratch), HISTORY.md (this file).
-* The PWA and deployment spec moved out of PROMPT.md into ARCHITECTURE.md; PROMPT.md is now an actual paste-ready prompt.
-* RESUME.md reset to a blank agent-scratch template; its status notes moved here.
-* Decisions are now lettered (A, B, …) and numbers reserved for questions (Q1, Q2, …), after two numbering schemes collided in one reply.
-* Every doc now opens with a Purpose line saying what it holds and what it does not.
+* Docs separated by purpose: AGENTS (behaviour), PROMPT (kickoff), ARCHITECTURE (deployment), HANDOVER (game rules), LIMITATIONS (constraints), RESUME (agent scratch), HISTORY (changelog).
+* PWA/deployment details moved from PROMPT.md to ARCHITECTURE.md; PROMPT.md became paste-ready. RESUME.md was reset and its status notes moved here.
+* Decisions use letters (A, B, …) and questions use Q-numbers after numbering schemes collided. Each doc gained a Purpose line.
 
 2026-10-18 — Drive scope rule
-* Drive cleaned of stale .md mirrors; each doc now exists once, in the Jester & Moat folder.
-* AGENTS.md work scope corrected to the real folder name **BACKUPS**, and agents are now told to stay inside the Jester & Moat folder. Creating files elsewhere in Drive is allowed only when a tool cannot target that folder.
-* Drive version history confirmed as user-only reference: Game versions, BACKUPS, and BACKUPS/Old game versions. Nothing outside Jester & Moat is project storage.
+* Removed stale Drive Markdown mirrors; each document has one copy in `Jester & Moat`. Agents must stay in that folder, including the actual `BACKUPS` folder, unless a tool cannot target it.
+* Drive version history (Game versions, BACKUPS, and BACKUPS/Old game versions) is user-only reference; nothing outside `Jester & Moat` is project storage.
 
 2026-10-18 — HISTORY.md moved out of the startup read
-* HISTORY.md dropped from the session-start reading order in AGENTS.md and from the kickoff prompt in PROMPT.md: it is a changelog that only grows, so reading it up front costs every new session context before any work begins.
-* It is now background: agents open it when they need to know why something is the way it is.
-* Decided after a multi-client test of PROMPT.md. The test results themselves are not recorded yet; the user is still gathering them.
+* Removed HISTORY.md from startup reading in AGENTS.md and PROMPT.md to save context; agents consult it when they need historical rationale.
+* Decision followed a multi-client PROMPT.md test; results were not yet recorded and were still being gathered.
 
 2026-10-19 — Piece art moved out of index.html
-* The fourteen inline piece symbols became seven shared symbols in generated pieces.svg, with the side palette in pieces.css; index.html fell 138,441 → 13,162 bytes and script.js now emits `<use href="#p-${name}">`.
-* generate-piece-sprite.js added: it rebuilds pieces.svg and pieces.css from the light-*.svg files and must be run from the repo root. sw.js precaches both and bumps the cache to jm-cache-v0.5.5-sprite-1; build.js inlines the sprite for the single-file build.
-* Salvaged from a Freebuff chat that could not be migrated (Drive: Salvage 2026-10-19) and delivered as PR #1 on branch refactor/piece-sprite.
+* Replaced 14 inline piece symbols with seven shared symbols in generated `pieces.svg` and `pieces.css`; `index.html` shrank from 138,441 to 13,162 bytes and `script.js` emits `<use href="#p-${name}">`.
+* Added root-run `generate-piece-sprite.js` to rebuild the assets from `light-*.svg`; `sw.js` precaches them with cache `jm-cache-v0.5.5-sprite-1`, and `build.js` inlines the sprite. Work was salvaged from Freebuff (Drive: Salvage 2026-10-19) and delivered as PR #1 on `refactor/piece-sprite`.
 
 2026-10-19 — 512 px icons restored for installability
 * icon-512.png and icon-maskable-512.png added and declared in manifest.json; Chrome on Android wants a 192 and a 512 icon before it offers to install the PWA.
@@ -41,9 +35,8 @@ Purpose: dated record of decisions and changes, newest last. Not for current sta
 * sw.js precaches both and bumps the cache to jm-cache-v0.5.5-sprite-2.
 
 2026-10-19 — Sprite refactor merged and deployed
-* PR #1 merged into main by rebase (44ecd0f → 85ef78b, three commits); GitHub Pages rebuilt on 85ef78b and now serves the sprite build.
-* Post-deploy check: index.html, script.js, pieces.css, pieces.svg, manifest.json, sw.js and both 512 icons return 200 with correct MIME types and match their pre-merge hashes; no http:// references remain.
-* The two 512 icons are still upscales of the 192 art — replace them if a true 512 source turns up.
+* PR #1 rebased into main (44ecd0f → 85ef78b, three commits); Pages rebuilt from 85ef78b. Post-deploy checks confirmed seven core files/assets returned 200 with correct MIME types and matching pre-merge hashes; no `http://` references remained.
+* Both 512 icons remain upscales of the 192 art; replace if true 512 sources appear.
 
 2026-10-20 — Tagged releases, and the end of the Drive mirrors
 * v0.5.5 tagged at fbbffef and published as the first GitHub Release; the repo's Immutable Releases setting was enabled, so the tag and its assets are locked.
@@ -84,10 +77,8 @@ Purpose: dated record of decisions and changes, newest last. Not for current sta
 * style.css is precached, so the cache name is bumped to jm-cache-v0.5.5-sprite-5. Comment-only change, so no version bump and no tag.
 
 2026-10-21 — Flat piece art wired in
-* The Flat option now renders the real flat artwork. pieces-flat.svg is regenerated by the new build-pieces-flat.js from the seven flat-*.svg crops (landed via PR #3), replacing the hand-drawn placeholder symbols; every surface using pieceMarkup — board, captured tray, promotion modal, editor palette — picks it up with no JS changes.
-* Flat board sizing switched from the placeholder's stretched boxes to each crop's real aspect ratio (width = height x viewBox aspect; board squares are 1:1, so the art renders undistorted). The crops bake their own silhouette outline, so .piece.piece-set-flat { stroke: none } keeps the classic set's inherited 2.2 hairline stroke off their fill-only paths.
-* The Options label "Flat (placeholder for future artwork)" became "Flat"; sw.js cache bumped to jm-cache-v0.6.0-flat-art-1; ARCHITECTURE.md now records flat-*.svg and light-*.svg as art sources that are deliberately not precached.
-* The captured tray, promotion modal and editor palette now size flat pieces by true aspect (width = height x the crop's ratio, via a per-crop --flat-aspect variable) instead of the shared fixed boxes that stretched them; classic sizing on those surfaces is unchanged.
+* PR #3 added `build-pieces-flat.js`, which generates `pieces-flat.svg` from seven `flat-*.svg` crops; all `pieceMarkup` surfaces (board, captured tray, promotion modal, editor palette) now use the real art without JS changes.
+* Flat pieces preserve each crop's aspect ratio, including in trays/modals/palette via `--flat-aspect`; their baked outlines avoid the classic set's inherited stroke. The option label became “Flat”, cache became `jm-cache-v0.6.0-flat-art-1`, and ARCHITECTURE.md identifies source SVGs as deliberately not precached.
 
 2026-10-21 — v0.6.1 released
 * Version bumped to 0.6.1 for the merged flat piece art (PR #5): the Flat option renders the real artwork on the board, captured tray, promotion modal and editor palette. manifest.json and the sw.js cache name (jm-cache-v0.6.1-flat-art-1) carry the new number; index.html shows it in the title, header badge and info drawer.
@@ -106,10 +97,8 @@ Purpose: dated record of decisions and changes, newest last. Not for current sta
 * The piece-colour improvements (black outlines, dark accent, flat jester, black bishop/rook; main commit 9f0b31f) shipped without a cache suffix bump. style.css is precached, so the cache name is bumped to jm-cache-v0.6.1-piece-art-1 to reach returning clients. No version bump and no tag.
 
 2026-10-25 — Release and version guidance aligned
-* Updated RELEASE-GOVERNANCE.md so release decisions are intentional and version numbers follow VERSIONING.md: tagging is an explicit checkpoint, `manifest.json` and the `sw.js` version component match the tag, and the visible `index.html` version label stays in sync when shown.
-* Clarified that precached asset changes need a service-worker cache-suffix bump even when the app version does not change.
-* Rewrote SEMVER.md to match VERSIONING.md: MAJOR for incompatible saved-game/storage formats, MINOR for backward-compatible features, and PATCH for fixes or internal changes that preserve saves and features.
-* Added Purpose lines to both policy documents.
+* Aligned RELEASE-GOVERNANCE.md, SEMVER.md and VERSIONING.md: tagging is an explicit checkpoint; `manifest.json`, the `sw.js` version component, and any visible `index.html` label must match. Precaching changes need a cache-suffix bump even without an app-version bump.
+* Defined MAJOR for incompatible save/storage formats, MINOR for backward-compatible features, and PATCH for fixes/internal changes preserving saves and features; added Purpose lines.
 
 2026-10-26 — Agent guidance consolidated
 * Shared limitations guidance now lives in .agents/limitations.md; removed duplicate docs/LIMITATIONS.md.
@@ -117,16 +106,13 @@ Purpose: dated record of decisions and changes, newest last. Not for current sta
 
 
 2026-10-27 — Engine-plugin plan reconciled with merged work
-* Updated docs/ENGINE-PLUGINS.md to reflect the plugin registry, MinMax adapter, MCTS module, per-side/per-phase controls, script loading, and service-worker precache changes present after PRs #12, #16, #18, and #20–#24.
-* Separated landed code from verified behavior and outstanding work. The review found that the worker message carries a workerFn selector but the worker handler still calls getBestMove unconditionally; MCTS worker dispatch, configuration reload behavior, phase boundaries, regressions, and strength calibration remain to be verified. No runtime tests were run as part of this documentation pass.
+* Reconciled ENGINE-PLUGINS.md with repository changes from PRs #12, #16, #18 and #20–#24: registry, MinMax adapter, MCTS, side/phase controls, loading and precache.
+* Separated source changes from runtime evidence. The audit found worker dispatch still called `getBestMove` unconditionally; MCTS dispatch, reload persistence, phase boundaries, regressions and strength calibration remained unverified. No runtime tests were run.
 
 2026-10-27 — Engine worker dispatch fix
-* Fixed the generated AI worker to honor its `workerFn` message selector: MCTS calls `mctsGetMove`, MinMax calls `getBestMove`, and unsupported selectors report an explicit worker error instead of silently falling back to MinMax.
-* Refreshed the MCTS module integration comments and updated `docs/ENGINE-PLUGINS.md` to distinguish the source fix from still-pending browser/runtime verification.
-* Static source inspection only; no browser tests, build, dependency installation, or runtime execution were performed.
+* Updated the generated AI worker to dispatch `workerFn` to `mctsGetMove` or `getBestMove`; unknown selectors now return an explicit error. Refreshed MCTS integration comments and ENGINE-PLUGINS.md.
+* Static source review only—no browser tests, build, dependency installation or runtime execution.
 
 2026-10-27 — Engine startup and single-file build hardening
-* Fixed the single-file builder to embed the MCTS module before script.js; previously the registry called mctsEngine even though the build omitted that module, which could stop initialization before the board rendered.
-* Made MCTS registration and worker-helper serialization conditional when the module is unavailable, allowing the board and MinMax engine to remain usable with a visible console warning. The page loader now logs MCTS load failures before starting in fallback mode.
-* Bumped the service-worker cache to jm-cache-v0.7.2-engine-startup-1 so clients retire the prior precached app shell.
-* Static source inspection only. No build execution or browser/runtime verification was performed.
+* Fixed the single-file builder to embed MCTS before `script.js`; the omission could prevent board initialization. MCTS registration and worker-helper serialization are now conditional on module availability, and load failure logs a warning while preserving the board/MinMax fallback.
+* Bumped cache to `jm-cache-v0.7.2-engine-startup-1`. Static source review only; no build or browser/runtime verification.
