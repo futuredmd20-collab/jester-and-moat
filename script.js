@@ -346,31 +346,36 @@ function stopAutoPlay(){
 function updateDisplayPreferences() {
   const displayMode = document.getElementById('uiDisplaySelect').value;
   const clockContainer = document.getElementById('clockContainerEl');
-  const evalBarContainer = document.getElementById('evalBarContainer');
+  const evalTrack = document.getElementById('boardEvalTrack');
   const whiteInfo = document.getElementById('evalWhiteInfo');
   const blackInfo = document.getElementById('evalBlackInfo');
 
   if (displayMode === 'full') {
     clockContainer.style.display = 'flex';
     evalBarContainer.style.display = 'flex';
+    evalTrack.style.display = 'flex';
     whiteInfo.style.display = 'flex';
     blackInfo.style.display = 'flex';
   } else if (displayMode === 'bar_pts') {
     clockContainer.style.display = 'none';
     evalBarContainer.style.display = 'flex';
+    evalTrack.style.display = 'flex';
     whiteInfo.style.display = 'flex';
     blackInfo.style.display = 'flex';
   } else if (displayMode === 'bar_only') {
     clockContainer.style.display = 'none';
     evalBarContainer.style.display = 'flex';
+    evalTrack.style.display = 'flex';
     whiteInfo.style.display = 'none';
     blackInfo.style.display = 'none';
   } else if (displayMode === 'clocks_only') {
     clockContainer.style.display = 'flex';
     evalBarContainer.style.display = 'none';
+    evalTrack.style.display = 'none';
   } else if (displayMode === 'hidden') {
     clockContainer.style.display = 'none';
     evalBarContainer.style.display = 'none';
+    evalTrack.style.display = 'none';
   }
 }
 
@@ -1537,8 +1542,8 @@ function updateDashboard(){
   if (totalVal > 0) {
     whitePercent = Math.max(5, Math.min(95, (whiteBoardVal / totalVal) * 100));
   }
-  document.getElementById('evalFillWhite').style.width = `${whitePercent}%`;
-  document.getElementById('evalFillBlack').style.width = `${100 - whitePercent}%`;
+  document.getElementById('evalFillWhite').style.height = `${whitePercent}%`;
+  document.getElementById('evalFillBlack').style.height = `${100 - whitePercent}%`;
 
   const whiteCapEl = document.getElementById('capturedByWhite');
   const blackCapEl = document.getElementById('capturedByBlack');
