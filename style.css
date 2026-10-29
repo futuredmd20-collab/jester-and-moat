@@ -405,6 +405,31 @@
   .eval-fill-white { background: #fffaf1; height: 100%; transition: width 0.3s ease; }
   .eval-fill-black { background: #5b554d; height: 100%; transition: width 0.3s ease; }
 
+  /* Board-side evaluation strip overrides the legacy horizontal-bar dimensions. */
+  .board-layout .board-eval-track {
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
+    width: 5px;
+    min-width: 5px;
+    height: auto;
+    min-height: 100%;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    flex: none;
+    overflow: hidden;
+  }
+  .board-layout .board-eval-track .eval-fill-black,
+  .board-layout .board-eval-track .eval-fill-white {
+    display: block;
+    width: 100%;
+    min-height: 0;
+    flex: 0 0 auto;
+    transition: height 0.3s ease;
+  }
+
   /* --- Drawers & Board Editor --- */
   .options-drawer, .info-drawer, .editor-panel {
     display: none; width: min(100%, 820px); background: #fffaf1; border: 1px solid var(--line);
