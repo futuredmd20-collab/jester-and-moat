@@ -1179,6 +1179,22 @@ button.file-btn .control-svg,
   min-width: 0;
   min-height: 40px;
 }
+.editor-controls-row > div:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.editor-controls-row > div:first-child button {
+  min-height: 36px;
+  padding: 6px 9px;
+  font-size: .78rem;
+  gap: 6px;
+}
+.editor-controls-row > div:first-child button .control-svg {
+  width: 18px;
+  height: 18px;
+  flex-basis: 18px;
+}
 .dice-icon rect { fill: none; }
 .dice-icon circle { fill: currentColor; }
 button.icon-only-btn { flex: 0 0 40px; }
