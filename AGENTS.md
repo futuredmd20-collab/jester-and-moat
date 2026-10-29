@@ -1,126 +1,104 @@
-# AGENTS.md — Jester & Moat: House Rules & Entry Point
+# AGENTS.md — Jester & Moat
 
-Purpose: how agents behave in this project, including execution, approval, repository workflow, and documentation boundaries. This is the canonical entry point; project-specific game rules and architecture are documented elsewhere.
+Purpose: binding agent rules for execution, approvals, Git workflow, scope, and documentation. Game rules and architecture live in the referenced docs.
 
-## Intent & Execution
-- Interpret messages in the context of the full conversation, established decisions, and approved plans; prefer intended meaning over isolated literal readings.
-- Discussion, questions, hypotheticals, and suggestions are not authorization to act.
-- File changes require clear action intent, expressed explicitly or established unambiguously by context. No specific command word is required.
-- For multi-step work, present a concise plan and wait for approval before execution.
-- Approval covers the stated plan and its logically dependent steps.
-- Once approved, complete the plan's dependent steps without repeated approval, staying within the agreed scope. Do not extend approval to unrelated work or materially different actions.
-- Ask only when materially different interpretations could lead to a consequential unwanted action. Resolve apparent conflicts using context and instruction priority before asking.
-- Reading, searching, and planning are always allowed. Explicit safeguards elsewhere still apply.
+## 1. Intent & Approval
 
-## Planning & Approval
-- Before starting multi-step work, summarize the intended changes and execution steps.
-- Identify the intended scope, relevant files, workflow, and expected outcome.
-- Wait for approval of the plan before executing it.
-- If new information requires a material change to the approved plan, explain the change and seek approval before proceeding.
-- Do not ask for approval again for steps logically required by the approved plan and remaining within its scope.
-- A task limited to answering a question, reading files, searching, or proposing a plan does not authorize repository modifications.
-- Approval applies only to the stated plan and its dependent steps. It does not authorize unrelated work or materially different actions.
+| Rule | Requirement |
+|---|---|
+| Interpret | Use full conversation, established decisions, and approved plans; prefer intent over isolated wording. |
+| Authorization | Questions, discussion, hypotheticals, and suggestions do **not** authorize action. File edits require clear intent, explicit or unambiguous from context. |
+| Plan | Before multi-step work, state scope, files, workflow, branch, and expected result; wait for approval. |
+| Execute | Approval covers stated work and logically dependent steps only. Do not re-ask for in-scope steps or extend approval to unrelated/materially different work. |
+| Re-plan | If new information materially changes the plan, explain and obtain approval first. |
+| Clarify | Ask only when materially different interpretations risk consequential unwanted action. Resolve conflicts by context and instruction priority first. |
+| Read-only | Reading, searching, and planning are allowed; explicit safeguards still apply. A question, file read, search, or proposed plan alone never authorizes edits. |
 
-## Startup Context
-Before making changes to the project:
-1. Read `AGENTS.md`.
-2. Read `docs/HANDOVER.md`.
-3. Read `docs/ARCHITECTURE.md`.
-4. Read `.agents/limitations.md`.
-Use these documents to understand the current state, architecture, constraints, and outstanding work before planning changes.
+## 2. Startup Context
 
-## Repository Scope
-- GitHub is the source of truth for repository state and project changes.
-- Do not treat files in `BACKUPS/` as authoritative project files or modify them as part of ordinary project work.
-- Keep changes focused on the files and objectives included in the approved plan.
-- Do not introduce unrelated cleanup, refactoring, or formatting changes.
-- Treat GitHub as canonical; do not modify mirror copies as a substitute for updating the repository.
+Before changing project files, read in order:
+1. `AGENTS.md`
+2. `docs/HANDOVER.md`
+3. `docs/ARCHITECTURE.md`
+4. `.agents/limitations.md`
 
-## Branch & Review
-- Protect the default branch (`main`): do not make project changes directly on it.
-- Use one branch per distinct task or feature, not per individual change. Group related changes together and keep unrelated work separate.
-- Include the proposed branch in the plan and create it only after the plan is approved.
-- Reuse an existing branch when continuing the same task, but first verify its purpose, current state, and relationship to `main`. If its scope or state is unclear, stop and clarify before editing.
-- Before editing, confirm the intended working branch and repository state. Keep all commits for the task on that branch.
-- GitHub is the shared workspace so the user or another agent can continue work from the branch.
-- A local clone may be used as a working copy when the environment supports it, but only after asking the user and receiving explicit approval. A local clone is a cache, never the source of truth; the work must land on the task branch before any PR.
-- Branch commits are free and reversible; they do not require separate approval when covered by the approved plan.
-- Review the diff against the intended base branch before committing or publishing changes. Check for unrelated changes and run relevant checks or tests when appropriate and authorized.
-- Show the diff to the user before creating a pull request.
-- Never open a PR without explicit permission. Approval of a plan that explicitly includes opening a draft PR counts as that permission.
-- Never merge a pull request unless the user explicitly authorizes the merge.
-- Permission to edit, commit, or push is not permission to open or merge a PR unless that action was explicitly included in the approved plan.
-- After a successful merge and verification, clean up the task branch if it is no longer needed and cleanup is appropriate.
+Use them to understand current state, game/development rules, architecture, constraints, and outstanding work.
 
-## Workflow Options
-When a change is requested, use the established workflow choice if one is clear. Otherwise, ask which workflow the user wants:
-- **A. Local commit only** — make the approved changes and commit them locally; do not push or make remote changes.
-- **B. Commit and push to an existing branch** — make the approved changes, commit them, and push them to the specified existing remote branch.
-- **C. Create a branch, commit, and push** — create a dedicated branch from `main`, make the approved changes, commit them, and push the branch.
-- **D. Full workflow** — create a dedicated branch from `main`, make the approved changes, commit and push, review the diff, and open a draft PR after showing the diff to the user.
-- **E. Custom workflow** — follow the specific sequence agreed with the user.
-Use the selected workflow consistently. Do not silently substitute a different workflow if the selected one cannot be completed. Explain the limitation and ask how to proceed when necessary.
+## 3. Scope & Canonical Sources
 
-## Changes & Verification
-- Make only changes covered by the approved plan.
-- Preserve existing content and conventions unless the approved task requires changing them.
-- Verify the resulting repository state after changes where the available tools permit it.
-- Do not claim that a change, commit, push, or pull request succeeded until the relevant operation has actually succeeded.
-- If a tool or integration returns an error, report the error accurately. Do not claim the requested operation completed.
-- If the available integration cannot perform an operation, explain the limitation and offer a viable alternative rather than repeatedly attempting the same failed operation.
-- Do not bypass repository permissions, branch protections, or other access controls.
+- GitHub repo `futuredmd20-collab/jester-and-moat` is canonical; do not substitute Drive mirrors.
+- `BACKUPS/` and all contents are out of scope for ordinary project work. Never treat backups as authoritative.
+- Keep edits limited to the approved objective/files; no unrelated cleanup, refactoring, or formatting.
+- In Drive, work only in `Jester & Moat`. Touch nothing outside it unless specifically requested.
+- Create elsewhere in Drive only if tools cannot target the project folder; disclose this.
+- Never overwrite a Drive original without asking.
 
-## Builds, Installs & External Operations
-- Do not run builds, install dependencies, download files, or upload files unless the user has explicitly authorized the operation.
-- Explain when one of these operations is necessary and obtain permission before performing it.
-- Approval of a code or documentation change does not automatically authorize unrelated builds, installations, downloads, or uploads.
-- If one of these operations is a necessary step in an approved plan, ensure it is included in the plan's scope before performing it.
+## 4. Branch, Commit & Review
 
-## References & Documentation Map
-- Every documentation file begins with an accurate Purpose line stating what it holds and what it does not. Keep that line accurate when editing a file.
-- `docs/VERSIONING.md`: how a release is cut. Open it when preparing a release or tagging; it is not part of the startup read.
-- `docs/HANDOVER.md`: game rules and development policy.
-- `docs/ARCHITECTURE.md`: deployment model and PWA requirements.
-- `.agents/limitations.md`: shared boundaries and agent capability records. If you cannot perform an action, update the appropriate record or ask the user to do it.
-- `docs/HISTORY.md`: dated record of decisions and changes. It provides background, not current state or rules, and is not part of the startup read.
-- `docs/PROMPT.md`: the kickoff prompt to paste into a new session.
-- `docs/RESUME.md`: agent-only scratch. Never treat its contents as project truth; read it only when resuming interrupted work.
-- Agent-specific capability notes live in `.agents/freebuff.md`, `.agents/vibe.md`, and `.agents/gemini.md`.
+| Rule | Requirement |
+|---|---|
+| Default branch | Protect `main`; never make project changes directly on it. |
+| Branching | One branch per task/feature. Include branch name in plan; create only after approval. |
+| Existing branch | For continuation, verify purpose, state, and relation to `main`; if unclear, stop and clarify. |
+| State | Before editing, verify repo/branch state. Keep task commits on its branch. GitHub is the shared workspace. |
+| Local clone | Use only if supported and after explicit user approval. It is a cache, not source of truth; task work must reach its branch before any PR. |
+| Commit | Reversible commits need no separate approval when covered by the approved plan. |
+| Review | Compare diff with base; check unrelated changes and run relevant checks only when appropriate and authorized. Show diff before opening a PR. |
+| PR/merge | Never open a PR unless explicitly permitted; a plan explicitly including a draft PR grants permission. Never merge without explicit authorization. Edit/commit/push permission alone does not permit PR creation or merge. |
+| Cleanup | After merge and verification, remove the task branch only if no longer needed and cleanup is appropriate. |
 
-## AI Work Scope
-- AI agents may work with project files and folders generally. Only the `BACKUPS/` folder and everything inside it are out of scope.
-- In Google Drive, work only inside the `Jester & Moat` folder.
-- Creating files elsewhere in Drive, including the My Drive root, is allowed only when a tool cannot target the project folder; disclose when this happens.
-- Nothing outside `Jester & Moat` is project material to touch without the user specifically asking for it.
+### Workflow selection
 
-## Markdown File Integrity
-- Files ending in `.md` must remain actual Markdown/plain-text files in Google Drive, not Google Docs or Word documents.
-- When creating or editing an `.md` file in Drive, use a method that preserves its `text/markdown` MIME type; do not convert it into a Google Workspace document.
-- After creating or editing an `.md` file in Drive, verify its MIME type is `text/markdown`.
-- If the available tool cannot preserve or confirm that type, stop and ask the user rather than converting the file.
+Use the established choice; if unclear, ask. Execute the chosen workflow without silently substituting another.
 
-## Canonical Storage
-- GitHub is canonical: the public repository `futuredmd20-collab/jester-and-moat` is the single source of truth for project files and documentation.
-- Drive has no Markdown mirrors to maintain. Drive holds saved games and the user's own ZIP backups in `BACKUPS/`; agents do not maintain documentation copies there.
-- Version history lives in Git as annotated tags and GitHub Releases, not as one branch per version. See `docs/VERSIONING.md`.
-- If the user asks for a documentation copy outside the repository, treat it as a one-off export and explain that it will become stale.
-- Never overwrite a Drive original without asking first.
+| Code | Workflow |
+|---|---|
+| A | Local commit only; no push or remote changes. |
+| B | Commit and push to a specified existing remote branch. |
+| C | Create branch from `main`, edit, commit, push. |
+| D | C + review diff + show it to user + open draft PR. |
+| E | Custom sequence agreed with user. |
 
-## Communication
-- Keep plans, status updates, and explanations concise and specific.
-- Default to 15 lines or fewer, in plain English, without unnecessary preamble or restating the user's question.
-- Allow up to 20–25 additional lines when needed to explain a decision, caveat, or context clearly and avoid misinterpretation.
-- Lead with the answer or recommendation; justify it only as needed.
-- Distinguish clearly between proposed, approved, in-progress, and completed work.
-- When reporting completion, summarize the changes and provide relevant branch, commit, diff, or PR references where available.
-- If blocked, state what was attempted, the actual result, and the next viable option.
-- Avoid unnecessary clarification questions when the user's intent is clear from the conversation and approved plan.
-- Determine whether the user needs to make a decision or provide input before concluding a response.
-- When no decision or input is needed, end naturally without a decision list or a "no decisions needed" statement.
-- When the user must choose between two or more alternatives, present the alternatives in an ordered, lettered list (A, B, C, …) and clearly state what decision is needed.
-- When only one viable alternative exists, explain the recommendation or next step directly without a decision list.
-- When one option is preferable but the user still needs to choose, identify the recommendation and briefly explain why, while presenting the alternatives.
-- Distinguish actual decisions from completed actions, status updates, blockers, and recommendations. Never manufacture decisions to satisfy a formatting rule.
-- Prioritize clear, natural, and accurate communication over mechanical formatting. Do not add headings, lists, summaries, or closing statements solely to satisfy a template.
-- Scale the response to the task: keep ordinary conversation conversational and provide an appropriate status summary for multi-step work.
-- When a user corrects a recurring behavior, address the underlying instruction or process where possible rather than merely acknowledging the correction.
+If blocked, state the limitation and ask how to proceed.
+
+## 5. Changes & External Operations
+
+- Change only approved scope; preserve content/conventions unless the task requires otherwise.
+- Verify resulting repository state when tools permit.
+- Claim success only after the relevant operation succeeds. Report tool errors accurately; do not repeat failed approaches without reason.
+- Never bypass permissions, branch protection, or access controls.
+- Builds, installs, downloads, and uploads require explicit authorization. If necessary, include them in the approved plan first.
+
+## 6. Documentation Map
+
+Every documentation file must start with an accurate `Purpose` line describing what it includes/excludes. Keep it accurate when editing.
+
+| File | Role |
+|---|---|
+| `docs/HANDOVER.md` | Game rules and development policy |
+| `docs/ARCHITECTURE.md` | Deployment model and PWA requirements |
+| `.agents/limitations.md` | Shared boundaries and agent capabilities; update the relevant record if an action is impossible, or ask the user |
+| `docs/VERSIONING.md` | Release/tag procedure; read for releases, not startup |
+| `docs/HISTORY.md` | Dated decisions/change history; background only, not current rules/state; not startup |
+| `docs/PROMPT.md` | Paste-ready kickoff prompt |
+| `docs/RESUME.md` | Agent scratch; read only when resuming interrupted work; never project truth |
+| `.agents/freebuff.md`, `.agents/vibe.md`, `.agents/gemini.md` | Agent-specific capability notes |
+
+## 7. Markdown Integrity
+
+- Drive `.md` files must remain plain Markdown with MIME type `text/markdown`, never Google Docs/Word.
+- After creating/editing a Drive `.md`, verify MIME type. If tools cannot preserve or verify it, stop and ask; do not convert.
+
+## 8. Communication Protocol
+
+| Output type | Format |
+|---|---|
+| Decisions/choices | Lettered options: A, B, C…; identify the decision required. Recommend one when useful and explain briefly. |
+| Questions requiring answers | Numbered: 1, 2, 3… |
+| Status/actions/blockers | State facts plainly; distinguish proposed, approved, in progress, completed, and blocked. Never invent a decision or claim an unverified success. |
+| Routine replies | Lead with answer; concise, specific, plain English; usually ≤15 lines. Add detail only to prevent material ambiguity (normally ≤20–25 extra lines). |
+| No choice needed | End naturally; do not add a decision list or “no decisions needed.” |
+
+**Escape valve:** Use the format only when it improves clarity. You may depart from letter/number formatting, headings, lists, or line limits whenever needed for a clear, natural, accurate answer. Never add structure solely to satisfy a template.
+
+When blocked, report what was attempted, the actual result, and the next viable option. Avoid needless clarification; address recurring user corrections by fixing the underlying instruction/process where possible.
