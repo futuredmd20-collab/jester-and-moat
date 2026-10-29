@@ -86,10 +86,7 @@
  <div class="eval-side-info" id="evalWhiteInfo">
    <span>White</span> <span id="whitePtsWrapper">(<span id="whiteBoardPoints">0 pts</span>)</span>
  </div>
- <div class="eval-bar-track">
-  <div class="eval-fill-white" id="evalFillWhite" style="width: 50%;"></div>
-  <div class="eval-fill-black" id="evalFillBlack" style="width: 50%;"></div>
- </div>
+
  <div class="eval-side-info" id="evalBlackInfo" style="justify-content: flex-end;">
    <span id="blackPtsWrapper">(<span id="blackBoardPoints">0 pts</span>)</span> <span>Black</span>
  </div>
@@ -353,6 +350,10 @@
 <main>
 <div class="board-layout">
  <div id="board" role="grid" aria-label="Chess board 10 by 8"></div>
+ <div class="eval-bar-track board-eval-track" id="boardEvalTrack" role="img" aria-label="Material balance: White at bottom, Black at top">
+  <div class="eval-fill-black" id="evalFillBlack" style="height: 50%;"></div>
+  <div class="eval-fill-white" id="evalFillWhite" style="height: 50%;"></div>
+ </div>
  <!-- Clock indicators sit beside the board on wider screens; mobile CSS keeps the board full-width. -->
  <div class="clock-container" id="clockContainerEl" aria-label="Player clocks">
   <div class="clock-box" id="clockBoxW">
