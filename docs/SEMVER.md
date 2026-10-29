@@ -1,18 +1,13 @@
-# SEMVER.md — Version Number Meanings
-Purpose: defines what MAJOR, MINOR, and PATCH mean for this project. Not for deciding whether to release (RELEASE-GOVERNANCE.md) or the release procedure (VERSIONING.md).
+# Version number meanings
 
-## Version shape
+Defines what MAJOR, MINOR and PATCH mean for this project. Release decisions belong in [RELEASE-GOVERNANCE.md](RELEASE-GOVERNANCE.md); the release procedure is in [VERSIONING.md](VERSIONING.md).
 
-The project uses three-part versions: `MAJOR.MINOR.PATCH`. The annotated Git tag is the authoritative version; `manifest.json` and the service-worker cache name carry matching copies, as described in `VERSIONING.md`.
-
-## What each part means here
+Use three-part versions: `MAJOR.MINOR.PATCH`.
 
 - **MAJOR** — a saved-game or storage format written by an older build no longer loads.
-- **MINOR** — a new feature that remains backward compatible.
-- **PATCH** — a fix or internal change that keeps saves and existing features working as before.
+- **MINOR** — a new, backward-compatible feature.
+- **PATCH** — a fix or internal change that preserves existing saves and features.
 
-## Choosing a version
+Choose the smallest bump that accurately reflects compatibility and user-visible effect, not the number of files or lines changed. A merge is not automatically a release or version bump.
 
-Choose the bump based on compatibility and user-visible effect, not the number of files or lines changed. Use the smallest number change that accurately describes the release under the definitions above.
-
-A merge is not automatically a release or version bump. Decide whether the change is a release checkpoint first; see `RELEASE-GOVERNANCE.md`. Changes to precached assets still need a service-worker cache-suffix bump so existing PWA installs receive them, whether or not the app version changes; see `VERSIONING.md`.
+The annotated `v<semver>` Git tag is authoritative; `manifest.json` and the version component of the `sw.js` cache name mirror it. A service-worker cache-suffix bump is separate from the app version: precached asset changes require one even when the app version stays the same. See [VERSIONING.md](VERSIONING.md) for details.
