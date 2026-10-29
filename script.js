@@ -346,6 +346,7 @@ function stopAutoPlay(){
 function updateDisplayPreferences() {
   const displayMode = document.getElementById('uiDisplaySelect').value;
   const clockContainer = document.getElementById('clockContainerEl');
+  const evalBarContainer = document.getElementById('evalBarContainer');
   const evalTrack = document.getElementById('boardEvalTrack');
   const whiteInfo = document.getElementById('evalWhiteInfo');
   const blackInfo = document.getElementById('evalBlackInfo');
