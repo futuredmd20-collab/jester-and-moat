@@ -342,9 +342,33 @@
   .board-layout {
     width: min(100%, 820px);
     display: grid;
-    grid-template-columns: minmax(0, 700px) 104px;
-    align-items: start;
-    gap: 12px;
+    grid-template-columns: minmax(0, 1fr) 5px 104px;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .board-layout #board { grid-column: 1; grid-row: 1; min-width: 0; }
+  .board-eval-track {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    width: 5px;
+    min-width: 5px;
+    height: 100%;
+    min-height: 0;
+    align-self: stretch;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    margin: 0;
+    background: #5b554d;
+    overflow: hidden;
+  }
+  .board-eval-track .eval-fill-black,
+  .board-eval-track .eval-fill-white {
+    width: 100%;
+    flex: 0 0 auto;
+    transition: height 0.3s ease;
   }
 
   .clock-container {
@@ -381,6 +405,31 @@
   .eval-fill-white { background: #fffaf1; height: 100%; transition: width 0.3s ease; }
   .eval-fill-black { background: #5b554d; height: 100%; transition: width 0.3s ease; }
 
+  /* Board-side evaluation strip overrides the legacy horizontal-bar dimensions. */
+  .board-layout .board-eval-track {
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
+    width: 5px;
+    min-width: 5px;
+    height: auto;
+    min-height: 100%;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    flex: none;
+    overflow: hidden;
+  }
+  .board-layout .board-eval-track .eval-fill-black,
+  .board-layout .board-eval-track .eval-fill-white {
+    display: block;
+    width: 100%;
+    min-height: 0;
+    flex: 0 0 auto;
+    transition: height 0.3s ease;
+  }
+
   /* --- Drawers & Board Editor --- */
   .options-drawer, .info-drawer, .editor-panel {
     display: none; width: min(100%, 820px); background: #fffaf1; border: 1px solid var(--line);
@@ -411,7 +460,11 @@
   .palette-btn.selected { border-color: var(--burgundy); box-shadow: 0 0 0 2px #792f3b20; }
 
   .editor-controls-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: space-between; align-items: center; }
-  .editor-clocks-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; background: #f0e5d2; padding: 8px 12px; border-radius: 6px; }
+  .editor-clocks-row { display: flex; flex-direction: column; gap: 8px; align-items: stretch; background: #f0e5d2; padding: 8px 12px; border-radius: 6px; }
+  .editor-clocks-heading { font-size: 0.8rem; font-weight: bold; color: var(--burgundy); }
+  .editor-clock-setting { display: flex; align-items: center; gap: 12px; }
+  .editor-clock-setting label { width: 54px; flex: 0 0 54px; font-size: 0.8rem; font-weight: bold; }
+
   .editor-clock-input { width: 70px; background: #fffaf1; color: var(--ink); border: 1px solid var(--line); padding: 4px 6px; border-radius: 4px; text-align: center; font-family: monospace; font-weight: bold; }
 
   /* --- Board --- */
@@ -654,8 +707,10 @@
   /* Mobile ergonomics: larger tap targets, roomier layout */
   @media (max-width: 860px) {
     main { width: min(100%, 700px); }
-    .board-layout { display: flex; flex-direction: column; gap: 6px; width: 100%; }
-    .clock-container { width: 100%; flex-direction: row; order: -1; }
+    .board-layout { display: grid; grid-template-columns: minmax(0, 1fr) 5px; grid-template-rows: auto auto; gap: 6px; width: 100%; align-items: stretch; }
+    .board-layout #board { grid-column: 1; grid-row: 2; width: 100%; }
+    .board-layout .board-eval-track { grid-column: 2; grid-row: 2; }
+    .clock-container { grid-column: 1 / -1; grid-row: 1; width: 100%; flex-direction: row; order: 0; }
     .clock-box { flex: 1; flex-direction: row; justify-content: space-between; padding: 3px 7px; min-height: 32px; }
     .clock-box.active { padding: 2px 6px; }
   }
@@ -689,7 +744,7 @@
       min-width: 44px; min-height: 44px; font-size: 1.1rem;
     }
     .eval-bar-container { flex-wrap: wrap; gap: 5px 7px; }
-    .eval-bar-track { order: 3; flex: 1 1 100%; }
+    .eval-bar-container .eval-bar-track { order: 3; flex: 1 1 100%; }
     .move-count-summary { margin-left: auto; }
     .status { font-size: .95rem; }
     #history { max-height: 150px; }
@@ -1178,6 +1233,22 @@ button.file-btn .control-svg,
 .editor-controls-row .palette-btn.tool-btn {
   min-width: 0;
   min-height: 40px;
+}
+.editor-controls-row > div:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.editor-controls-row > div:first-child button {
+  min-height: 36px;
+  padding: 6px 9px;
+  font-size: .78rem;
+  gap: 6px;
+}
+.editor-controls-row > div:first-child button .control-svg {
+  width: 18px;
+  height: 18px;
+  flex-basis: 18px;
 }
 .dice-icon rect { fill: none; }
 .dice-icon circle { fill: currentColor; }

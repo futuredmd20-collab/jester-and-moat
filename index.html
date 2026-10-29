@@ -86,10 +86,7 @@
  <div class="eval-side-info" id="evalWhiteInfo">
    <span>White</span> <span id="whitePtsWrapper">(<span id="whiteBoardPoints">0 pts</span>)</span>
  </div>
- <div class="eval-bar-track">
-  <div class="eval-fill-white" id="evalFillWhite" style="width: 50%;"></div>
-  <div class="eval-fill-black" id="evalFillBlack" style="width: 50%;"></div>
- </div>
+
  <div class="eval-side-info" id="evalBlackInfo" style="justify-content: flex-end;">
    <span id="blackPtsWrapper">(<span id="blackBoardPoints">0 pts</span>)</span> <span>Black</span>
  </div>
@@ -126,18 +123,22 @@
  </div>
  
  <div class="editor-clocks-row">
-  <span style="font-size:0.8rem;font-weight:bold;color:var(--burgundy);">Clocks (MM:SS):</span>
-  <label style="font-size:0.8rem;font-weight:bold;">White:</label>
-  <input type="text" id="editorClockW" class="editor-clock-input" placeholder="10:00">
-  <label style="font-size:0.8rem;font-weight:bold;">Black:</label>
-  <input type="text" id="editorClockB" class="editor-clock-input" placeholder="10:00">
+  <span class="editor-clocks-heading">Clocks (MM:SS):</span>
+  <div class="editor-clock-setting">
+   <label for="editorClockW">White:</label>
+   <input type="text" id="editorClockW" class="editor-clock-input" placeholder="10:00">
+  </div>
+  <div class="editor-clock-setting">
+   <label for="editorClockB">Black:</label>
+   <input type="text" id="editorClockB" class="editor-clock-input" placeholder="10:00">
+  </div>
  </div>
 
  <div class="editor-controls-row">
   <div>
    <button class="palette-btn tool-btn selected" id="eraserToolBtn" data-tool="eraser"><svg class="control-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m16.24 3.56 4.2 4.2a2 2 0 0 1 0 2.83l-8.49 8.48a2 2 0 0 1-2.82 0l-5.3-5.3a2 2 0 0 1 0-2.83l8.48-8.48a2 2 0 0 1 2.83 0ZM5.24 12.36l5.3 5.3 3.54-3.54-5.3-5.3-3.54 3.54ZM15.2 6.64l-4.99 4.99 5.3 5.3 4.99-4.99-5.3-5.3Z"/></svg> Eraser</button>
-   <button class="options-btn" id="clearBoardBtn"><svg class="control-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 17.25 1.41-1.41 3.75 3.75L6.75 21H3v-3.75ZM20.71 5.04 18.96 3.3a1 1 0 0 0-1.41 0L8.4 12.45l5.3 5.3 7.01-7.01a4.03 4.03 0 0 0 0-5.7ZM6.99 13.86l-2.12 2.12 3.18 3.18h12.49v-2H9.29l-2.3-3.3Z"/></svg> Clear Board</button>
-   <button class="options-btn" id="resetDefaultBoardBtn"><svg class="control-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V2L7.5 6.5 12 11V8a6 6 0 1 1-5.65 8H3.18A9 9 0 1 0 12 5Z"/></svg> Reset Default</button>
+   <button class="options-btn" id="clearBoardBtn"><svg class="control-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 17.25 1.41-1.41 3.75 3.75L6.75 21H3v-3.75ZM20.71 5.04 18.96 3.3a1 1 0 0 0-1.41 0L8.4 12.45l5.3 5.3 7.01-7.01a4.03 4.03 0 0 0 0-5.7ZM6.99 13.86l-2.12 2.12 3.18 3.18h12.49v-2H9.29l-2.3-3.3Z"/></svg> Clear</button>
+   <button class="options-btn" id="resetDefaultBoardBtn"><svg class="control-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V2L7.5 6.5 12 11V8a6 6 0 1 1-5.65 8H3.18A9 9 0 1 0 12 5Z"/></svg> Reset</button>
   </div>
   <div>
    <label style="font-size:0.8rem;font-weight:bold;">Side to move: </label>
@@ -172,7 +173,7 @@
   </dl>
  </div>
  <div class="drawer-section">
-  <h3>💾 Save / Load Game (JSON)</h3>
+  <h3><svg class="save-load-heading-icon" style="display:inline-block;width:1em;height:1em;vertical-align:-0.12em;" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 3.75h12.5L21 7.25v13H3v-16.5h2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7 4v5h10V4M7 20v-7h10v7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg> Save / Load Game (JSON)</h3>
   <div class="save-box">
    <div class="btn-group" style="display:flex;gap:8px;margin-top:6px;">
     <button class="file-btn" id="exportFileBtn"><svg class="control-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20h14v-2H5v2ZM11 3v10.17l-3.59-3.58L6 11l6 6 6-6-1.41-1.41L13 13.17V3h-2Z"/></svg> Save to File (.json)</button>
@@ -349,6 +350,10 @@
 <main>
 <div class="board-layout">
  <div id="board" role="grid" aria-label="Chess board 10 by 8"></div>
+ <div class="eval-bar-track board-eval-track" id="boardEvalTrack" role="img" aria-label="Material balance: White at bottom, Black at top">
+  <div class="eval-fill-black" id="evalFillBlack" style="height: 50%;"></div>
+  <div class="eval-fill-white" id="evalFillWhite" style="height: 50%;"></div>
+ </div>
  <!-- Clock indicators sit beside the board on wider screens; mobile CSS keeps the board full-width. -->
  <div class="clock-container" id="clockContainerEl" aria-label="Player clocks">
   <div class="clock-box" id="clockBoxW">
