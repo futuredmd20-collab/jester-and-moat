@@ -20,6 +20,12 @@ The annotated tag is authoritative. Keep these copies aligned with the released 
 
 The cache suffix is distinct from the app version. If a precached asset changes without a version bump, still increment the suffix (for example, `-sprite-3`) so installed clients retire the old app shell.
 
+## Development-only tools and release boundary
+
+Eruda is temporary development tooling, not a shipped app feature. It may be added to a non-`main` branch for mobile browser debugging, but must not be merged into `main` or included in a release tag/source snapshot. Before opening a PR to `main`, remove `scripts/eruda.js`, the branch-only loader, its `index.html` include, and any related development-only wiring. A URL parameter check or omission from the service-worker precache does not keep files out of a release snapshot.
+
+Keep Eruda out of `sw.js`'s precache and out of the optional single-file build. Use `?eruda=true` for Eruda; preserve the existing `?debug=1` behavior. When the Eruda development branch is no longer needed, remove it after the work is merged or abandoned.
+
 ## Release procedure
 
 1. Land the chosen release change on `main` and let GitHub Pages rebuild.

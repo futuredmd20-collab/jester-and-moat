@@ -130,3 +130,6 @@ Purpose: dated record of decisions and changes, oldest first. Use the repository
 2026-10-30 — Manual engine browser verification checklist
 * Added a concrete browser checklist for engine dispatch, side/phase configuration, reload persistence, MCTS load failure, worker fallback/runtime errors, and offline service-worker behavior. These checks remain outstanding until observed in a real browser.
 
+2026-10-30 — Development-only debugging and preview guidance
+* Documented Eruda as non-`main` development tooling that must be removed before a PR to `main`, and kept separate from the existing `?debug=1` logger and service-worker cache.
+* Clarified that agents should prefer existing branch-based Pages or preview workflows over proposing custom test pages by default.
