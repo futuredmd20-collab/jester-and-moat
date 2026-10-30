@@ -18,6 +18,8 @@ The harness evaluates canonical rule/search functions from `script.js` in a smal
 - MinMax and MCTS return `null` when no legal moves exist.
 - Jester swap requires an adjacent friendly piece that has already moved.
 - Unresolved/invalid AI promotion choices default to a queen.
+- Queen, jester, rook, bishop, and knight promotion choices are applied correctly.
+- Promotion can trigger redeployment of a destroyed moat, removing the pawn and restoring the moat state.
 - Opening, midgame, and endgame phase thresholds.
 - Kingside castling relocates both king and rook to the variant's configured squares.
 - En passant is available after a double pawn move and removes the captured pawn.
@@ -26,4 +28,4 @@ The harness evaluates canonical rule/search functions from `script.js` in a smal
 
 ## Remaining verification
 
-This is a focused regression suite, not a complete rules suite or strength benchmark. Moat placement flow, all promotion choices, successful worker dispatch, settings persistence, browser rendering, and multi-file/single-file startup still need dedicated tests or browser verification. Browser automation may be added later with Puppeteer or Playwright; neither is a current dependency.
+This is a focused regression suite, not a complete rules suite or strength benchmark. Successful worker dispatch, settings persistence, browser rendering, and multi-file/single-file startup still need dedicated tests or browser verification. The moat test covers promotion-triggered redeployment; the initial four-move moat-placement flow still needs dedicated coverage. Browser automation may be added later with Puppeteer or Playwright; neither is a current dependency.
