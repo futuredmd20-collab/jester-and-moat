@@ -14,6 +14,9 @@ const boundary = source.indexOf(marker);
 if (boundary < 0) throw new Error('Browser startup boundary not found');
 
 const elements = new Map();
+const storedValues = new Map();
+let storageThrowsOnRead = false;
+let storageThrowsOnWrite = false;
 function mockElement(id) {
   if (!elements.has(id)) {
     elements.set(id, {
@@ -54,11 +57,20 @@ const sandbox = {
     body: mockElement('body'),
     documentElement: mockElement('documentElement')
   },
-  localStorage: { getItem() { return null; }, setItem() {} }
+  localStorage: {
+    getItem(key) {
+      if (storageThrowsOnRead) throw new Error('storage read blocked');
+      return storedValues.has(key) ? storedValues.get(key) : null;
+    },
+    setItem(key, value) {
+      if (storageThrowsOnWrite) throw new Error('storage write blocked');
+      storedValues.set(key, String(value));
+    }
+  }
 };
 vm.createContext(sandbox);
 vm.runInContext(source.slice(0, boundary) + `
-globalThis.api = { allLegalState, getBestMove, applyRaw, getGamePhase, ensureAIWorker, play, aiPlaceMoatForColor, confirmMoatPlacement, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, ENGINE_PHASES };
+globalThis.api = { allLegalState, getBestMove, applyRaw, getGamePhase, ensureAIWorker, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getDefaultEngineForSide() { return defaultEngineForSide; }, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, ENGINE_PHASES };
 `, sandbox, { filename: 'script.js' });
 vm.runInContext(mcts, sandbox, { filename: 'engines/mcts-engine.js' });
 
@@ -322,4 +334,88 @@ test('worker reports unsupported engine selectors explicitly', async () => {
 
   assert.equal(response.id, 103);
   assert.match(response.error, /Unsupported worker function: unknownEngine/);
+});
+
+
+test('White and Black engine settings persist and restore independently', () => {
+  const whiteEngine = mockElement('whiteEngineSelect');
+  const whitePhase = mockElement('whiteEnginePhaseSelect');
+  const blackEngine = mockElement('blackEngineSelect');
+  const blackPhase = mockElement('blackEnginePhaseSelect');
+
+  whiteEngine.value = 'mcts';
+  whitePhase.value = 'midgame';
+  blackEngine.value = 'minmax_legacy';
+  blackPhase.value = 'endgame';
+  sandbox.api.updateEngineConfigUI();
+
+  assert.deepEqual(JSON.parse(storedValues.get('engineConfig')), {
+    whiteEngine: 'mcts', whitePhase: 'midgame',
+    blackEngine: 'minmax_legacy', blackPhase: 'endgame'
+  });
+
+  whiteEngine.value = 'minmax_legacy';
+  whitePhase.value = 'opening';
+  blackEngine.value = 'mcts';
+  blackPhase.value = 'opening';
+  sandbox.api.loadEngineConfig();
+
+  assert.equal(whiteEngine.value, 'mcts');
+  assert.equal(whitePhase.value, 'midgame');
+  assert.equal(blackEngine.value, 'minmax_legacy');
+  assert.equal(blackPhase.value, 'endgame');
+});
+
+test('engine configuration applies MCTS only in the selected phase and keeps MinMax elsewhere', () => {
+  const config = sandbox.api.getDefaultEngineForSide();
+  mockElement('whiteEngineSelect').value = 'mcts';
+  mockElement('whiteEnginePhaseSelect').value = 'midgame';
+  mockElement('blackEngineSelect').value = 'mcts';
+  mockElement('blackEnginePhaseSelect').value = 'endgame';
+  sandbox.api.updateEngineConfigUI();
+
+  assert.deepEqual(JSON.parse(JSON.stringify(config.w.phaseOverrides)), {
+    opening: 'minmax_legacy', midgame: 'mcts', endgame: 'minmax_legacy'
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(config.b.phaseOverrides)), {
+    opening: 'minmax_legacy', midgame: 'minmax_legacy', endgame: 'mcts'
+  });
+});
+
+test('missing or malformed saved engine configuration falls back to safe defaults', () => {
+  storedValues.delete('engineConfig');
+  sandbox.api.loadEngineConfig();
+  assert.equal(mockElement('whiteEngineSelect').value, 'minmax_legacy');
+  assert.equal(mockElement('whiteEnginePhaseSelect').value, 'opening');
+  assert.equal(mockElement('blackEngineSelect').value, 'minmax_legacy');
+  assert.equal(mockElement('blackEnginePhaseSelect').value, 'opening');
+
+  storedValues.set('engineConfig', '{broken json');
+  mockElement('whiteEngineSelect').value = 'mcts';
+  mockElement('blackEngineSelect').value = 'mcts';
+  sandbox.api.loadEngineConfig();
+  assert.equal(mockElement('whiteEngineSelect').value, 'minmax_legacy');
+  assert.equal(mockElement('whiteEnginePhaseSelect').value, 'opening');
+  assert.equal(mockElement('blackEngineSelect').value, 'minmax_legacy');
+  assert.equal(mockElement('blackEnginePhaseSelect').value, 'opening');
+});
+
+test('invalid saved engine names and phases are replaced with defaults per field', () => {
+  storedValues.set('engineConfig', JSON.stringify({
+    whiteEngine: 'not-an-engine', whitePhase: 'invalid-phase',
+    blackEngine: 'mcts', blackPhase: 'endgame'
+  }));
+  sandbox.api.loadEngineConfig();
+  assert.equal(mockElement('whiteEngineSelect').value, 'minmax_legacy');
+  assert.equal(mockElement('whiteEnginePhaseSelect').value, 'opening');
+  assert.equal(mockElement('blackEngineSelect').value, 'mcts');
+  assert.equal(mockElement('blackEnginePhaseSelect').value, 'endgame');
+});
+
+test('storage read and write failures do not throw during engine configuration setup', () => {
+  storageThrowsOnRead = true;
+  storageThrowsOnWrite = true;
+  assert.doesNotThrow(() => sandbox.api.loadEngineConfig());
+  storageThrowsOnRead = false;
+  storageThrowsOnWrite = false;
 });
