@@ -32,6 +32,7 @@ function mockElement(id) {
       addEventListener() {},
       removeEventListener() {},
       appendChild(child) { this.children.push(child); },
+      append(...children) { this.children.push(...children); },
       removeChild(child) { this.children = this.children.filter(item => item !== child); },
       setAttribute() {},
       getAttribute() { return null; },
