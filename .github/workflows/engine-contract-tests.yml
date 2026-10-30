@@ -1,0 +1,26 @@
+# Purpose: Run the dependency-free engine contract tests on pushes and pull requests.
+name: Engine contract tests
+
+on:
+  push:
+    paths:
+      - 'tests/**'
+      - '.github/workflows/engine-contract-tests.yml'
+  pull_request:
+    paths:
+      - 'tests/**'
+      - '.github/workflows/engine-contract-tests.yml'
+  workflow_dispatch:
+
+jobs:
+  engine-contract-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run engine contract tests
+        run: node --test tests/engine-contracts.test.js
