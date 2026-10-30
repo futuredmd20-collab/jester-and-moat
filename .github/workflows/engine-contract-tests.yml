@@ -5,11 +5,21 @@ on:
   push:
     paths:
       - 'tests/**'
-      - '.github/workflows/engine-contract-tests.yml'
+      - 'index.html'
+      - 'build.js'
+      - 'sw.js'
+      - 'manifest.json'
+      - 'scripts/**'
+      - '.github/workflows/**'
   pull_request:
     paths:
       - 'tests/**'
-      - '.github/workflows/engine-contract-tests.yml'
+      - 'index.html'
+      - 'build.js'
+      - 'sw.js'
+      - 'manifest.json'
+      - 'scripts/**'
+      - '.github/workflows/**'
   workflow_dispatch:
 
 jobs:

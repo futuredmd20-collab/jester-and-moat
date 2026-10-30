@@ -9,6 +9,11 @@ Deployment Model: PWA
 * Art sources (light-*.svg, flat-*.svg) feed the sprite generators but are never fetched at runtime; they are deliberately not precached. pieces.svg and pieces-flat.svg are the shipped art.
 * Served over HTTPS with no backend or build step required for deployment.
 
+Optional mobile debugging and previews
+* Eruda's local distribution lives under `scripts/eruda.min.js`; `scripts/eruda-loader.js` loads it only when `?eruda=true` is present. This opt-in integration may remain on `main` and in release source snapshots. Keep the existing `?debug=1` logger separate.
+* Do not precache Eruda in `sw.js` or include it in `jester-and-moat.html`; `build.js` strips the loader from the single-file build. Automated tests cover opt-in loading and these exclusions.
+* Use the selected branch's GitHub Pages preview or an existing preview service for browser/mobile verification; do not build a custom test page by default.
+
 Optional Single-File Build ("Test Build")
 * A single self-contained HTML file (jester-and-moat.html) may be compiled using build.js to combine index.html, inline style.css and pieces.css, both piece sprites, the MCTS engine module, and script.js. The MCTS module must be embedded before script.js because the engine registry initializes during script evaluation. Build only upon explicit request for quick local phone testing on Android over file:// via Acode.
 * Keep the single-file build out of the primary PWA deployment path.

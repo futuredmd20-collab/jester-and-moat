@@ -61,6 +61,12 @@ Use the established choice; if unclear, ask. Execute the chosen workflow without
 
 If blocked, state the limitation and ask how to proceed.
 
+### Browser testing and previews
+
+- Prefer the existing automated tests and available browser-preview/deployment services before proposing a custom test page. For mobile/browser verification, consider GitHub Pages serving the selected working branch when configured, or an existing preview service such as Freebuff. Do not suggest building a test page by default.
+- A branch being selectable for Pages does not itself guarantee that a preview is configured or that tests pass. Confirm the actual preview URL and CI result before claiming verification.
+- Eruda is opt-in debugging tooling. Its local library and loader may remain on `main` and in release source snapshots, but it loads only when `?eruda=true` is present; do not change the existing `?debug=1` logger convention. Keep Eruda out of the service-worker precache and the self-contained single-file build. Preserve tests for opt-in loading and these exclusions.
+
 ## 5. Changes & External Operations
 
 - Change only approved scope; preserve content/conventions unless the task requires otherwise.

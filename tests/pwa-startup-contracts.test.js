@@ -9,6 +9,8 @@ const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const swSource = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
+const erudaLoaderSource = fs.readFileSync(path.join(root, 'scripts', 'eruda-loader.js'), 'utf8');
+const buildSource = fs.readFileSync(path.join(root, 'build.js'), 'utf8');
 
 function extractScript(regex, label) {
   const match = html.match(regex);
@@ -71,6 +73,65 @@ async function runBoot({ inline = false, spriteFailure = false, mctsFailure = fa
   await new Promise(resolve => setImmediate(resolve));
   return { fetchCalls, appendedScripts, errors, elements };
 }
+
+function runErudaLoader(search, { fail = false } = {}) {
+  const appendedScripts = [];
+  const warnings = [];
+  let initCalls = 0;
+  const window = {
+    location: { search },
+    eruda: { init: () => { initCalls += 1; } }
+  };
+  const document = {
+    createElement(tag) {
+      assert.equal(tag, 'script');
+      return { src: '', onload: null, onerror: null };
+    },
+    head: {
+      appendChild(script) {
+        appendedScripts.push(script.src);
+        if (fail) script.onerror && script.onerror();
+        else script.onload && script.onload();
+      }
+    }
+  };
+  vm.runInNewContext(erudaLoaderSource, {
+    window,
+    document,
+    URLSearchParams,
+    console: { warn: (...args) => warnings.push(args) }
+  }, { filename: 'scripts/eruda-loader.js' });
+  return { appendedScripts, warnings, initCalls };
+}
+
+test('Eruda loader stays inactive unless eruda=true is explicitly present', () => {
+  for (const search of ['', '?debug=1', '?eruda=false', '?eruda=truex']) {
+    const result = runErudaLoader(search);
+    assert.deepEqual(result.appendedScripts, [], `unexpected Eruda load for ${search}`);
+    assert.equal(result.initCalls, 0);
+  }
+});
+
+test('Eruda loader loads the local bundle and initializes it with eruda=true', () => {
+  const result = runErudaLoader('?eruda=true');
+  assert.deepEqual(result.appendedScripts, ['scripts/eruda.min.js']);
+  assert.equal(result.initCalls, 1);
+  assert.deepEqual(result.warnings, []);
+});
+
+test('Eruda loader handles local bundle load failure without throwing', () => {
+  const result = runErudaLoader('?eruda=true', { fail: true });
+  assert.deepEqual(result.appendedScripts, ['scripts/eruda.min.js']);
+  assert.equal(result.initCalls, 0);
+  assert.match(String(result.warnings[0][0]), /Eruda debug console failed to load/);
+});
+
+test('development Eruda stays out of the service-worker precache and single-file build', () => {
+  assert.ok(html.includes('<script src="scripts/eruda-loader.js"></script>'));
+  assert.ok(buildSource.includes(`combined = combined.replace('<script src="scripts/eruda-loader.js"></script>', '');`));
+  assert.ok(!swSource.includes('eruda-loader.js'));
+  assert.ok(!swSource.includes('eruda.min.js'));
+});
 
 test('multi-file startup loads both sprites and MCTS before script.js', async () => {
   const result = await runBoot();
