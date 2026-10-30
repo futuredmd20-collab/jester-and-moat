@@ -13,10 +13,43 @@ const marker = "\nif (document.readyState === 'loading')";
 const boundary = source.indexOf(marker);
 if (boundary < 0) throw new Error('Browser startup boundary not found');
 
+const elements = new Map();
+function mockElement(id) {
+  if (!elements.has(id)) {
+    elements.set(id, {
+      id,
+      value: id.includes('EngineSelect') ? 'minmax_legacy' : id.includes('PhaseSelect') ? 'opening' : id === 'modeSelect' ? 'human_vs_ai' : '',
+      checked: false,
+      hidden: false,
+      disabled: false,
+      title: '',
+      textContent: '',
+      innerHTML: '',
+      style: {},
+      classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
+      addEventListener() {},
+      removeEventListener() {},
+      appendChild() {},
+      removeChild() {},
+      setAttribute() {},
+      getAttribute() { return null; },
+      focus() {},
+      click() {}
+    });
+  }
+  return elements.get(id);
+}
 const sandbox = {
   console, URLSearchParams,
   window: { location: { search: '' }, innerWidth: 1024, addEventListener() {} },
-  document: { getElementById() { return null; }, querySelectorAll() { return []; } },
+  document: {
+    getElementById(id) { return mockElement(id); },
+    querySelectorAll() { return []; },
+    addEventListener() {},
+    createElement(tag) { return mockElement(tag); },
+    body: mockElement('body'),
+    documentElement: mockElement('documentElement')
+  },
   localStorage: { getItem() { return null; }, setItem() {} }
 };
 vm.createContext(sandbox);
