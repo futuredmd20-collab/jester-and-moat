@@ -40,8 +40,9 @@ function mockElement(id) {
   return elements.get(id);
 }
 const sandbox = {
-  console, URLSearchParams,
-  window: { location: { search: '' }, innerWidth: 1024, addEventListener() {} },
+  console, URLSearchParams, Blob,
+  URL: { createObjectURL() { throw new Error('Blob workers blocked by test'); }, revokeObjectURL() {} },
+  window: { location: { search: '' }, innerWidth: 1024, Worker: function Worker() {}, addEventListener() {} },
   document: {
     getElementById(id) { return mockElement(id); },
     querySelectorAll() { return []; },
@@ -54,7 +55,7 @@ const sandbox = {
 };
 vm.createContext(sandbox);
 vm.runInContext(source.slice(0, boundary) + `
-globalThis.api = { allLegalState, getBestMove, applyRaw, getGamePhase, ENGINE_PHASES };
+globalThis.api = { allLegalState, getBestMove, applyRaw, getGamePhase, ensureAIWorker, ENGINE_PHASES };
 `, sandbox, { filename: 'script.js' });
 vm.runInContext(mcts, sandbox, { filename: 'engines/mcts-engine.js' });
 
@@ -69,7 +70,7 @@ function position() {
     halfmoveClock: 0, positionHistory: {}, clocks: { w: 0, b: 0 }
   };
 }
-const { allLegalState, getBestMove, applyRaw, getGamePhase, ENGINE_PHASES } = sandbox.api;
+const { allLegalState, getBestMove, applyRaw, getGamePhase, ensureAIWorker, ENGINE_PHASES } = sandbox.api;
 
 test('MinMax returns a legal move without mutating its input', () => {
   const s = position();
@@ -117,4 +118,56 @@ test('phase detection follows opening, midgame, and endgame thresholds', () => {
   s.board = Array.from({ length: 8 }, () => Array(10).fill(null));
   for (let i = 0; i < 16; i++) s.board[Math.floor(i / 10)][i % 10] = { type: 'p', color: i % 2 ? 'b' : 'w', moved: true };
   assert.equal(getGamePhase(s), ENGINE_PHASES.ENDGAME);
+});
+
+test('castling moves the king and rook to their variant-specific squares', () => {
+  const s = position();
+  s.board = Array.from({ length: 8 }, () => Array(10).fill(null));
+  s.board[7][5] = { type: 'k', color: 'w', moved: false };
+  s.board[0][5] = { type: 'k', color: 'b', moved: false };
+  s.board[7][9] = { type: 'r', color: 'w', moved: false };
+
+  const move = allLegalState(s).find(m => m.castling === 'kingside');
+  assert.ok(move, 'kingside castling should be legal when the path is clear');
+  applyRaw(s, move);
+  assert.equal(s.board[7][8].type, 'k');
+  assert.equal(s.board[7][7].type, 'r');
+  assert.equal(s.board[7][9], null);
+  assert.equal(s.board[7][5], null);
+  assert.equal(s.board[7][7].moved, true);
+});
+
+test('en passant removes the captured pawn and places the capturing pawn', () => {
+  const s = position();
+  s.board[3][3] = { type: 'p', color: 'w', moved: true };
+  s.board[1][4] = { type: 'p', color: 'b', moved: false };
+  s.turn = 'b';
+
+  applyRaw(s, { from: { r: 1, c: 4 }, to: { r: 3, c: 4 }, doublePawn: true });
+  assert.deepEqual(s.ep, { r: 2, c: 4 });
+  const move = allLegalState(s).find(m => m.enPassant && m.from.r === 3 && m.from.c === 3);
+  assert.ok(move, 'en passant should be available immediately after the double pawn move');
+  applyRaw(s, move);
+  assert.equal(s.board[2][4].type, 'p');
+  assert.equal(s.board[2][4].color, 'w');
+  assert.equal(s.board[3][4], null);
+  assert.equal(s.ep, null);
+  assert.equal(s.captured.w.some(p => p.type === 'p' && p.color === 'b'), true);
+});
+
+test('a moat is destroyed when two opposing pieces occupy its cells', () => {
+  const s = position();
+  s.moats.w = { r: 3, c: 3 };
+  s.board[3][3] = { type: 'n', color: 'b', moved: true };
+  s.board[3][4] = { type: 'p', color: 'b', moved: true };
+  s.board[6][0] = { type: 'r', color: 'w', moved: false };
+
+  const result = applyRaw(s, { from: { r: 6, c: 0 }, to: { r: 5, c: 0 } });
+  assert.deepEqual(result.moatsDestroyed, ['w']);
+  assert.equal(s.moats.w, null);
+  assert.equal(s.moatDestroyed.w, true);
+});
+
+test('AI worker setup falls back cleanly when blob workers are blocked', () => {
+  assert.equal(ensureAIWorker(), null);
 });
