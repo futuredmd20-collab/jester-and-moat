@@ -1,4 +1,4 @@
-# Purpose: Run the dependency-free engine contract tests on pushes and pull requests.
+# Purpose: Run the dependency-free engine and PWA startup contract tests on pushes and pull requests.
 name: Engine contract tests
 
 on:
@@ -22,5 +22,5 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Run engine contract tests
-        run: node --test tests/engine-contracts.test.js
+      - name: Run contract tests
+        run: node --test tests/*.test.js
