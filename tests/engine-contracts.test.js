@@ -70,7 +70,7 @@ const sandbox = {
 };
 vm.createContext(sandbox);
 vm.runInContext(source.slice(0, boundary) + `
-globalThis.api = { allLegalState, getBestMove, applyRaw, getGamePhase, ensureAIWorker, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getDefaultEngineForSide() { return defaultEngineForSide; }, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, ENGINE_PHASES };
+globalThis.api = { allLegalState, getBestMove, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getDefaultEngineForSide() { return defaultEngineForSide; }, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, ENGINE_PHASES };
 `, sandbox, { filename: 'script.js' });
 vm.runInContext(mcts, sandbox, { filename: 'engines/mcts-engine.js' });
 
@@ -577,4 +577,18 @@ test('castling is rejected while the king is in check or crosses an attacked squ
 test('castling is rejected when the king is not on its original square', () => {
   const s = castleEdgePosition('kingside', { kingColumn: 4 });
   assert.equal(castleEdgeMove(s, 'kingside'), undefined);
+});
+
+
+test('loading an editor position restores castling rights for a home king and corner rooks', () => {
+  const s = castleEdgePosition('kingside', { kingMoved: true, rookMoved: true });
+  s.board[7][0] = { type: 'r', color: 'w', moved: true };
+
+  sandbox.api.initializeEditorCastlingRights(s.board);
+
+  assert.equal(s.board[7][5].moved, false, 'the king on its home square should be treated as unmoved');
+  assert.equal(s.board[7][0].moved, false, 'the queenside rook on its home square should be treated as unmoved');
+  assert.equal(s.board[7][9].moved, false, 'the kingside rook on its home square should be treated as unmoved');
+  assert.ok(castleEdgeMove(s, 'queenside'), 'queenside castling should be available after loading the position');
+  assert.ok(castleEdgeMove(s, 'kingside'), 'kingside castling should be available after loading the position');
 });

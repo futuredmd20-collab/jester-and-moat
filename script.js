@@ -1400,6 +1400,20 @@ function handleEditorClick(r, c){
   render();
 }
 
+/* Treat a loaded editor position as a new game for castling rights. */
+function initializeEditorCastlingRights(board){
+  for (let r = 0; r < ROWS; r++){
+    for (let c = 0; c < COLS; c++){
+      const p = board[r][c];
+      if (!p) continue;
+      const homeRow = p.color === 'w' ? ROWS - 1 : 0;
+      if (r !== homeRow) continue;
+      if (p.type === 'k' && c === 5) p.moved = false;
+      if (p.type === 'r' && (c === 0 || c === COLS - 1)) p.moved = false;
+    }
+  }
+}
+
 function validateAndPlayPosition(){
   let wKings = 0, bKings = 0;
   for (let r = 0; r < ROWS; r++){
@@ -1424,6 +1438,8 @@ function validateAndPlayPosition(){
     alert(`Invalid Position!\nThe side NOT to move (${other(turn)==='w'?'White':'Black'}) is currently in check, which is illegal.`);
     return;
   }
+
+  initializeEditorCastlingRights(state.board);
 
   const parsedW = parseClockString(document.getElementById('editorClockW').value);
   const parsedB = parseClockString(document.getElementById('editorClockB').value);
