@@ -419,3 +419,102 @@ test('storage read and write failures do not throw during engine configuration s
   storageThrowsOnRead = false;
   storageThrowsOnWrite = false;
 });
+
+
+function castleEdgePosition(side = 'kingside', options = {}) {
+  const s = position();
+  s.board = Array.from({ length: 8 }, () => Array(10).fill(null));
+  s.board[7][options.kingColumn ?? 5] = { type: 'k', color: 'w', moved: !!options.kingMoved };
+  s.board[0][options.blackKingColumn ?? 5] = { type: 'k', color: 'b', moved: false };
+  const rookColumn = side === 'kingside' ? 9 : 0;
+  if (!options.rookMissing) {
+    s.board[7][rookColumn] = { type: 'r', color: 'w', moved: !!options.rookMoved };
+  }
+  if (options.blockedColumn !== undefined) {
+    s.board[7][options.blockedColumn] = { type: 'n', color: 'w', moved: true };
+  }
+  if (options.kingInCheck) {
+    s.board[options.checkRookRow ?? 4][5] = { type: 'r', color: 'b', moved: true };
+    s.board[0][5] = null;
+    s.board[0][4] = { type: 'k', color: 'b', moved: false };
+  }
+  if (options.attackedPathSquare) {
+    s.board[0][5] = null;
+    s.board[0][4] = { type: 'k', color: 'b', moved: false };
+    s.board[6][7] = { type: 'b', color: 'b', moved: true };
+  }
+  s.turn = 'w';
+  return s;
+}
+
+function castleEdgeMove(s, side) {
+  return allLegalState(s).find(m => m.castling === side);
+}
+
+test('Jester cannot swap with an unmoved friendly piece, an enemy, or a non-adjacent piece', () => {
+  const unmoved = position();
+  unmoved.board[4][4] = { type: 'j', color: 'w', moved: false };
+  unmoved.board[4][5] = { type: 'r', color: 'w', moved: false };
+  const unmovedBefore = JSON.stringify(unmoved);
+  assert.equal(allLegalState(unmoved).some(m => m.swap), false);
+  assert.equal(JSON.stringify(unmoved), unmovedBefore);
+
+  const enemy = position();
+  enemy.board[4][4] = { type: 'j', color: 'w', moved: false };
+  enemy.board[4][5] = { type: 'r', color: 'b', moved: true };
+  const enemyBefore = JSON.stringify(enemy);
+  assert.equal(allLegalState(enemy).some(m => m.swap), false);
+  assert.equal(JSON.stringify(enemy), enemyBefore);
+
+  const nonAdjacent = position();
+  nonAdjacent.board[4][4] = { type: 'j', color: 'w', moved: false };
+  nonAdjacent.board[4][6] = { type: 'r', color: 'w', moved: true };
+  const nonAdjacentBefore = JSON.stringify(nonAdjacent);
+  assert.equal(allLegalState(nonAdjacent).some(m => m.swap), false);
+  assert.equal(JSON.stringify(nonAdjacent), nonAdjacentBefore);
+});
+
+test('Jester swap is rejected if it leaves its king in check', () => {
+  const s = position();
+  s.board[4][4] = { type: 'j', color: 'w', moved: false };
+  s.board[4][5] = { type: 'r', color: 'w', moved: true };
+  s.board[7][9] = { type: 'r', color: 'b', moved: true };
+  const before = JSON.stringify(s);
+  assert.equal(allLegalState(s).some(m => m.swap && m.from.r === 4 && m.from.c === 4), false);
+  assert.equal(JSON.stringify(s), before);
+});
+
+test('queenside castling relocates the king and rook to the variant-specific squares', () => {
+  const s = castleEdgePosition('queenside');
+  const move = castleEdgeMove(s, 'queenside');
+  assert.ok(move, 'queenside castling should be legal when its path is clear');
+  applyRaw(s, move);
+  assert.equal(s.board[7][1].type, 'k');
+  assert.equal(s.board[7][2].type, 'r');
+  assert.equal(s.board[7][0], null);
+  assert.equal(s.board[7][5], null);
+  assert.equal(s.board[7][2].moved, true);
+});
+
+test('castling is rejected after the king has moved or when the rook is absent or moved', () => {
+  assert.equal(castleEdgeMove(castleEdgePosition('kingside', { kingMoved: true }), 'kingside'), undefined);
+  assert.equal(castleEdgeMove(castleEdgePosition('kingside', { rookMissing: true }), 'kingside'), undefined);
+  assert.equal(castleEdgeMove(castleEdgePosition('kingside', { rookMoved: true }), 'kingside'), undefined);
+  assert.equal(castleEdgeMove(castleEdgePosition('queenside', { rookMissing: true }), 'queenside'), undefined);
+  assert.equal(castleEdgeMove(castleEdgePosition('queenside', { rookMoved: true }), 'queenside'), undefined);
+});
+
+test('castling is rejected when its path is blocked on either side', () => {
+  assert.equal(castleEdgeMove(castleEdgePosition('kingside', { blockedColumn: 7 }), 'kingside'), undefined);
+  assert.equal(castleEdgeMove(castleEdgePosition('queenside', { blockedColumn: 3 }), 'queenside'), undefined);
+});
+
+test('castling is rejected while the king is in check or crosses an attacked square', () => {
+  assert.equal(castleEdgeMove(castleEdgePosition('kingside', { kingInCheck: true }), 'kingside'), undefined);
+  assert.equal(castleEdgeMove(castleEdgePosition('kingside', { attackedPathSquare: true }), 'kingside'), undefined);
+});
+
+test('castling is rejected when the king is not on its original square', () => {
+  const s = castleEdgePosition('kingside', { kingColumn: 4 });
+  assert.equal(castleEdgeMove(s, 'kingside'), undefined);
+});

@@ -16,12 +16,12 @@ The engine contract suite evaluates canonical rule/search functions from `script
 
 - MinMax returns a legal move in a simple position and does not mutate the input state.
 - MinMax and MCTS return `null` when no legal moves exist.
-- Jester swap requires an adjacent friendly piece that has already moved.
+- Jester swap requires an adjacent friendly piece that has already moved; negative cases cover unmoved friends, enemies, non-adjacent pieces, and leaving the king in check.
 - Unresolved/invalid AI promotion choices default to a queen.
 - Queen, jester, rook, bishop, and knight promotion choices are applied correctly.
 - Promotion can trigger redeployment of a destroyed moat, removing the pawn and restoring the moat state.
 - Opening, midgame, and endgame phase thresholds.
-- Kingside castling relocates both king and rook to the variant's configured squares.
+- Kingside and queenside castling relocate both king and rook to the variant's configured squares. Negative cases cover moved kings/rooks, missing rooks, blocked paths, check, attacked transit squares, and kings off their original square.
 - En passant is available after a double pawn move and removes the captured pawn.
 - A moat is destroyed when two opposing pieces occupy its three cells.
 - AI worker setup returns safely to main-thread fallback when blob workers are blocked.
