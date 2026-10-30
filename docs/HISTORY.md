@@ -116,3 +116,8 @@ Purpose: dated record of decisions and changes, oldest first. Use the repository
 2026-10-27 — Engine startup and single-file build hardening
 * Fixed the single-file builder to embed MCTS before `script.js`; the omission could prevent board initialization. MCTS registration and worker-helper serialization are now conditional on module availability, and load failure logs a warning while preserving the board/MinMax fallback.
 * Bumped cache to `jm-cache-v0.7.2-engine-startup-1`. Static source review only; no build or browser/runtime verification.
+
+
+2026-10-30 — Version metadata synchronized with v0.8.0
+* Corrected the visible app version in `index.html` and the `manifest.json` version to match the existing `v0.8.0` release tag.
+* Updated the service-worker cache identifier to `jm-cache-v0.8.0-compact-ui-14` so installed clients fetch the corrected app shell. The existing tag and published release remain unchanged.
