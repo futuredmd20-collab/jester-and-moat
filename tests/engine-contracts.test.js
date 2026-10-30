@@ -641,10 +641,11 @@ test('worker runtime errors retry the selected engine on the main thread', () =>
     sandbox.api.aiMove();
     assert.ok(workerInstance, 'AI should create a worker');
     assert.equal(calls, 0, 'engine should initially be dispatched to the worker');
-    const failedRequestId = workerInstance.request.id;
+    const failedWorker = workerInstance;
+    const failedRequestId = failedWorker.request.id;
 
-    workerInstance.onerror({ message: 'simulated worker runtime failure' });
-    assert.equal(workerInstance.terminated, true, 'failed worker should be terminated');
+    failedWorker.onerror({ message: 'simulated worker runtime failure' });
+    assert.equal(failedWorker.terminated, true, 'failed worker should be terminated');
     assert.match(sandbox.document.getElementById('status').textContent, /retrying on the main thread/i);
     assert.equal(scheduledCallbacks.length, 1, 'runtime failure should schedule one fallback attempt');
 
@@ -654,6 +655,13 @@ test('worker runtime errors retry the selected engine on the main thread', () =>
     assert.notEqual(receivedState, s, 'fallback engine should receive a cloned position');
     assert.equal(JSON.stringify(receivedState), JSON.stringify(s), 'fallback clone should preserve the position');
     assert.ok(failedRequestId > 0, 'worker request should have a valid identifier');
+
+    sandbox.api.aiMove();
+    const replacementWorker = workerInstance;
+    assert.notEqual(replacementWorker, failedWorker, 'a later request should create a fresh worker');
+    failedWorker.onerror({ message: 'late stale worker error' });
+    assert.equal(replacementWorker.terminated, false, 'a stale error must not terminate the replacement worker');
+    assert.equal(scheduledCallbacks.length, 0, 'a stale error must not trigger another fallback');
   } finally {
     sandbox.api.enginePlugins.set('minmax_legacy', originalMinMax);
     sandbox.api.resetAIWorker();
