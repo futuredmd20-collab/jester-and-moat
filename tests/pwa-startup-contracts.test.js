@@ -127,8 +127,8 @@ test('Eruda loader handles local bundle load failure without throwing', () => {
 });
 
 test('development Eruda stays out of the service-worker precache and single-file build', () => {
-  assert.match(html, /<script src="scripts\\/eruda-loader\\.js"><\\/script>/);
-  assert.match(buildSource, /combined = combined\\.replace\\('<script src="scripts\\/eruda-loader\\.js"><\\/script>', ''\\)/);
+  assert.ok(html.includes('<script src="scripts/eruda-loader.js"></script>'));
+  assert.ok(buildSource.includes(`combined = combined.replace('<script src="scripts/eruda-loader.js"></script>', '');`));
   assert.ok(!swSource.includes('eruda-loader.js'));
   assert.ok(!swSource.includes('eruda.min.js'));
 });
