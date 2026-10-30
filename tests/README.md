@@ -25,6 +25,8 @@ The engine contract suite evaluates canonical rule/search functions from `script
 - En passant is available after a double pawn move and removes the captured pawn.
 - A moat is destroyed when two opposing pieces occupy its three cells.
 - AI worker setup returns safely to main-thread fallback when blob workers are blocked.
+- Successful worker dispatch returns legal moves for both MinMax and MCTS.
+- Unknown worker engine selectors return an explicit protocol error.
 - Multi-file startup fetches both SVG sprites and loads MCTS before `script.js`.
 - Single-file startup skips sprite fetches when the piece symbols are inline.
 - Sprite-fetch and MCTS-load failures preserve the MinMax startup fallback.
@@ -34,4 +36,4 @@ The engine contract suite evaluates canonical rule/search functions from `script
 
 ## Remaining verification
 
-This is a focused regression suite, not a complete rules suite or strength benchmark. Successful worker dispatch, settings persistence, browser rendering, and real-browser/offline behavior still need browser verification. The startup tests validate the relevant source-level contracts with mocks, not a live browser or deployed PWA.
+This is a focused regression suite, not a complete rules suite or strength benchmark. Settings persistence, browser rendering, and real-browser/offline behavior still need browser verification. The startup tests validate the relevant source-level contracts with mocks, not a live browser or deployed PWA.
