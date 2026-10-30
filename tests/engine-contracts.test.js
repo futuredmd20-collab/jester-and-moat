@@ -107,6 +107,8 @@ test('invalid/unresolved promotion choice defaults to queen', () => {
 
 test('phase detection follows opening, midgame, and endgame thresholds', () => {
   const s = position();
+  s.board = Array.from({ length: 8 }, () => Array(10).fill(null));
+  for (let i = 0; i < 34; i++) s.board[Math.floor(i / 10)][i % 10] = { type: 'p', color: i % 2 ? 'b' : 'w', moved: true };
   assert.equal(getGamePhase(s), ENGINE_PHASES.OPENING);
   s.ply = 10;
   s.board = Array.from({ length: 8 }, () => Array(10).fill(null));
