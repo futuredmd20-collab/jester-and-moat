@@ -44,6 +44,20 @@ Allow independently configured AI engines for White and Black, optionally limite
 5. **Regression checks:** promotions, swaps, moats, legal moves, no-legal-move/game-over handling, worker errors, and responsive performance.
 6. After each task, record the fix/verification PR and actual results in `docs/HISTORY.md`, then refresh this status document.
 
+## Manual browser verification checklist
+
+Run these checks against the multi-file app served from localhost or HTTPS. Keep the browser console and Network panel open and record observed results; automated VM tests are not a substitute.
+
+1. **Normal engine dispatch:** start an AI game with MinMax, then select MCTS for one side and make several moves. Confirm both engines return legal moves, the board continues responding, and the console has no engine errors.
+2. **Side and phase isolation:** set White to MCTS for midgame only and Black to MinMax. Confirm White uses MinMax in opening/endgame and MCTS in midgame. Repeat with Black configured for a different phase.
+3. **Reload persistence:** set different engine/phase options for White and Black, reload, and confirm each side's choices are restored independently.
+4. **MCTS load failure:** block `engines/mcts-engine.js` in DevTools Network request blocking, reload, and confirm startup warns while the board and MinMax remain usable. Confirm MCTS cannot run while its module is absent.
+5. **Worker-construction fallback:** use a test server policy that blocks Blob workers, then confirm the chosen engine still makes a legal move via the main thread. Test MinMax and MCTS separately.
+6. **Worker runtime error:** induce a worker runtime failure if practical and confirm the selected engine retries once on the main thread, the failed worker is terminated, and no stale worker response is applied.
+7. **Offline/service worker:** after a successful online load, reload offline and confirm the app shell and MCTS asset are available from cache.
+
+Do not mark these checks complete until they have actually been observed in a browser. The optional single-file build is outside this checklist unless a built artifact is already available or the user explicitly requests building it.
+
 ## Progress log
 
 - **2026-10-22:** Initial design draft on `engine-plugins-design`.
