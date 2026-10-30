@@ -24,7 +24,8 @@ The engine contract suite evaluates canonical rule/search functions from `script
 - Kingside and queenside castling relocate both king and rook to the variant's configured squares. Negative cases cover moved kings/rooks, missing rooks, blocked paths, check, attacked transit squares, and kings off their original square. Loading a custom editor position resets castling movement flags for a king and rooks on their home squares.
 - En passant is available only immediately after a double pawn move, removes the captured pawn, rejects invalid targets/captures, and is illegal when it exposes the king to check.
 - A moat is destroyed when two opposing pieces occupy its three cells.
-- AI worker setup returns safely to main-thread fallback when blob workers are blocked.
+- AI worker setup returns safely to main-thread fallback when Blob workers are blocked; the selected engine is called with a cloned state.
+- Worker runtime errors terminate the failed worker and retry the active request once through the selected engine on the main thread.
 - Successful worker dispatch returns legal moves for both MinMax and MCTS.
 - Unknown worker engine selectors return an explicit protocol error.
 - White/Black engine and phase settings are saved and restored independently.
@@ -39,4 +40,4 @@ The engine contract suite evaluates canonical rule/search functions from `script
 
 ## Remaining verification
 
-This is a focused regression suite, not a complete rules suite or strength benchmark. Automated tests cover engine-setting persistence and validation, but browser rendering and real-browser/offline behavior still need browser verification. The startup tests validate the relevant source-level contracts with mocks, not a live browser or deployed PWA.
+This is a focused regression suite, not a complete rules suite or strength benchmark. Automated tests cover engine-setting persistence and validation, but browser rendering and real-browser/offline behavior still need browser verification. The worker and startup tests validate source-level contracts with mocks, not a live browser or deployed PWA. Runtime-error recovery is simulated; browser behavior remains unverified.

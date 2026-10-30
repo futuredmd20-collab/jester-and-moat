@@ -24,7 +24,7 @@ Allow independently configured AI engines for White and Black, optionally limite
 | Plugin setup | Registry/default-selection groundwork; MinMax adapter; MCTS module. PRs #12, #16, #18. | Confirm each engine is selected and returns moves correctly at runtime. |
 | Side/phase UI | White/Black engine and phase selectors; phase-specific selection and MinMax fallback. PRs #20–#22. | Test both sides independently, all phases, fallback behavior, UX, and reload persistence. |
 | Loading/build | MCTS script loading, service-worker precache and version alignment (PR #23); loading fix (PR #24); single-file builder embeds MCTS before `script.js`. | Exercise multi-file and built single-file pages. If MCTS fails to load on the multi-file page, startup warns and keeps board/MinMax available; MCTS selection falls back to MinMax. Confirm this recovery path in a browser. |
-| Worker dispatch | Handler dispatches `mctsGetMove` to MCTS and `getBestMove` or omitted legacy selector to MinMax; unknown selectors return an explicit error. Static review confirms both functions are serialized and the selector is used. Main-thread fallback calls selected plugin's `getMove`. | Browser/runtime execution of worker dispatch and fallback has not been recorded as complete. |
+| Worker dispatch | Contract tests exercise MinMax and MCTS through the generated worker, verify legal moves and unknown-selector errors, and verify that worker-construction and worker-runtime failures fall back to the selected plugin on the main thread. | Live-browser execution remains unverified. Runtime-error recovery terminates the failed worker and invalidates late responses before retrying the active request once. |
 | Phase policy and ratings | Thresholds and provisional MCTS presets/labels are defined. | Validate phase boundaries against representative games; calibrate strength before presenting ELO-like values as measured ratings. |
 
 ## Decisions to preserve
@@ -37,7 +37,7 @@ Allow independently configured AI engines for White and Black, optionally limite
 
 ## Remaining plan
 
-1. **Runtime worker test:** run MinMax and MCTS through the worker and main-thread fallback; check unknown-selector errors.
+1. **Runtime worker test:** automated contracts cover MinMax and MCTS dispatch, legal moves, unknown-selector errors, and fallback for worker-construction/runtime failures. Still verify both engines and recovery behavior in a real browser.
 2. **Configuration test:** test White/Black independently, selected-phase-only MCTS, MinMax in other phases, and settings after reload. Fix initialization/persistence if needed.
 3. **Phase test:** exercise opening/midgame/endgame boundaries, especially ply < 10, 34+ pieces, and 16 or fewer pieces.
 4. **Strength calibration:** measure repeatable results and ensure UI labels match configured strength.

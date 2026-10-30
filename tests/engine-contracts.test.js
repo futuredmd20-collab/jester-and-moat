@@ -15,6 +15,7 @@ if (boundary < 0) throw new Error('Browser startup boundary not found');
 
 const elements = new Map();
 const storedValues = new Map();
+const scheduledCallbacks = [];
 let storageThrowsOnRead = false;
 let storageThrowsOnWrite = false;
 function mockElement(id) {
@@ -47,6 +48,7 @@ function mockElement(id) {
 }
 const sandbox = {
   console, URLSearchParams, Blob,
+  setTimeout(callback) { scheduledCallbacks.push(callback); return scheduledCallbacks.length; },
   URL: { createObjectURL() { throw new Error('Blob workers blocked by test'); }, revokeObjectURL() {} },
   window: { location: { search: '' }, innerWidth: 1024, Worker: function Worker() {}, addEventListener() {} },
   document: {
@@ -70,7 +72,7 @@ const sandbox = {
 };
 vm.createContext(sandbox);
 vm.runInContext(source.slice(0, boundary) + `
-globalThis.api = { allLegalState, getBestMove, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getDefaultEngineForSide() { return defaultEngineForSide; }, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, ENGINE_PHASES };
+globalThis.api = { allLegalState, getBestMove, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getDefaultEngineForSide() { return defaultEngineForSide; }, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, ENGINE_PHASES };
 `, sandbox, { filename: 'script.js' });
 vm.runInContext(mcts, sandbox, { filename: 'engines/mcts-engine.js' });
 
@@ -591,4 +593,74 @@ test('loading an editor position restores castling rights for a home king and co
   assert.equal(s.board[7][9].moved, false, 'the kingside rook on its home square should be treated as unmoved');
   assert.ok(castleEdgeMove(s, 'queenside'), 'queenside castling should be available after loading the position');
   assert.ok(castleEdgeMove(s, 'kingside'), 'kingside castling should be available after loading the position');
+});
+
+
+test('worker runtime errors retry the selected engine on the main thread', () => {
+  const previousCreateObjectURL = sandbox.URL.createObjectURL;
+  const previousRevokeObjectURL = sandbox.URL.revokeObjectURL;
+  const previousWorker = sandbox.Worker;
+  const previousWindowWorker = sandbox.window.Worker;
+  const originalMinMax = sandbox.api.enginePlugins.get('minmax_legacy');
+  let workerInstance;
+  let calls = 0;
+  let receivedState;
+  let receivedSide;
+
+  class FailingWorker {
+    constructor(url) {
+      this.url = url;
+      this.terminated = false;
+      workerInstance = this;
+    }
+    postMessage(request) { this.request = request; }
+    terminate() { this.terminated = true; }
+  }
+
+  sandbox.api.resetAIWorker();
+  sandbox.URL.createObjectURL = () => 'blob:worker-test';
+  sandbox.URL.revokeObjectURL = () => {};
+  sandbox.Worker = FailingWorker;
+  sandbox.window.Worker = FailingWorker;
+  sandbox.api.enginePlugins.set('minmax_legacy', {
+    name: 'MinMax runtime fallback probe',
+    phases: ['opening', 'midgame', 'endgame'],
+    getMove(gameState, side) {
+      calls++;
+      receivedState = gameState;
+      receivedSide = side;
+      return null;
+    }
+  });
+
+  try {
+    const s = position();
+    s.board[6][0] = { type: 'r', color: 'w', moved: false };
+    sandbox.api.setState(s);
+
+    sandbox.api.aiMove();
+    assert.ok(workerInstance, 'AI should create a worker');
+    assert.equal(calls, 0, 'engine should initially be dispatched to the worker');
+    const failedRequestId = workerInstance.request.id;
+
+    workerInstance.onerror({ message: 'simulated worker runtime failure' });
+    assert.equal(workerInstance.terminated, true, 'failed worker should be terminated');
+    assert.match(sandbox.document.getElementById('status').textContent, /retrying on the main thread/i);
+    assert.equal(scheduledCallbacks.length, 1, 'runtime failure should schedule one fallback attempt');
+
+    scheduledCallbacks.shift()();
+    assert.equal(calls, 1, 'selected engine should be retried exactly once');
+    assert.equal(receivedSide, 'w');
+    assert.notEqual(receivedState, s, 'fallback engine should receive a cloned position');
+    assert.equal(JSON.stringify(receivedState), JSON.stringify(s), 'fallback clone should preserve the position');
+    assert.ok(failedRequestId > 0, 'worker request should have a valid identifier');
+  } finally {
+    sandbox.api.enginePlugins.set('minmax_legacy', originalMinMax);
+    sandbox.api.resetAIWorker();
+    sandbox.URL.createObjectURL = previousCreateObjectURL;
+    sandbox.URL.revokeObjectURL = previousRevokeObjectURL;
+    sandbox.Worker = previousWorker;
+    sandbox.window.Worker = previousWindowWorker;
+    scheduledCallbacks.length = 0;
+  }
 });
