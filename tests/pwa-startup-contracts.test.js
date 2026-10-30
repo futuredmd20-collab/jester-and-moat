@@ -36,7 +36,7 @@ async function runBoot({ inline = false, spriteFailure = false, mctsFailure = fa
   }
   const document = {
     getElementById(id) {
-      if (inline && (id === 'p-rook' || id === 'flat-p-rook')) return { id };
+      if (id === 'p-rook' || id === 'flat-p-rook') return inline ? { id } : null;
       return element(id);
     },
     createElement(tag) {
@@ -120,7 +120,7 @@ test('service-worker registration waits for the window load event', () => {
 });
 
 test('service-worker precache covers the shipped multi-file app, not source art crops', () => {
-  const context = {};
+  const context = { self: { addEventListener() {} } };
   vm.runInNewContext(`${swSource}\nglobalThis.__cache = CACHE; globalThis.__precache = PRECACHE;`, context, { filename: 'sw.js' });
   assert.match(context.__cache, /^jm-cache-/);
   for (const file of [
