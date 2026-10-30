@@ -126,3 +126,7 @@ Purpose: dated record of decisions and changes, oldest first. Use the repository
 2026-10-30 — AI worker runtime-error recovery
 * A worker runtime error now terminates the failed worker, invalidates late responses, and retries the active engine request once on the main thread using the captured position and selected engine.
 * Added a contract test for runtime-error fallback and updated the engine verification notes. CI contract tests passed; live-browser behavior remains unverified.
+
+2026-10-30 — Manual engine browser verification checklist
+* Added a concrete browser checklist for engine dispatch, side/phase configuration, reload persistence, MCTS load failure, worker fallback/runtime errors, and offline service-worker behavior. These checks remain outstanding until observed in a real browser.
+
