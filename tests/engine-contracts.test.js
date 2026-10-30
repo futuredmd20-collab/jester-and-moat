@@ -55,7 +55,7 @@ const sandbox = {
 };
 vm.createContext(sandbox);
 vm.runInContext(source.slice(0, boundary) + `
-globalThis.api = { allLegalState, getBestMove, applyRaw, getGamePhase, ensureAIWorker, ENGINE_PHASES };
+globalThis.api = { allLegalState, getBestMove, applyRaw, getGamePhase, ensureAIWorker, play, aiPlaceMoatForColor, setState(s) { state = s; }, getState() { return state; }, ENGINE_PHASES };
 `, sandbox, { filename: 'script.js' });
 vm.runInContext(mcts, sandbox, { filename: 'engines/mcts-engine.js' });
 
@@ -70,7 +70,7 @@ function position() {
     halfmoveClock: 0, positionHistory: {}, clocks: { w: 0, b: 0 }
   };
 }
-const { allLegalState, getBestMove, applyRaw, getGamePhase, ensureAIWorker, ENGINE_PHASES } = sandbox.api;
+const { allLegalState, getBestMove, applyRaw, getGamePhase, ensureAIWorker, play, aiPlaceMoatForColor, setState, getState, ENGINE_PHASES } = sandbox.api;
 
 test('MinMax returns a legal move without mutating its input', () => {
   const s = position();
@@ -172,4 +172,42 @@ test('a moat is destroyed when two opposing pieces occupy its cells', () => {
 
 test('AI worker setup falls back cleanly when blob workers are blocked', () => {
   assert.equal(ensureAIWorker(), null);
+});
+
+test('all supported promotion choices replace the pawn with the selected piece', () => {
+  for (const choice of ['q', 'j', 'r', 'b', 'n']) {
+    const s = position();
+    s.board[1][0] = { type: 'p', color: 'w', moved: true };
+    applyRaw(s, { from: { r: 1, c: 0 }, to: { r: 0, c: 0 } }, choice);
+    assert.equal(s.board[0][0].type, choice, `promotion choice ${choice} should be applied`);
+    assert.equal(s.board[0][0].color, 'w');
+    assert.equal(s.board[0][0].moved, true);
+    assert.equal(s.board[1][0], null);
+    assert.equal(s.turn, 'b');
+  }
+});
+
+test('promotion can redeploy a destroyed moat without leaving a pawn behind', () => {
+  const s = position();
+  s.board[1][0] = { type: 'p', color: 'w', moved: true };
+  s.moatDestroyed.w = true;
+  s.hasPlacedMoat.w = true;
+  s.hasPlacedMoat.b = true;
+  setState(s);
+
+  play({ from: { r: 1, c: 0 }, to: { r: 0, c: 0 } }, 'moat', true);
+  assert.equal(getState().board[1][0], null);
+  assert.equal(getState().board[0][0], null);
+  assert.equal(getState().phase, 'place_moat_w');
+  assert.equal(getState().turn, 'w');
+
+  aiPlaceMoatForColor('w', true);
+  const after = getState();
+  assert.ok(after.moats.w);
+  assert.ok([4, 5].includes(after.moats.w.r));
+  assert.ok(after.moats.w.c >= 1 && after.moats.w.c <= 6);
+  assert.equal(after.moatDestroyed.w, false);
+  assert.equal(after.hasPlacedMoat.w, true);
+  assert.equal(after.phase, 'normal');
+  assert.equal(after.turn, 'b');
 });
