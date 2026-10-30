@@ -905,11 +905,44 @@ function isAIMode() {
   return m.startsWith('ai_');
 }
 
-// Wire up engine/phase per-side configuration UI
+// Restore saved engine settings before the user starts or changes a game.
+function loadEngineConfig() {
+  const defaults = {
+    whiteEngine: 'minmax_legacy',
+    whitePhase: ENGINE_PHASES.OPENING,
+    blackEngine: 'minmax_legacy',
+    blackPhase: ENGINE_PHASES.OPENING
+  };
+  const validEngines = new Set(['minmax_legacy', 'mcts']);
+  const validPhases = new Set(Object.values(ENGINE_PHASES));
+  let saved = null;
+  try {
+    const raw = localStorage.getItem('engineConfig');
+    if (raw) saved = JSON.parse(raw);
+  } catch (e) {
+    // Missing or inaccessible storage and malformed JSON use safe defaults.
+  }
+  const config = { ...defaults };
+  if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
+    if (validEngines.has(saved.whiteEngine)) config.whiteEngine = saved.whiteEngine;
+    if (validPhases.has(saved.whitePhase)) config.whitePhase = saved.whitePhase;
+    if (validEngines.has(saved.blackEngine)) config.blackEngine = saved.blackEngine;
+    if (validPhases.has(saved.blackPhase)) config.blackPhase = saved.blackPhase;
+  }
+  document.getElementById('whiteEngineSelect').value = config.whiteEngine;
+  document.getElementById('whiteEnginePhaseSelect').value = config.whitePhase;
+  document.getElementById('blackEngineSelect').value = config.blackEngine;
+  document.getElementById('blackEnginePhaseSelect').value = config.blackPhase;
+  updateEngineConfigUI();
+  return config;
+}
+
+// Wire up engine/phase per-side configuration UI.
 document.getElementById('whiteEngineSelect').onchange = updateEngineConfigUI;
 document.getElementById('whiteEnginePhaseSelect').onchange = updateEngineConfigUI;
 document.getElementById('blackEngineSelect').onchange = updateEngineConfigUI;
 document.getElementById('blackEnginePhaseSelect').onchange = updateEngineConfigUI;
+loadEngineConfig();
 
 function ensureAIWorker() {
   if (aiWorker || !('Worker' in window)) return aiWorker;

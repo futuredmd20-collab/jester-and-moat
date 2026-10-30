@@ -27,6 +27,9 @@ The engine contract suite evaluates canonical rule/search functions from `script
 - AI worker setup returns safely to main-thread fallback when blob workers are blocked.
 - Successful worker dispatch returns legal moves for both MinMax and MCTS.
 - Unknown worker engine selectors return an explicit protocol error.
+- White/Black engine and phase settings are saved and restored independently.
+- MCTS configuration is limited to its selected phase, with MinMax in other phases.
+- Missing, malformed, or invalid saved settings fall back to safe defaults; storage errors do not throw.
 - Multi-file startup fetches both SVG sprites and loads MCTS before `script.js`.
 - Single-file startup skips sprite fetches when the piece symbols are inline.
 - Sprite-fetch and MCTS-load failures preserve the MinMax startup fallback.
@@ -36,4 +39,4 @@ The engine contract suite evaluates canonical rule/search functions from `script
 
 ## Remaining verification
 
-This is a focused regression suite, not a complete rules suite or strength benchmark. Settings persistence, browser rendering, and real-browser/offline behavior still need browser verification. The startup tests validate the relevant source-level contracts with mocks, not a live browser or deployed PWA.
+This is a focused regression suite, not a complete rules suite or strength benchmark. Automated tests cover engine-setting persistence and validation, but browser rendering and real-browser/offline behavior still need browser verification. The startup tests validate the relevant source-level contracts with mocks, not a live browser or deployed PWA.
