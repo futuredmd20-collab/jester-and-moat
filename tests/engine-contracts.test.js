@@ -257,3 +257,69 @@ test('initial moat placement starts after four moves per side and completes for 
   assert.equal(after.phase, 'normal');
   assert.equal(after.turn, 'w');
 });
+
+
+test('worker dispatches MinMax and returns a legal move', async () => {
+  const workerBlobs = new Map();
+  sandbox.URL.createObjectURL = blob => {
+    const url = `blob:engine-contract-test-${workerBlobs.size}`;
+    workerBlobs.set(url, blob);
+    return url;
+  };
+  sandbox.URL.revokeObjectURL = () => {};
+  sandbox.Worker = class {
+    constructor(url) { this.url = url; this.onmessage = null; this.onerror = null; }
+    async postMessage(data) {
+      const source = await workerBlobs.get(this.url).text();
+      let response;
+      const workerContext = {
+        postMessage(message) { response = message; }
+      };
+      vm.createContext(workerContext);
+      vm.runInContext(source, workerContext, { filename: 'ai-worker.js' });
+      workerContext.onmessage({ data });
+      if (this.onmessage) this.onmessage({ data: response });
+      return response;
+    }
+  };
+
+  const worker = ensureAIWorker();
+  assert.ok(worker, 'worker should initialize when Blob workers are available');
+  const s = position();
+  s.board[6][0] = { type: 'r', color: 'w', moved: false };
+  const response = await new Promise(async resolve => {
+    worker.onmessage = event => resolve(event.data);
+    await worker.postMessage({ id: 101, state: s, depth: 1, workerFn: 'getBestMove' });
+  });
+
+  assert.equal(response.id, 101);
+  assert.equal(response.error, undefined);
+  assert.ok(response.move, 'MinMax should return a move');
+  assert.ok(allLegalState(s).some(m => JSON.stringify(m) === JSON.stringify(response.move)));
+});
+
+test('worker dispatches MCTS and returns a legal move', async () => {
+  const worker = ensureAIWorker();
+  const s = position();
+  s.board[6][0] = { type: 'r', color: 'w', moved: false };
+  const response = await new Promise(async resolve => {
+    worker.onmessage = event => resolve(event.data);
+    await worker.postMessage({ id: 102, state: s, depth: 1, workerFn: 'mctsGetMove' });
+  });
+
+  assert.equal(response.id, 102);
+  assert.equal(response.error, undefined);
+  assert.ok(response.move, 'MCTS should return a move');
+  assert.ok(allLegalState(s).some(m => JSON.stringify(m) === JSON.stringify(response.move)));
+});
+
+test('worker reports unsupported engine selectors explicitly', async () => {
+  const worker = ensureAIWorker();
+  const response = await new Promise(async resolve => {
+    worker.onmessage = event => resolve(event.data);
+    await worker.postMessage({ id: 103, state: position(), depth: 1, workerFn: 'unknownEngine' });
+  });
+
+  assert.equal(response.id, 103);
+  assert.match(response.error, /Unsupported worker function: unknownEngine/);
+});

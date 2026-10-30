@@ -10,7 +10,7 @@ Requires Node.js with the built-in test runner (Node 18 or newer recommended). N
 node --test tests/engine-contracts.test.js
 ```
 
-The harness evaluates canonical rule/search functions from `script.js` in a small VM context and skips browser UI startup. It also loads `engines/mcts-engine.js` to check the no-legal-moves contract.
+The harness evaluates canonical rule/search functions from `script.js` in a small VM context and skips browser UI startup. It loads `engines/mcts-engine.js` for MCTS contract checks and simulates the generated Blob worker to exercise both dispatch paths and unsupported selectors.
 
 ## Current coverage
 
@@ -25,7 +25,9 @@ The harness evaluates canonical rule/search functions from `script.js` in a smal
 - En passant is available after a double pawn move and removes the captured pawn.
 - A moat is destroyed when two opposing pieces occupy its three cells.
 - AI worker setup returns safely to main-thread fallback when blob workers are blocked.
+- Successful worker dispatch returns legal moves for both MinMax and MCTS.
+- Unknown worker engine selectors return an explicit protocol error.
 
 ## Remaining verification
 
-This is a focused regression suite, not a complete rules suite or strength benchmark. Successful worker dispatch, settings persistence, browser rendering, and multi-file/single-file startup still need dedicated tests or browser verification. Initial moat placement is covered: after four moves per side, White places a moat first, then Black; after both placements, normal play resumes with White to move. Promotion-triggered moat redeployment is also covered. Browser automation may be added later with Puppeteer or Playwright; neither is a current dependency.
+This is a focused regression suite, not a complete rules suite or strength benchmark. Settings persistence, browser rendering, and multi-file/single-file startup still need dedicated tests or browser verification. Initial moat placement is covered: after four moves per side, White places a moat first, then Black; after both placements, normal play resumes with White to move. Promotion-triggered moat redeployment is also covered. Browser automation may be added later with Puppeteer or Playwright; neither is a current dependency.
