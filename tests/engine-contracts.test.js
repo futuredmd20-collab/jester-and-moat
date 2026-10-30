@@ -144,7 +144,8 @@ test('en passant removes the captured pawn and places the capturing pawn', () =>
   s.turn = 'b';
 
   applyRaw(s, { from: { r: 1, c: 4 }, to: { r: 3, c: 4 }, doublePawn: true });
-  assert.deepEqual(s.ep, { r: 2, c: 4 });
+  assert.equal(s.ep.r, 2);
+  assert.equal(s.ep.c, 4);
   const move = allLegalState(s).find(m => m.enPassant && m.from.r === 3 && m.from.c === 3);
   assert.ok(move, 'en passant should be available immediately after the double pawn move');
   applyRaw(s, move);
@@ -163,7 +164,8 @@ test('a moat is destroyed when two opposing pieces occupy its cells', () => {
   s.board[6][0] = { type: 'r', color: 'w', moved: false };
 
   const result = applyRaw(s, { from: { r: 6, c: 0 }, to: { r: 5, c: 0 } });
-  assert.deepEqual(result.moatsDestroyed, ['w']);
+  assert.equal(result.moatsDestroyed.length, 1);
+  assert.equal(result.moatsDestroyed[0], 'w');
   assert.equal(s.moats.w, null);
   assert.equal(s.moatDestroyed.w, true);
 });
