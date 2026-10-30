@@ -171,6 +171,66 @@ test('en passant removes the captured pawn and places the capturing pawn', () =>
   assert.equal(s.captured.w.some(p => p.type === 'p' && p.color === 'b'), true);
 });
 
+
+test('en passant expires after the eligible side makes another move', () => {
+  const s = position();
+  s.board[3][3] = { type: 'p', color: 'w', moved: true };
+  s.board[1][4] = { type: 'p', color: 'b', moved: false };
+  s.turn = 'b';
+
+  applyRaw(s, { from: { r: 1, c: 4 }, to: { r: 3, c: 4 }, doublePawn: true });
+  assert.ok(allLegalState(s).some(m => m.enPassant));
+
+  const kingMove = allLegalState(s).find(m =>
+    m.from.r === 7 && m.from.c === 4 && m.to.r === 7 && m.to.c === 5
+  );
+  assert.ok(kingMove, 'a safe king move should be available');
+  applyRaw(s, kingMove);
+
+  assert.equal(s.ep, null);
+  assert.equal(allLegalState(s).some(m => m.enPassant), false);
+});
+
+test('en passant rejects an occupied target or a non-pawn captured piece', () => {
+  const cases = [
+    { name: 'no adjacent piece', adjacent: null, target: null },
+    { name: 'adjacent enemy knight', adjacent: { type: 'n', color: 'b', moved: true }, target: null },
+    { name: 'friendly piece on target', adjacent: { type: 'p', color: 'b', moved: true }, target: { type: 'n', color: 'w', moved: true } }
+  ];
+
+  for (const scenario of cases) {
+    const s = position();
+    s.board[3][3] = { type: 'p', color: 'w', moved: true };
+    s.board[3][4] = scenario.adjacent;
+    s.board[2][4] = scenario.target;
+    s.ep = { r: 2, c: 4 };
+    s.turn = 'w';
+
+    assert.equal(
+      allLegalState(s).some(m => m.enPassant && m.from.r === 3 && m.from.c === 3),
+      false,
+      `en passant should be unavailable for: ${scenario.name}`
+    );
+  }
+});
+
+test('en passant is illegal when removing both pawns exposes the king to check', () => {
+  const s = position();
+  s.board[7][4] = null;
+  s.board[3][0] = { type: 'k', color: 'w', moved: true };
+  s.board[3][4] = { type: 'p', color: 'w', moved: true };
+  s.board[3][5] = { type: 'p', color: 'b', moved: true };
+  s.board[3][9] = { type: 'r', color: 'b', moved: true };
+  s.ep = { r: 2, c: 5 };
+  s.turn = 'w';
+
+  assert.equal(
+    allLegalState(s).some(m => m.enPassant && m.from.r === 3 && m.from.c === 4),
+    false,
+    'en passant must not expose the moving side king to a rook attack'
+  );
+});
+
 test('a moat is destroyed when two opposing pieces occupy its cells', () => {
   const s = position();
   s.moats.w = { r: 3, c: 3 };

@@ -568,7 +568,7 @@ function pseudoMoves(r, c, b = state.board, ep = state.ep, moats = state.moats) 
       const rr = r + d, cc = c + dc; if (!inside(rr, cc)) continue;
       const t = b[rr][cc];
       if (t && t.color !== p.color && t.type !== 'k') add(rr, cc);
-      else if (ep && ep.r === rr && ep.c === cc) add(rr, cc, {enPassant: true});
+      else if (!t && ep && ep.r === rr && ep.c === cc && b[r][cc] && b[r][cc].type === 'p' && b[r][cc].color !== p.color) add(rr, cc, {enPassant: true});
     }
   } else if (p.type === 'n') {
     for (const [dr, dc] of [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]) add(r + dr, c + dc);
