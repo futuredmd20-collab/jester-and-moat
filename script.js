@@ -1010,8 +1010,9 @@ onmessage = function(event) {
       status('No legal moves available.');
     }
 };
-  aiWorker.onerror = (event) => {
-    handleAIWorkerFailure(aiWorker, pendingAIRequest);
+  const workerInstance = aiWorker;
+  workerInstance.onerror = () => {
+    handleAIWorkerFailure(workerInstance, pendingAIRequest);
   };
   return aiWorker;
 }
