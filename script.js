@@ -575,7 +575,7 @@ function pseudoMoves(r, c, b = state.board, ep = state.ep, moats = state.moats) 
   } else if (p.type === 'k') {
     for (const [dr, dc] of DIRS) add(r + dr, c + dc);
 
-    if (!p.moved && !inCheck(p.color, b, moats)) {
+    if (c === 5 && !p.moved && !inCheck(p.color, b, moats)) {
       const rightRook = b[r][9];
       if (rightRook && rightRook.type === 'r' && !rightRook.moved) {
         if (!b[r][6] && !b[r][7] && !b[r][8]) {
