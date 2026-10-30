@@ -28,4 +28,4 @@ The harness evaluates canonical rule/search functions from `script.js` in a smal
 
 ## Remaining verification
 
-This is a focused regression suite, not a complete rules suite or strength benchmark. Successful worker dispatch, settings persistence, browser rendering, and multi-file/single-file startup still need dedicated tests or browser verification. The moat test covers promotion-triggered redeployment; the initial four-move moat-placement flow still needs dedicated coverage. Browser automation may be added later with Puppeteer or Playwright; neither is a current dependency.
+This is a focused regression suite, not a complete rules suite or strength benchmark. Successful worker dispatch, settings persistence, browser rendering, and multi-file/single-file startup still need dedicated tests or browser verification. Initial moat placement is covered: after four moves per side, White places a moat first, then Black; after both placements, normal play resumes with White to move. Promotion-triggered moat redeployment is also covered. Browser automation may be added later with Puppeteer or Playwright; neither is a current dependency.
