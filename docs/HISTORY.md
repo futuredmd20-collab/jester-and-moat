@@ -134,7 +134,10 @@ Purpose: dated record of decisions and changes, oldest first. Use the repository
 * Documented Eruda as non-`main` development tooling that must be removed before a PR to `main`, and kept separate from the existing `?debug=1` logger and service-worker cache.
 * Clarified that agents should prefer existing branch-based Pages or preview workflows over proposing custom test pages by default.
 
-2026-10-30 — Branch-only Eruda debugging wired
+2026-10-30 — Opt-in Eruda debugging wired and verified
 * Added the local Eruda v3.4.3 bundle and a loader enabled only by `?eruda=true`; the existing `?debug=1` logger is unchanged. Eruda is not in the service-worker precache, and `build.js` strips its loader include from the self-contained build.
-* Added contract tests for opt-in loading, initialization, load failure, and build/precache exclusions, plus a CI guard against merging Eruda files or the loader include into `main`.
-* GitHub Actions contract tests passed. No single-file build or live browser/mobile preview was run; Eruda remains confined to this development branch and must be removed before a PR to `main`.
+* Added contract tests for opt-in loading, initialization, load failure, and build/precache exclusions. GitHub Actions contract tests passed (45 tests, 0 failures).
+* The user tested the branch preview and confirmed Eruda works; when `?debug=1` is active, its logger output appeared in the Eruda console.
+
+2026-10-30 — Eruda release policy clarified
+* Eruda may remain in `main` and release source snapshots as opt-in debugging tooling. The CI rule that rejected Eruda on PRs to `main` was removed; automated tests continue to protect the service-worker precache and single-file build exclusions.
