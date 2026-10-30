@@ -672,3 +672,45 @@ test('worker runtime errors retry the selected engine on the main thread', () =>
     scheduledCallbacks.length = 0;
   }
 });
+
+
+test('main-thread fallback calls the selected engine when Blob workers are blocked', () => {
+  const previousCreateObjectURL = sandbox.URL.createObjectURL;
+  const originalMinMax = sandbox.api.enginePlugins.get('minmax_legacy');
+  let calls = 0;
+  let receivedState;
+  let receivedSide;
+
+  sandbox.api.resetAIWorker();
+  sandbox.URL.createObjectURL = () => { throw new Error('Blob workers blocked by test'); };
+  sandbox.api.enginePlugins.set('minmax_legacy', {
+    name: 'MinMax construction fallback probe',
+    phases: ['opening', 'midgame', 'endgame'],
+    getMove(gameState, side) {
+      calls++;
+      receivedState = gameState;
+      receivedSide = side;
+      return null;
+    }
+  });
+
+  try {
+    const s = position();
+    s.board[6][0] = { type: 'r', color: 'w', moved: false };
+    sandbox.api.setState(s);
+
+    sandbox.api.aiMove();
+    assert.equal(scheduledCallbacks.length, 1, 'AI move should be scheduled on the main thread');
+    scheduledCallbacks.shift()();
+
+    assert.equal(calls, 1, 'selected plugin getMove should be called exactly once');
+    assert.equal(receivedSide, 'w');
+    assert.notEqual(receivedState, s, 'the engine should receive a cloned state');
+    assert.equal(JSON.stringify(receivedState), JSON.stringify(s), 'the cloned state should preserve the position');
+  } finally {
+    sandbox.api.enginePlugins.set('minmax_legacy', originalMinMax);
+    sandbox.api.resetAIWorker();
+    sandbox.URL.createObjectURL = previousCreateObjectURL;
+    scheduledCallbacks.length = 0;
+  }
+});
