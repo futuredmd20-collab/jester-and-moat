@@ -5,7 +5,12 @@ on:
   push:
     paths:
       - 'tests/**'
-      - '.github/workflows/engine-contract-tests.yml'
+      - 'index.html'
+      - 'build.js'
+      - 'sw.js'
+      - 'manifest.json'
+      - 'scripts/**'
+      - '.github/workflows/**'
   pull_request:
     paths:
       - 'tests/**'
@@ -22,5 +27,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Prevent development Eruda from entering main
+        if: github.event_name == 'pull_request' && github.base_ref == 'main'
+        run: |
+          if [ -f scripts/eruda.min.js ] || [ -f scripts/eruda-loader.js ]; then
+            echo "::error::Remove development-only Eruda files before opening a PR to main."
+            exit 1
+          fi
+          if grep -Fq '<script src="scripts/eruda-loader.js"></script>' index.html; then
+            echo "::error::Remove the development-only Eruda loader include before opening a PR to main."
+            exit 1
+          fi
       - name: Run contract tests
         run: node --test tests/*.test.js
