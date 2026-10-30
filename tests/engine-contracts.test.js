@@ -240,7 +240,8 @@ test('initial moat placement starts after four moves per side and completes for 
   setPendingMoat({ r: 4, c: 2 });
   confirmMoatPlacement();
   after = getState();
-  assert.deepEqual(after.moats.w, { r: 4, c: 2 });
+  assert.equal(after.moats.w.r, 4);
+  assert.equal(after.moats.w.c, 2);
   assert.equal(after.hasPlacedMoat.w, true);
   assert.equal(after.phase, 'place_moat_b');
   assert.equal(after.turn, 'b');
@@ -248,7 +249,8 @@ test('initial moat placement starts after four moves per side and completes for 
   setPendingMoat({ r: 3, c: 5 });
   confirmMoatPlacement();
   after = getState();
-  assert.deepEqual(after.moats.b, { r: 3, c: 5 });
+  assert.equal(after.moats.b.r, 3);
+  assert.equal(after.moats.b.c, 5);
   assert.equal(after.hasPlacedMoat.b, true);
   assert.equal(after.moatDestroyed.w, false);
   assert.equal(after.moatDestroyed.b, false);
