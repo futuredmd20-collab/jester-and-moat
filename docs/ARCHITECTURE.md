@@ -10,8 +10,8 @@ Deployment Model: PWA
 * Served over HTTPS with no backend or build step required for deployment.
 
 Development-only mobile debugging and previews
-* Eruda is used only on non-`main` development branches. Its local distribution belongs under `scripts/eruda.js`; the branch-only loader activates it only when `?eruda=true` is present. Keep the existing `?debug=1` logger separate.
-* Before a PR intended for `main), remove the Eruda distribution, loader include, and development-only wiring. URL gating alone is not release exclusion: `main` and its release tags must contain neither the library nor its loader.
+* Eruda is used only on non-`main` development branches. Its local distribution belongs under `scripts/eruda.min.js`; the branch-only loader activates it only when `?eruda=true` is present. Keep the existing `?debug=1` logger separate.
+* Before a PR intended for `main`, remove the Eruda distribution, loader include, and development-only wiring. URL gating alone is not release exclusion: `main` and its release tags must contain neither the library nor its loader.
 * Do not precache Eruda in `sw.js` or inline it into `jester-and-moat.html`. Use the selected branch's GitHub Pages preview or an existing preview service for browser/mobile verification; do not build a custom test page by default.
 
 Optional Single-File Build ("Test Build")
