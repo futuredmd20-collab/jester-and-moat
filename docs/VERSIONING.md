@@ -20,11 +20,11 @@ The annotated tag is authoritative. Keep these copies aligned with the released 
 
 The cache suffix is distinct from the app version. If a precached asset changes without a version bump, still increment the suffix (for example, `-sprite-3`) so installed clients retire the old app shell.
 
-## Development-only tools and release boundary
+## Optional debugging tools and release boundary
 
-Eruda is temporary development tooling, not a shipped app feature. It may be added to a non-`main` branch for mobile browser debugging, but must not be merged into `main` or included in a release tag/source snapshot. Before opening a PR to `main`, remove `scripts/eruda.min.js`, the branch-only loader, its `index.html` include, and any related development-only wiring. A URL parameter check or omission from the service-worker precache does not keep files out of a release snapshot.
+Eruda is opt-in debugging tooling, not a normal player-facing feature. It may remain in `main` and release source snapshots because the local loader activates it only when `?eruda=true` is present. Keep the existing `?debug=1` behavior unchanged.
 
-Keep Eruda out of `sw.js`'s precache and out of the optional single-file build. Use `?eruda=true` for Eruda; preserve the existing `?debug=1` behavior. When the Eruda development branch is no longer needed, remove it after the work is merged or abandoned.
+Keep Eruda out of `sw.js`'s precache and out of the optional single-file build; `build.js` strips the loader include, and automated contract tests guard these exclusions. The local bundle is `scripts/eruda.min.js`, loaded by `scripts/eruda-loader.js` only on explicit opt-in.
 
 ## Release procedure
 
