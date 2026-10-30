@@ -201,6 +201,7 @@ let clockFrameId = null;
 let lastClockDisplay = { w: null, b: null };
 let aiWorker = null;
 let aiRequestId = 0;
+let pendingAIRequest = null;
 let gameStarted = false;
 let pendingPromotionMove = null;
 let playerColor = 'w';
@@ -993,6 +994,7 @@ onmessage = function(event) {
     const data = event.data;
     if (data.id !== aiRequestId) return;
     isAIThinking = false;
+    if (pendingAIRequest && pendingAIRequest.id === data.id) pendingAIRequest = null;
     if (gameOver) return;
     if (data.error) {
       status(`AI error: ${data.error}`);
@@ -1008,9 +1010,9 @@ onmessage = function(event) {
       status('No legal moves available.');
     }
 };
-  aiWorker.onerror = (event) => {
-    isAIThinking = false;
-    status('AI worker error. Please restart the game.');
+  const workerInstance = aiWorker;
+  workerInstance.onerror = () => {
+    handleAIWorkerFailure(workerInstance, pendingAIRequest);
   };
   return aiWorker;
 }
@@ -1063,27 +1065,75 @@ function getEngineConfig(side) {
   return { engine, depth: 2 };
 }
 
+function runAIOnMainThread(request) {
+  setTimeout(() => {
+    if (gameOver || request.id !== aiRequestId || !isAIThinking) {
+      if (request.id === aiRequestId) isAIThinking = false;
+      if (pendingAIRequest === request) pendingAIRequest = null;
+      return;
+    }
+
+    let bestMove = null;
+    try {
+      bestMove = request.engine.getMove
+        ? request.engine.getMove(clone(request.state), request.state.turn)
+        : null;
+    } catch (error) {
+      isAIThinking = false;
+      if (pendingAIRequest === request) pendingAIRequest = null;
+      status(`AI error: ${String(error && error.message || error)}`);
+      return;
+    }
+
+    if (request.id !== aiRequestId) return;
+    isAIThinking = false;
+    if (pendingAIRequest === request) pendingAIRequest = null;
+    if (bestMove) play(bestMove, 'pending');
+  }, 20);
+}
+
+function handleAIWorkerFailure(worker, request) {
+  // Ignore stale errors from a worker that has already been replaced.
+  if (aiWorker !== worker) return;
+  aiWorker = null;
+  if (worker && typeof worker.terminate === 'function') worker.terminate();
+
+  if (!request || pendingAIRequest !== request || request.id !== aiRequestId || !isAIThinking) {
+    isAIThinking = false;
+    pendingAIRequest = null;
+    status('AI worker error. Please try the move again.');
+    return;
+  }
+
+  // Invalidate any late response from the failed worker and retry this request once.
+  pendingAIRequest = null;
+  request.id = ++aiRequestId;
+  pendingAIRequest = request;
+  status('AI worker failed; retrying on the main thread.');
+  runAIOnMainThread(request);
+}
+
 function aiMove(){
   if (gameOver || isAIThinking) return;
   isAIThinking = true;
   status("\u23f3 AI thinking...");
 
   const { engine, depth } = getEngineConfig(state.turn);
-  
+  const request = { id: ++aiRequestId, engine, depth, state: clone(state) };
+  pendingAIRequest = request;
+
   const worker = ensureAIWorker();
   if (worker) {
-    const id = ++aiRequestId;
     // Route to mctsGetMove for MCTS, getBestMove for MinMax
     const workerFn = engine.name && engine.name.includes('MCTS') ? 'mctsGetMove' : 'getBestMove';
-    worker.postMessage({ id, state: clone(state), depth, workerFn });
+    try {
+      worker.postMessage({ id: request.id, state: clone(request.state), depth, workerFn });
+    } catch (error) {
+      handleAIWorkerFailure(worker, request);
+    }
     return;
   }
-  setTimeout(() => {
-    if (gameOver) { isAIThinking = false; return; }
-    const bestMove = engine.getMove ? engine.getMove(clone(state), state.turn) : null;
-    isAIThinking = false;
-    if (bestMove) play(bestMove, 'pending');
-  }, 20);
+  runAIOnMainThread(request);
 }
 
 function play(m, promoChoice = 'q', silent = false){

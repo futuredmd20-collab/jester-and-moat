@@ -121,3 +121,8 @@ Purpose: dated record of decisions and changes, oldest first. Use the repository
 2026-10-30 — Version metadata synchronized with v0.8.0
 * Corrected the visible app version in `index.html` and the `manifest.json` version to match the existing `v0.8.0` release tag.
 * Updated the service-worker cache identifier to `jm-cache-v0.8.0-compact-ui-14` so installed clients fetch the corrected app shell. The existing tag and published release remain unchanged.
+
+
+2026-10-30 — AI worker runtime-error recovery
+* A worker runtime error now terminates the failed worker, invalidates late responses, and retries the active engine request once on the main thread using the captured position and selected engine.
+* Added a contract test for runtime-error fallback and updated the engine verification notes. CI contract tests passed; live-browser behavior remains unverified.
