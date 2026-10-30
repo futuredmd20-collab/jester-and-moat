@@ -14,6 +14,9 @@ let combined = indexHtml.replace(
   `<style>\n${styleCss}\n</style>`
 );
 
+// Development-only Eruda must never be carried into the self-contained build.
+combined = combined.replace('<script src="scripts/eruda-loader.js"></script>', '');
+
 combined = combined.replace(
   '<link rel="stylesheet" href="pieces.css">',
   `<style>\n${piecesCss}\n</style>`
