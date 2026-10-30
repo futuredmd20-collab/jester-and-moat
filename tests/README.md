@@ -21,7 +21,7 @@ The engine contract suite evaluates canonical rule/search functions from `script
 - Queen, jester, rook, bishop, and knight promotion choices are applied correctly.
 - Promotion can trigger redeployment of a destroyed moat, removing the pawn and restoring the moat state.
 - Opening, midgame, and endgame phase thresholds.
-- Kingside and queenside castling relocate both king and rook to the variant's configured squares. Negative cases cover moved kings/rooks, missing rooks, blocked paths, check, attacked transit squares, and kings off their original square.
+- Kingside and queenside castling relocate both king and rook to the variant's configured squares. Negative cases cover moved kings/rooks, missing rooks, blocked paths, check, attacked transit squares, and kings off their original square. Loading a custom editor position resets castling movement flags for a king and rooks on their home squares.
 - En passant is available only immediately after a double pawn move, removes the captured pawn, rejects invalid targets/captures, and is illegal when it exposes the king to check.
 - A moat is destroyed when two opposing pieces occupy its three cells.
 - AI worker setup returns safely to main-thread fallback when blob workers are blocked.
