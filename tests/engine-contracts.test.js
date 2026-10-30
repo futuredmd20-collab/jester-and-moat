@@ -55,7 +55,7 @@ const sandbox = {
 };
 vm.createContext(sandbox);
 vm.runInContext(source.slice(0, boundary) + `
-globalThis.api = { allLegalState, getBestMove, applyRaw, getGamePhase, ensureAIWorker, play, aiPlaceMoatForColor, setState(s) { state = s; }, getState() { return state; }, ENGINE_PHASES };
+globalThis.api = { allLegalState, getBestMove, applyRaw, getGamePhase, ensureAIWorker, play, aiPlaceMoatForColor, confirmMoatPlacement, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, ENGINE_PHASES };
 `, sandbox, { filename: 'script.js' });
 vm.runInContext(mcts, sandbox, { filename: 'engines/mcts-engine.js' });
 
@@ -70,7 +70,7 @@ function position() {
     halfmoveClock: 0, positionHistory: {}, clocks: { w: 0, b: 0 }
   };
 }
-const { allLegalState, getBestMove, applyRaw, getGamePhase, ensureAIWorker, play, aiPlaceMoatForColor, setState, getState, ENGINE_PHASES } = sandbox.api;
+const { allLegalState, getBestMove, applyRaw, getGamePhase, ensureAIWorker, play, aiPlaceMoatForColor, confirmMoatPlacement, setPendingMoat, setState, getState, ENGINE_PHASES } = sandbox.api;
 
 test('MinMax returns a legal move without mutating its input', () => {
   const s = position();
@@ -210,4 +210,45 @@ test('promotion can redeploy a destroyed moat without leaving a pawn behind', ()
   assert.equal(after.hasPlacedMoat.w, true);
   assert.equal(after.phase, 'normal');
   assert.equal(after.turn, 'b');
+});
+
+
+test('initial moat placement starts after four moves per side and completes for both players', () => {
+  const s = position();
+  s.board[7][0] = { type: 'r', color: 'w', moved: false };
+  s.board[0][0] = { type: 'r', color: 'b', moved: false };
+  setState(s);
+
+  const move = (fromR, toR) => play({ from: { r: fromR, c: 0 }, to: { r: toR, c: 0 } }, 'q', true);
+  move(7, 6);
+  move(0, 1);
+  move(6, 7);
+  move(1, 0);
+  move(7, 6);
+  move(0, 1);
+  move(6, 7);
+  move(1, 0);
+
+  let after = getState();
+  assert.deepEqual(after.moveCounts, { w: 4, b: 4 });
+  assert.equal(after.phase, 'place_moat_w');
+  assert.equal(after.turn, 'w');
+
+  setPendingMoat({ r: 4, c: 2 });
+  confirmMoatPlacement();
+  after = getState();
+  assert.deepEqual(after.moats.w, { r: 4, c: 2 });
+  assert.equal(after.hasPlacedMoat.w, true);
+  assert.equal(after.phase, 'place_moat_b');
+  assert.equal(after.turn, 'b');
+
+  setPendingMoat({ r: 3, c: 5 });
+  confirmMoatPlacement();
+  after = getState();
+  assert.deepEqual(after.moats.b, { r: 3, c: 5 });
+  assert.equal(after.hasPlacedMoat.b, true);
+  assert.equal(after.moatDestroyed.w, false);
+  assert.equal(after.moatDestroyed.b, false);
+  assert.equal(after.phase, 'normal');
+  assert.equal(after.turn, 'w');
 });
