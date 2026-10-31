@@ -183,3 +183,8 @@ Purpose: dated record of decisions and changes, oldest first. Use the repository
 2026-10-31 — MinMax contract refactor continued
 * Removed MinMax's UI-coupled legacy `getMove(gameState, side)` entry point; the engine now receives depth through the structured search request instead of reading `modeSelect` itself.
 * Added a regression assertion that the legacy entry point is absent and updated the engine architecture plan. Worker transport still dispatches the legacy raw-move `getBestMove` function; this is a partial step, and branch CI is pending.
+
+
+## 2026-10-31 — Structured MinMax worker transport
+
+Continued the engine-contract migration by changing MinMax worker requests to carry the protocol-v1 request object and worker replies to carry request identity, generation, engine ID, status, move, and structured error details. Added a worker contract regression test. This does not yet replace the underlying `getBestMove` algorithm, and MCTS remains on the compatibility transport. CI verification is pending.
