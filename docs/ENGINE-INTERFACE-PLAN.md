@@ -4,7 +4,7 @@ Purpose: capture the proposed shared contract and staged implementation plan for
 
 ## Status and scope
 
-**Status:** Implementation in progress — protocol v1 is in place; MinMax's UI-coupled `getMove` entry point is removed, and MinMax worker requests/replies now carry structured protocol-v1 identity and result status. The search algorithm still delegates to the existing raw-move `getBestMove` function; MCTS still uses the legacy worker transport.
+**Status:** Implementation in progress — both MinMax and MCTS now expose structured protocol-v1 search entry points and worker requests/replies carry request identity and result status. Both algorithms still delegate to their existing search cores; the legacy worker transport remains for compatibility.
 
 The goal is a reliable, easy-to-extend internal interface for the game's own engines, initially MinMax and MCTS. This is not a public third-party plugin SDK and does not call for a dynamic plugin marketplace or general-purpose extension framework.
 
@@ -68,7 +68,7 @@ This plan records the design baseline discussed on 2026-10-31. It distinguishes 
 - [x] **B. Specify the contract.** Initial protocol v1 defines request identity/generation, isolated frozen position snapshots, depth/time limits, result statuses, stable error codes, and move-shape validation. Lifecycle cancellation has now been added at key game transitions by invalidating the active request and terminating the legacy worker. A manager-owned cancellation acknowledgment protocol is still outstanding. Define lifecycle states, request/response shapes, canonical move schema, snapshot completeness, capability declarations, configuration validation, cancellation semantics, stale-result rules, and error categories.
 - [ ] **C. Refactor MinMax.** In progress: MinMax exposes structured `search(request)`, the UI-coupled `getMove(gameState, side)` entry point is removed, and its worker transport now accepts a structured request and returns protocol identity/status/error fields. The worker's search implementation still delegates to legacy raw-move `getBestMove`; MCTS remains on legacy transport. Preserve move legality and existing difficulty behavior; add contract-level tests.
 - [ ] **D. Verify MinMax.** Test successful searches, cancellation, stale responses, invalid output rejection, resets/context changes, configuration validation, and failure reporting.
-- [ ] **E. Adapt MCTS.** Implement the same contract and declare only capabilities it truly supports.
+- [x] **E. Adapt MCTS.** Added a protocol-v1 `search(request)` entry point, stable `mcts` engine ID, structured worker dispatch, and structured-worker tests. The old `getMove`/`workerFn` path remains for compatibility.
 - [ ] **F. Verify cross-engine behavior.** Run shared contract tests against both engines, then integration/regression tests for worker transport, side/phase selection, special moves, game lifecycle changes, and fallback policy.
 - [ ] **G. Update project documentation.** Record only implementation and verification results actually completed; keep this plan's status and `PLANS.md` aligned with reality.
 
@@ -102,3 +102,5 @@ This plan records the design baseline discussed on 2026-10-31. It distinguishes 
 - **2026-10-31:** Continued after PR #62 was merged. Removed MinMax's UI-coupled legacy `getMove` entry point so the engine itself no longer reads `modeSelect`; search depth comes from the structured request. Added a regression assertion. This is a partial refactor only: worker dispatch still uses the legacy raw-move function, and this branch's CI result is pending.
 
 - **2026-10-31:** MinMax worker transport now accepts a protocol-v1 request and returns a structured result with request identity, status, move, and classified search failure. Added a worker-level regression test for the structured response. Automated CI verification is pending; the underlying algorithm remains the existing `getBestMove` implementation, and MCTS still uses legacy transport.
+
+- **2026-10-31:** MCTS now exposes `search(request)` under engine ID `mcts`, the worker dispatches structured requests to either engine by ID, and tests cover structured MCTS responses while retaining the legacy selector. CI verification is pending.
