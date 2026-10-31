@@ -87,7 +87,7 @@ function position() {
     halfmoveClock: 0, positionHistory: {}, clocks: { w: 0, b: 0 }
   };
 }
-const { allLegalState, getBestMove, applyRaw, getGamePhase, ensureAIWorker, play, aiPlaceMoatForColor, confirmMoatPlacement, setPendingMoat, setState, getState, setHistoryForTest, getHistory, getHistoryMoveLogs, getMoveLog, getGameOver, undoHistoryStep, redoHistoryStep, replaceLatestHistorySnapshot, exportGameData, parseGameData, ENGINE_PHASES } = sandbox.api;
+const { EngineContract, allLegalState, getBestMove, applyRaw, getGamePhase, ensureAIWorker, play, aiPlaceMoatForColor, confirmMoatPlacement, setPendingMoat, setState, getState, setHistoryForTest, getHistory, getHistoryMoveLogs, getMoveLog, getGameOver, undoHistoryStep, redoHistoryStep, replaceLatestHistorySnapshot, exportGameData, parseGameData, ENGINE_PHASES } = sandbox.api;
 
 test('MinMax returns a legal move without mutating its input', () => {
   const s = position();
@@ -361,15 +361,24 @@ test('worker dispatches MinMax and returns a legal move', async () => {
   assert.ok(worker, 'worker should initialize when Blob workers are available');
   const s = position();
   s.board[6][0] = { type: 'r', color: 'w', moved: false };
+  const contractRequest = EngineContract.createRequest({
+    requestId: 101, generation: 7, engineId: 'minmax_legacy',
+    position: s, limits: { depth: 1 }
+  });
   const response = await new Promise(async resolve => {
     worker.onmessage = event => resolve(event.data);
-    await worker.postMessage({ id: 101, state: s, depth: 1, workerFn: 'getBestMove' });
+    await worker.postMessage({ id: 101, contractRequest });
   });
 
   assert.equal(response.id, 101);
   assert.equal(response.error, undefined);
-  assert.ok(response.move, 'MinMax should return a move');
-  assert.ok(allLegalState(s).some(m => JSON.stringify(m) === JSON.stringify(response.move)));
+  assert.equal(response.result.protocolVersion, 1);
+  assert.equal(response.result.requestId, contractRequest.requestId);
+  assert.equal(response.result.generation, contractRequest.generation);
+  assert.equal(response.result.engineId, contractRequest.engineId);
+  assert.equal(response.result.status, EngineContract.statuses.COMPLETED);
+  assert.ok(response.result.move, 'structured MinMax worker should return a move');
+  assert.ok(allLegalState(s).some(m => JSON.stringify(m) === JSON.stringify(response.result.move)));
 });
 
 test('worker dispatches MCTS and returns a legal move', async () => {

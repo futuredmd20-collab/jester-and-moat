@@ -1208,6 +1208,26 @@ ${engineFunctions.map(fn => fn.toString()).join('\n')}
 onmessage = function(event) {
   const data = event.data;
   try {
+    if (data.contractRequest) {
+      const request = data.contractRequest;
+      // Contract snapshots are deeply frozen; search helpers mutate their working state.
+      // Clone the snapshot at the worker boundary so the engine cannot mutate the request.
+      state = clone(request.position);
+      if (request.protocolVersion !== 1 || request.engineId !== 'minmax_legacy')
+        throw new Error('Unsupported structured engine request.');
+      const move = getBestMove(state, request.limits.depth);
+      postMessage({ id: data.id, result: {
+        protocolVersion: request.protocolVersion,
+        requestId: request.requestId,
+        generation: request.generation,
+        engineId: request.engineId,
+        status: move ? 'completed' : 'no-move',
+        move: move || null,
+        error: null
+      }});
+      return;
+    }
+    // Compatibility path for engines not yet migrated to structured transport.
     state = data.state;
     const moveFn = data.workerFn === 'mctsGetMove' ? mctsGetMove
       : data.workerFn === 'getBestMove' || data.workerFn == null ? getBestMove
@@ -1216,7 +1236,20 @@ onmessage = function(event) {
     const move = moveFn(state, data.depth);
     postMessage({ id: data.id, move });
   }
-  catch (error) { postMessage({ id: data.id, error: String(error && error.message || error) }); }
+  catch (error) {
+    if (data.contractRequest) {
+      const request = data.contractRequest;
+      postMessage({ id: data.id, result: {
+        protocolVersion: request.protocolVersion,
+        requestId: request.requestId,
+        generation: request.generation,
+        engineId: request.engineId,
+        status: 'failed',
+        move: null,
+        error: { code: 'SEARCH_FAILED', message: String(error && error.message || error), details: null }
+      }});
+    } else postMessage({ id: data.id, error: String(error && error.message || error) });
+  }
 };`;
   let blob, url;
   try {
@@ -1242,16 +1275,25 @@ onmessage = function(event) {
       status(`AI error: ${data.error}`);
       return;
     }
-    // Normalize legacy worker replies into the shared contract at the transport boundary.
+    // Structured MinMax replies retain request identity across the worker boundary.
     let move = data.move;
     if (completedRequest && completedRequest.contractRequest) {
-      const result = EngineContract.completed(completedRequest.contractRequest, move);
+      const result = data.result;
       if (!EngineContract.matchesRequest(result, completedRequest.contractRequest)) {
         status('AI error: stale or mismatched engine result.');
         return;
       }
       if (result.status === ENGINE_RESULT_STATUS.FAILED) {
-        status(`AI error: ${result.error.message}`);
+        status(`AI error: ${result.error && result.error.message || 'Engine search failed.'}`);
+        return;
+      }
+      if (![ENGINE_RESULT_STATUS.COMPLETED, ENGINE_RESULT_STATUS.NO_MOVE].includes(result.status)) {
+        status('AI error: engine returned an unsupported result status.');
+        return;
+      }
+      if (result.status === ENGINE_RESULT_STATUS.COMPLETED &&
+          !EngineContract.validateMove(result.move)) {
+        status('AI error: engine returned an invalid move.');
         return;
       }
       move = result.status === ENGINE_RESULT_STATUS.COMPLETED ? result.move : null;
@@ -1415,7 +1457,9 @@ function aiMove(){
     const workerFn = engine.name && engine.name.includes('MCTS') ? 'mctsGetMove' : 'getBestMove';
     debugLogger.add(`AI dispatch: ${side} | engine: ${engineName} | path: worker (${workerFn})`, 'info');
     try {
-      worker.postMessage({ id: request.id, state: clone(request.state), depth, workerFn });
+      worker.postMessage(request.contractRequest
+        ? { id: request.id, contractRequest: request.contractRequest }
+        : { id: request.id, state: clone(request.state), depth, workerFn });
     } catch (error) {
       handleAIWorkerFailure(worker, request);
     }
