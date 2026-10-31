@@ -1099,6 +1099,7 @@ test('late worker replies after cancellation cannot affect the current game or r
     const currentState = position();
     currentState.board[6][1] = { type: 'r', color: 'w', moved: false };
     sandbox.api.setState(currentState);
+    const currentStateSnapshot = JSON.stringify(currentState);
     sandbox.api.aiMove();
 
     const replacementWorker = workers[1];
@@ -1114,7 +1115,7 @@ test('late worker replies after cancellation cannot affect the current game or r
       }
     });
 
-    assert.equal(JSON.stringify(sandbox.api.getState()), JSON.stringify(currentState),
+    assert.equal(JSON.stringify(sandbox.api.getState()), currentStateSnapshot,
       'a late reply must not apply a move to the new position');
     const active = sandbox.api.getActiveAIForTest();
     assert.equal(active.worker, replacementWorker, 'a stale reply must not replace the active worker');
