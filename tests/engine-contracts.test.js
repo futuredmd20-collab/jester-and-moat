@@ -918,7 +918,7 @@ test('late worker result after a crash cannot bypass or duplicate the scheduled 
   });
 
   try {
-    mockElement('modeSelect').value = 'human_vs_ai';
+    mockElement('modeSelect').value = 'ai_vs_ai';
     mockElement('whiteEngineSelect').value = 'minmax_legacy';
     mockElement('whiteEnginePhaseSelect').value = 'opening';
     mockElement('blackEngineSelect').value = 'minmax_legacy';
