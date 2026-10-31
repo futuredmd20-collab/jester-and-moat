@@ -1213,9 +1213,11 @@ onmessage = function(event) {
       // Contract snapshots are deeply frozen; search helpers mutate their working state.
       // Clone the snapshot at the worker boundary so the engine cannot mutate the request.
       state = clone(request.position);
-      if (request.protocolVersion !== 1 || request.engineId !== 'minmax_legacy')
+      if (request.protocolVersion !== 1 || !['minmax_legacy', 'mcts'].includes(request.engineId))
         throw new Error('Unsupported structured engine request.');
-      const move = getBestMove(state, request.limits.depth);
+      const move = request.engineId === 'mcts'
+        ? mctsGetMove(state, request.limits.depth)
+        : getBestMove(state, request.limits.depth);
       postMessage({ id: data.id, result: {
         protocolVersion: request.protocolVersion,
         requestId: request.requestId,
@@ -1444,7 +1446,7 @@ function aiMove(){
   const side = state.turn === 'w' ? 'White' : 'Black';
   const engineName = engine.name || 'Unknown engine';
   const id = ++aiRequestId;
-  const contractRequest = engine.id === 'minmax_legacy'
+  const contractRequest = typeof engine.search === 'function'
     ? EngineContract.createRequest({ requestId: id, generation: id, engineId: engine.id, position: clone(state), limits: { depth } })
     : null;
   const request = { id, engine, depth, state: clone(state), contractRequest };
@@ -1453,9 +1455,8 @@ function aiMove(){
 
   const worker = ensureAIWorker();
   if (worker) {
-    // Route to mctsGetMove for MCTS, getBestMove for MinMax
     const workerFn = engine.name && engine.name.includes('MCTS') ? 'mctsGetMove' : 'getBestMove';
-    debugLogger.add(`AI dispatch: ${side} | engine: ${engineName} | path: worker (${workerFn})`, 'info');
+    debugLogger.add(`AI dispatch: ${side} | engine: ${engineName} | path: worker (${request.contractRequest ? 'structured protocol v1' : workerFn})`, 'info');
     try {
       worker.postMessage(request.contractRequest
         ? { id: request.id, contractRequest: request.contractRequest }
