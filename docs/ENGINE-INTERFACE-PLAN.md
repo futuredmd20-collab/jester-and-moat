@@ -104,3 +104,5 @@ This plan records the design baseline discussed on 2026-10-31. It distinguishes 
 - **2026-10-31:** MinMax worker transport now accepts a protocol-v1 request and returns a structured result with request identity, status, move, and classified search failure. Added a worker-level regression test for the structured response. Automated CI verification is pending; the underlying algorithm remains the existing `getBestMove` implementation, and MCTS still uses legacy transport.
 
 - **2026-10-31:** MCTS now exposes `search(request)` under engine ID `mcts`, the worker dispatches structured requests to either engine by ID, and tests cover structured MCTS responses while retaining the legacy selector. CI verification is pending.
+
+- **2026-10-31 — PR #66 merged and verified:** GitHub Actions run 105 passed all 67 tests (0 failures). The user then tested the merged build through GitHub Pages and reported no issues. This confirms the exercised MCTS structured-worker path; broader cross-engine/lifecycle/fallback coverage remains open, so checklist F is not marked complete.
