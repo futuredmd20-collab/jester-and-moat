@@ -918,6 +918,12 @@ test('late worker result after a crash cannot bypass or duplicate the scheduled 
   });
 
   try {
+    mockElement('modeSelect').value = 'human_vs_ai';
+    mockElement('whiteEngineSelect').value = 'minmax_legacy';
+    mockElement('whiteEnginePhaseSelect').value = 'opening';
+    mockElement('blackEngineSelect').value = 'minmax_legacy';
+    mockElement('blackEnginePhaseSelect').value = 'opening';
+    sandbox.api.updateEngineConfigUI();
     const s = position();
     s.board[6][0] = { type: 'r', color: 'w', moved: false };
     sandbox.api.setState(s);
