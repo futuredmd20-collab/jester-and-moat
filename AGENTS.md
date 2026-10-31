@@ -22,7 +22,7 @@ Before changing project files, read in order:
 3. `docs/ARCHITECTURE.md`
 4. `.agents/limitations.md`
 
-Use them to understand current state, game/development rules, architecture, constraints, and outstanding work.
+Use them to understand current state, game/development rules, architecture, and constraints. Establish current repository state by inspection. Consult `PLANS.md` when the task intersects planned work or needs prioritization; open only the relevant plan(s), not every plan.
 
 ## 3. Scope & Canonical Sources
 
@@ -87,7 +87,7 @@ Every documentation file must start with an accurate `Purpose` line describing w
 | `docs/VERSIONING.md` | Release/tag procedure; read for releases, not startup |
 | `docs/HISTORY.md` | Dated decisions/change history; background only, not current rules/state; not startup |
 | `docs/PROMPT.md` | Paste-ready kickoff prompt |
-| `docs/RESUME.md` | Agent scratch; read only when resuming interrupted work; never project truth |
+| `PLANS.md` | Index of topic-specific work plans; consult when relevant, then read only the plan(s) needed. It is a directory, not a status report or source of implementation truth. |
 | `.agents/freebuff.md`, `.agents/vibe.md`, `.agents/gemini.md` | Agent-specific capability notes |
 
 ## 7. Markdown Integrity

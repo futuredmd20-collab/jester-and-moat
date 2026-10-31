@@ -1,5 +1,5 @@
 HANDOVER.md — Project Memory & Game Rules
-Purpose: stable facts about the game and how it is developed. Not for change history (HISTORY.md), deployment details (ARCHITECTURE.md), or agent session scratch (RESUME.md).
+Purpose: stable facts about the game and how it is developed. Not for change history (HISTORY.md), deployment details (ARCHITECTURE.md), or task planning (indexed in PLANS.md).
 * Agents must keep this file tidy: preserve its existing structure and style, avoid introducing new formatting styles, and do not add unnecessary blank lines or spacing.
 
 Game Context & Mechanics

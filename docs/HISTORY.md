@@ -141,3 +141,7 @@ Purpose: dated record of decisions and changes, oldest first. Use the repository
 
 2026-10-30 — Eruda release policy clarified
 * Eruda may remain in `main` and release source snapshots as opt-in debugging tooling. The CI rule that rejected Eruda on PRs to `main` was removed; automated tests continue to protect the service-worker precache and single-file build exclusions.
+
+2026-10-31 — Planning index replaces session scratch
+* Added root `PLANS.md` as a concise index to topic-specific work plans, with scope notes so agents can choose the right plan without reading all of them. The index distinguishes plans from reference/procedure documents and reminds agents to verify repository state.
+* Removed stale `docs/RESUME.md`; its session notes described an outdated state and its relevant engine work is already covered by `docs/ENGINE-PLUGINS.md`. Updated agent guidance and HANDOVER's purpose statement to remove the resume-file workflow.
