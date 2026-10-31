@@ -178,3 +178,8 @@ Purpose: dated record of decisions and changes, oldest first. Use the repository
 2026-10-31 — Engine request lifecycle invalidation
 * Added a shared cancellation helper for setup/new game, reset, undo, redo, and side switching. It invalidates the active request ID, clears pending state, and terminates the legacy worker so late results cannot affect the changed game.
 * Added a regression test for worker termination and request invalidation. This is transport-level cancellation by worker termination, not an explicit engine cancellation acknowledgment; the central lifecycle manager and protocol-level cancellation remain unfinished. Automated tests have not yet been run.
+
+
+2026-10-31 — MinMax contract refactor continued
+* Removed MinMax's UI-coupled legacy `getMove(gameState, side)` entry point; the engine now receives depth through the structured search request instead of reading `modeSelect` itself.
+* Added a regression assertion that the legacy entry point is absent and updated the engine architecture plan. Worker transport still dispatches the legacy raw-move `getBestMove` function; this is a partial step, and branch CI is pending.

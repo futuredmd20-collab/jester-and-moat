@@ -905,7 +905,8 @@ test('engine contract preserves variant move flags and rejects malformed coordin
     contract.errorCodes.INVALID_MOVE);
 });
 
-test('MinMax implements the structured search entry point without mutating its snapshot', () => {
+test('MinMax implements only the structured search entry point without mutating its snapshot', () => {
+  assert.equal(typeof sandbox.api.MinMaxLegacy.getMove, 'undefined', 'MinMax must not expose the legacy UI-coupled entry point');
   const s = position();
   s.board[6][0] = { type: 'r', color: 'w', moved: false };
   const before = JSON.stringify(s);
