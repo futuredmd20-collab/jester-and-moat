@@ -87,7 +87,7 @@ function position() {
     halfmoveClock: 0, positionHistory: {}, clocks: { w: 0, b: 0 }
   };
 }
-const { allLegalState, getBestMove, applyRaw, getGamePhase, ensureAIWorker, play, aiPlaceMoatForColor, confirmMoatPlacement, setPendingMoat, setState, getState, setHistoryForTest, getHistory, getHistoryMoveLogs, getMoveLog, getGameOver, undoHistoryStep, redoHistoryStep, replaceLatestHistorySnapshot, exportGameData, parseGameData, ENGINE_PHASES } = sandbox.api;
+const { EngineContract, allLegalState, getBestMove, applyRaw, getGamePhase, ensureAIWorker, play, aiPlaceMoatForColor, confirmMoatPlacement, setPendingMoat, setState, getState, setHistoryForTest, getHistory, getHistoryMoveLogs, getMoveLog, getGameOver, undoHistoryStep, redoHistoryStep, replaceLatestHistorySnapshot, exportGameData, parseGameData, ENGINE_PHASES } = sandbox.api;
 
 test('MinMax returns a legal move without mutating its input', () => {
   const s = position();
