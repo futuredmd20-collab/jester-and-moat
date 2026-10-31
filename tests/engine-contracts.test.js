@@ -1068,10 +1068,11 @@ test('engine selection resolves the configured engine independently for each sid
     };
   }
   setState(midgame);
-  assert.equal(getEngineForSide('w').id, 'mcts', 'White should use MCTS in its configured midgame phase');
-  assert.equal(getEngineForSide('b').id, 'minmax_legacy', 'Black should retain MinMax outside its configured endgame phase');
+  assert.equal(sandbox.api.getEngineForSide('w').id, 'mcts', 'White should use MCTS in its configured midgame phase');
+  assert.equal(sandbox.api.getEngineForSide('b').id, 'minmax_legacy', 'Black should retain MinMax outside its configured endgame phase');
 
   const endgame = position();
+  endgame.ply = 10;
   endgame.board = Array.from({ length: 8 }, () => Array(10).fill(null));
   for (let i = 0; i < 16; i++) {
     endgame.board[Math.floor(i / 10)][i % 10] = {
@@ -1079,6 +1080,6 @@ test('engine selection resolves the configured engine independently for each sid
     };
   }
   setState(endgame);
-  assert.equal(getEngineForSide('w').id, 'minmax_legacy', 'White should retain MinMax outside its configured midgame phase');
-  assert.equal(getEngineForSide('b').id, 'mcts', 'Black should use MCTS in its configured endgame phase');
+  assert.equal(sandbox.api.getEngineForSide('w').id, 'minmax_legacy', 'White should retain MinMax outside its configured midgame phase');
+  assert.equal(sandbox.api.getEngineForSide('b').id, 'mcts', 'Black should use MCTS in its configured endgame phase');
 });
