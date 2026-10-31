@@ -23,8 +23,19 @@ Keep the saved current position, history snapshots, move-log snapshots, clocks, 
 - [x] Add focused regression tests for mismatched state/log snapshots, invalid supplied fields, and legacy defaults.
 - [x] Inspect the import handler: it calls `parseGameData` before assigning parsed values to live game state.
 - [x] Verify the complete Node test suite in GitHub Actions for commit `6191f3c` (56 tests, 0 failures).
-- [ ] Perform browser checks for save → reload/import → undo/redo, clocks, moat transitions, and rejection of malformed saves.
-- [ ] Record browser observations separately from automated CI results.
+- [x] Perform browser checks for save → reload/import → undo/redo, clocks, moat transitions, and rejection of malformed saves.
+- [x] Record browser observations separately from automated CI results.
+
+## Browser verification
+
+2026-10-31 — User verified the current branch through GitHub Pages. All four checks passed:
+
+1. Save a game and reload/import it.
+2. Undo/redo restores the move history and clocks correctly.
+3. Moat transitions and state remain correct through undo/redo.
+4. Malformed saves are rejected without disturbing the active game.
+
+These are manual browser observations, separate from the automated GitHub Actions result above. No game code was changed for this verification.
 
 ## Verification boundary
 
