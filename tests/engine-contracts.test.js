@@ -808,6 +808,50 @@ test('save import rejects malformed boards, invalid pieces, and mismatched histo
   assert.throws(() => parseGameData(badLogs), /history log snapshots/i);
 });
 
+test('save import rejects a current position that differs from the latest history snapshot', () => {
+  const state = position();
+  const latest = position();
+  latest.turn = 'b';
+  const save = { state, history: [latest], moveLog: [], historyMoveLogs: [[]] };
+  assert.throws(() => parseGameData(save), /current state does not match the latest history snapshot/i);
+});
+
+test('save import rejects a current move log that differs from its latest history log snapshot', () => {
+  const state = position();
+  const save = { state, history: [state], moveLog: ['current log'], historyMoveLogs: [['different history log']] };
+  assert.throws(() => parseGameData(save), /current move log does not match/i);
+});
+
+test('save import rejects invalid provided phase, clocks, and coordinates instead of silently defaulting', () => {
+  const base = () => ({ state: position(), history: [position()], moveLog: [], historyMoveLogs: [[]] });
+  const badPhase = base(); badPhase.state.phase = ''; badPhase.history[0].phase = '';
+  assert.throws(() => parseGameData(badPhase), /invalid game phase/i);
+  const badClock = base(); badClock.state.clocks.w = -1; badClock.history[0].clocks.w = -1;
+  assert.throws(() => parseGameData(badClock), /invalid clocks/i);
+  const badMoat = base(); badMoat.state.moats.w = { r: 4, c: 8 }; badMoat.history[0].moats.w = { r: 4, c: 8 };
+  assert.throws(() => parseGameData(badMoat), /invalid moat coordinates/i);
+  const badEp = base(); badEp.state.ep = { r: 8, c: 0 }; badEp.history[0].ep = { r: 8, c: 0 };
+  assert.throws(() => parseGameData(badEp), /invalid en passant target/i);
+});
+
+test('legacy saves may omit optional state fields, but supplied invalid values are rejected', () => {
+  const state = position();
+  for (const field of ['phase','ply','ep','moats','moatDestroyed','hasPlacedMoat','moveCounts','captured','halfmoveClock','positionHistory','clocks']) delete state[field];
+  const legacy = { state, history: [state], moveLog: ['legacy log'] };
+  const imported = parseGameData(legacy, 180);
+  assert.equal(imported.state.phase, 'normal');
+  assert.equal(imported.state.ply, 0);
+  assert.equal(imported.state.clocks.w, 180);
+  assert.equal(JSON.stringify(imported.historyMoveLogs), JSON.stringify([['legacy log']]));
+});
+
+test('save import normalizes the latest history clocks to the current saved clocks', () => {
+  const state = position(); state.clocks = { w: 240, b: 300 };
+  const latest = position(); latest.clocks = { w: 260, b: 300 };
+  const imported = parseGameData({ state, history: [latest], moveLog: [], historyMoveLogs: [[]] });
+  assert.equal(JSON.stringify(imported.history[0].clocks), JSON.stringify(state.clocks));
+});
+
 test('legacy save files without history log snapshots remain importable', () => {
   const state = position();
   const legacy = { state, history: [state], moveLog: ['1. White: custom position'] };

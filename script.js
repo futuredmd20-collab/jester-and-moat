@@ -257,43 +257,70 @@ function validSavedCoordinate(value, maxRow = ROWS - 1, maxCol = COLS - 1) {
     value.r >= 0 && value.r <= maxRow && value.c >= 0 && value.c <= maxCol);
 }
 function normalizeSavedState(candidate, initialTime = 0) {
-  if (!candidate || typeof candidate !== 'object' || !Array.isArray(candidate.board) ||
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate) || !Array.isArray(candidate.board) ||
       candidate.board.length !== ROWS || candidate.board.some(row => !Array.isArray(row) || row.length !== COLS)) {
     throw new Error('Invalid board dimensions in save file.');
   }
   if (!['w', 'b'].includes(candidate.turn)) throw new Error('Invalid side to move in save file.');
   for (const row of candidate.board) for (const piece of row) {
-    if (piece !== null && (!piece || typeof piece !== 'object' ||
+    if (piece !== null && (!piece || typeof piece !== 'object' || Array.isArray(piece) ||
         !['k', 'q', 'r', 'b', 'n', 'p', 'j'].includes(piece.type) || !['w', 'b'].includes(piece.color) ||
         (piece.moved !== undefined && typeof piece.moved !== 'boolean'))) {
       throw new Error('Invalid piece in save file.');
     }
   }
   const normalized = clone(candidate);
-  normalized.phase = normalized.phase || 'normal';
+  if (normalized.phase === undefined) normalized.phase = 'normal';
   if (!['normal', 'place_moat_w', 'place_moat_b'].includes(normalized.phase)) throw new Error('Invalid game phase in save file.');
-  normalized.ply = Number.isInteger(normalized.ply) && normalized.ply >= 0 ? normalized.ply : 0;
-  normalized.ep = normalized.ep === undefined ? null : normalized.ep;
+  if (normalized.ply === undefined) normalized.ply = 0;
+  else if (!Number.isInteger(normalized.ply) || normalized.ply < 0) throw new Error('Invalid ply in save file.');
+  if (normalized.ep === undefined) normalized.ep = null;
   if (!validSavedCoordinate(normalized.ep)) throw new Error('Invalid en passant target in save file.');
-  normalized.moats = normalized.moats || { w: null, b: null };
-  if (!normalized.moats || !validSavedCoordinate(normalized.moats.w, ROWS - 1, COLS - 3) ||
-      !validSavedCoordinate(normalized.moats.b, ROWS - 1, COLS - 3)) throw new Error('Invalid moat coordinates in save file.');
-  normalized.moatDestroyed = normalized.moatDestroyed || { w: false, b: false };
-  normalized.hasPlacedMoat = normalized.hasPlacedMoat || { w: Boolean(normalized.moats.w), b: Boolean(normalized.moats.b) };
-  normalized.moveCounts = normalized.moveCounts || { w: 0, b: 0 };
-  normalized.captured = normalized.captured || { w: [], b: [] };
-  normalized.halfmoveClock = Number.isFinite(normalized.halfmoveClock) && normalized.halfmoveClock >= 0 ? normalized.halfmoveClock : 0;
-  normalized.positionHistory = normalized.positionHistory && typeof normalized.positionHistory === 'object' &&
-    !Array.isArray(normalized.positionHistory) ? normalized.positionHistory : {};
-  normalized.clocks = normalized.clocks || { w: initialTime, b: initialTime };
-  if (!['w', 'b'].every(side => Number.isFinite(normalized.clocks[side]) && normalized.clocks[side] >= 0)) throw new Error('Invalid clocks in save file.');
+  if (normalized.moats === undefined) normalized.moats = { w: null, b: null };
+  if (!normalized.moats || typeof normalized.moats !== 'object' || Array.isArray(normalized.moats)) throw new Error('Invalid moat coordinates in save file.');
   for (const side of ['w', 'b']) {
-    if (!Array.isArray(normalized.captured[side])) normalized.captured[side] = [];
-    if (typeof normalized.moatDestroyed[side] !== 'boolean') normalized.moatDestroyed[side] = false;
-    if (typeof normalized.hasPlacedMoat[side] !== 'boolean') normalized.hasPlacedMoat[side] = Boolean(normalized.moats[side]);
-    if (!Number.isInteger(normalized.moveCounts[side]) || normalized.moveCounts[side] < 0) normalized.moveCounts[side] = 0;
+    if (normalized.moats[side] === undefined) normalized.moats[side] = null;
+    if (!validSavedCoordinate(normalized.moats[side], ROWS - 1, COLS - 3)) throw new Error('Invalid moat coordinates in save file.');
+  }
+  const normalizeSideMap = (field, defaults, validate, errorMessage) => {
+    if (normalized[field] === undefined) normalized[field] = clone(defaults);
+    if (!normalized[field] || typeof normalized[field] !== 'object' || Array.isArray(normalized[field])) throw new Error(errorMessage);
+    for (const side of ['w', 'b']) {
+      if (normalized[field][side] === undefined) normalized[field][side] = clone(defaults[side]);
+      if (!validate(normalized[field][side])) throw new Error(errorMessage);
+    }
+  };
+  normalizeSideMap('moatDestroyed', { w: false, b: false }, value => typeof value === 'boolean', 'Invalid moat status in save file.');
+  normalizeSideMap('hasPlacedMoat', { w: Boolean(normalized.moats.w), b: Boolean(normalized.moats.b) },
+    value => typeof value === 'boolean', 'Invalid moat placement status in save file.');
+  normalizeSideMap('moveCounts', { w: 0, b: 0 }, value => Number.isInteger(value) && value >= 0, 'Invalid move counts in save file.');
+  normalizeSideMap('captured', { w: [], b: [] }, value => Array.isArray(value) && value.every(piece =>
+    piece && typeof piece === 'object' && !Array.isArray(piece) &&
+    ['k', 'q', 'r', 'b', 'n', 'p', 'j'].includes(piece.type) && ['w', 'b'].includes(piece.color) &&
+    (piece.moved === undefined || typeof piece.moved === 'boolean')), 'Invalid captured pieces in save file.');
+  if (normalized.halfmoveClock === undefined) normalized.halfmoveClock = 0;
+  else if (!Number.isFinite(normalized.halfmoveClock) || normalized.halfmoveClock < 0) throw new Error('Invalid halfmove clock in save file.');
+  if (normalized.positionHistory === undefined) normalized.positionHistory = {};
+  if (!normalized.positionHistory || typeof normalized.positionHistory !== 'object' || Array.isArray(normalized.positionHistory)) throw new Error('Invalid position history in save file.');
+  if (normalized.clocks === undefined) normalized.clocks = { w: initialTime, b: initialTime };
+  if (!normalized.clocks || typeof normalized.clocks !== 'object' || Array.isArray(normalized.clocks)) throw new Error('Invalid clocks in save file.');
+  for (const side of ['w', 'b']) {
+    if (normalized.clocks[side] === undefined) normalized.clocks[side] = initialTime;
+    if (!Number.isFinite(normalized.clocks[side]) || normalized.clocks[side] < 0) throw new Error('Invalid clocks in save file.');
   }
   return normalized;
+}
+function canonicalSavedValue(value) {
+  if (Array.isArray(value)) return value.map(canonicalSavedValue);
+  if (value && typeof value === 'object') {
+    const sorted = {};
+    for (const key of Object.keys(value).sort()) sorted[key] = canonicalSavedValue(value[key]);
+    return sorted;
+  }
+  return value;
+}
+function savedValuesEqual(a, b) {
+  return JSON.stringify(canonicalSavedValue(a)) === JSON.stringify(canonicalSavedValue(b));
 }
 function exportGameData() {
   return { state: clone(state), moveLog: moveLog.slice(), history: clone(history),
@@ -301,7 +328,7 @@ function exportGameData() {
 }
 function parseGameData(input, initialTime = 0) {
   const parsed = typeof input === 'string' ? JSON.parse(input) : input;
-  if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.history) || parsed.history.length === 0) throw new Error('Invalid save state format.');
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || !Array.isArray(parsed.history) || parsed.history.length === 0) throw new Error('Invalid save state format.');
   const normalizedState = normalizeSavedState(parsed.state, initialTime);
   const normalizedHistory = parsed.history.map(item => normalizeSavedState(item, initialTime));
   const logs = parsed.moveLog === undefined ? [] : parsed.moveLog;
@@ -310,14 +337,20 @@ function parseGameData(input, initialTime = 0) {
   if (parsed.historyMoveLogs !== undefined) {
     logHistory = parsed.historyMoveLogs;
     if (!Array.isArray(logHistory) || logHistory.length !== normalizedHistory.length ||
-        logHistory.some(snapshot => !Array.isArray(snapshot) || snapshot.some(line => typeof line !== 'string'))) {
-      throw new Error('Invalid history log snapshots in save file.');
-    }
+        logHistory.some(snapshot => !Array.isArray(snapshot) || snapshot.some(line => typeof line !== 'string'))) throw new Error('Invalid history log snapshots in save file.');
     logHistory = logHistory.map(snapshot => snapshot.slice());
+    if (!savedValuesEqual(logs, logHistory[logHistory.length - 1])) throw new Error('Current move log does not match the latest history log snapshot.');
   } else {
-    logHistory = normalizedHistory.map((_, index) => index === normalizedHistory.length - 1
-      ? logs.slice() : logs.slice(0, Math.min(index, logs.length)));
+    logHistory = normalizedHistory.map((_, index) => index === normalizedHistory.length - 1 ? logs.slice() : logs.slice(0, Math.min(index, logs.length)));
   }
+  const currentComparable = clone(normalizedState);
+  const latestHistoryComparable = clone(normalizedHistory[normalizedHistory.length - 1]);
+  // Clocks tick between moves, so the current saved clocks may legitimately be newer than the history snapshot.
+  delete currentComparable.clocks;
+  delete latestHistoryComparable.clocks;
+  if (!savedValuesEqual(currentComparable, latestHistoryComparable)) throw new Error('Current state does not match the latest history snapshot.');
+  // Keep the current clock values when redo restores the latest position after loading.
+  normalizedHistory[normalizedHistory.length - 1].clocks = clone(normalizedState.clocks);
   const savedPlayerColor = parsed.playerColor === undefined ? 'w' : parsed.playerColor;
   if (!['w', 'b'].includes(savedPlayerColor)) throw new Error('Invalid player side in save file.');
   if (parsed.gameStarted !== undefined && typeof parsed.gameStarted !== 'boolean') throw new Error('Invalid game-started flag in save file.');
