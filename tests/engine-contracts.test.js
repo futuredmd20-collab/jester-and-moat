@@ -118,6 +118,8 @@ test('MinMax contract search returns a structured legal move without mutating it
   assert.equal(result.status, EngineContract.statuses.COMPLETED);
   assert.equal(result.requestId, request.requestId);
   assert.equal(result.generation, request.generation);
+  assert.equal(result.protocolVersion, EngineContract.version);
+  assert.equal(result.engineId, request.engineId);
   assert.ok(EngineContract.validateMove(result.move));
   assert.ok(allLegalState(s).some(m => JSON.stringify(m) === JSON.stringify(result.move)));
   assert.equal(JSON.stringify(request), before);
@@ -219,7 +221,7 @@ test('worker rejects failed and malformed completed results for both engine sele
 
   try {
     for (const engineId of ['minmax_legacy', 'mcts']) {
-      for (const resultKind of ['failed', 'malformed']) {
+      for (const resultKind of ['failed', 'malformed', 'wrong-protocol', 'wrong-engine']) {
         sandbox.api.resetAIWorker();
         mockElement('whiteEngineSelect').value = engineId;
         mockElement('whiteEnginePhaseSelect').value = 'endgame';
@@ -232,19 +234,29 @@ test('worker rejects failed and malformed completed results for both engine sele
         const worker = workers[workers.length - 1];
         const contractRequest = worker.request.contractRequest;
         assert.equal(contractRequest.engineId, engineId, 'the worker request should target the selected engine');
+        const validMove = { from: { r: 7, c: 4 }, to: { r: 6, c: 4 } };
         const result = resultKind === 'failed'
           ? EngineContract.failed(contractRequest, EngineContract.errorCodes.SEARCH_FAILED, 'simulated search failure')
           : {
+              protocolVersion: resultKind === 'wrong-protocol' ? EngineContract.version + 1 : EngineContract.version,
+              engineId: resultKind === 'wrong-engine' ? (engineId === 'mcts' ? 'minmax_legacy' : 'mcts') : engineId,
               status: EngineContract.statuses.COMPLETED,
               requestId: contractRequest.requestId,
               generation: contractRequest.generation,
-              move: { from: { r: -1, c: 0 }, to: { r: 0, c: 0 } }
+              move: resultKind === 'malformed'
+                ? { from: { r: -1, c: 0 }, to: { r: 0, c: 0 } }
+                : validMove
             };
 
         worker.onmessage({ data: { id: worker.request.id, result } });
 
-        assert.match(sandbox.document.getElementById('status').textContent,
-          resultKind === 'failed' ? /AI error: simulated search failure/ : /AI error: engine returned an invalid move/);
+        const expectedError = {
+          failed: /AI error: simulated search failure/,
+          malformed: /AI error: engine returned an invalid move/,
+          'wrong-protocol': /AI error: stale or mismatched engine result/,
+          'wrong-engine': /AI error: stale or mismatched engine result/
+        }[resultKind];
+        assert.match(sandbox.document.getElementById('status').textContent, expectedError);
         assert.equal(sandbox.api.getGameOver(), false, 'an engine error must not be mistaken for checkmate');
         assert.equal(sandbox.api.getActiveAIForTest().thinking, false, 'the failed request should no longer be active');
       }
@@ -268,6 +280,10 @@ test('engine contract matches only the corresponding request identity and genera
   assert.equal(EngineContract.matchesRequest(result, request), true);
   assert.equal(EngineContract.matchesRequest({ ...result, requestId: 32 }, request), false);
   assert.equal(EngineContract.matchesRequest({ ...result, generation: 9 }, request), false);
+  assert.equal(EngineContract.matchesRequest({ ...result, protocolVersion: EngineContract.version + 1 }, request), false);
+  assert.equal(EngineContract.matchesRequest({ ...result, protocolVersion: undefined }, request), false);
+  assert.equal(EngineContract.matchesRequest({ ...result, engineId: 'mcts' }, request), false);
+  assert.equal(EngineContract.matchesRequest({ ...result, engineId: undefined }, request), false);
 });
 
 test('MinMax and MCTS return null when there are no legal moves', () => {
