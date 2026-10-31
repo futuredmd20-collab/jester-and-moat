@@ -120,6 +120,28 @@ test('MinMax contract search returns a structured legal move without mutating it
   assert.equal(JSON.stringify(request), before);
 });
 
+test('MCTS contract search returns a structured legal move without mutating its frozen request', () => {
+  const s = position();
+  s.board[6][0] = { type: 'r', color: 'w', moved: false };
+  const request = EngineContract.createRequest({
+    requestId: 'mcts-contract-legal',
+    generation: 5,
+    engineId: 'mcts',
+    position: s,
+    limits: { depth: 1 }
+  });
+  const before = JSON.stringify(request);
+  const engine = sandbox.api.enginePlugins.get('mcts');
+  const result = engine.search(request);
+
+  assert.equal(result.status, EngineContract.statuses.COMPLETED);
+  assert.equal(result.requestId, request.requestId);
+  assert.equal(result.generation, request.generation);
+  assert.ok(EngineContract.validateMove(result.move));
+  assert.ok(allLegalState(s).some(m => JSON.stringify(m) === JSON.stringify(result.move)));
+  assert.equal(JSON.stringify(request), before);
+});
+
 test('MinMax contract search reports no-move and rejects requests for another engine', () => {
   const s = position();
   s.board = Array.from({ length: 8 }, () => Array(10).fill(null));
