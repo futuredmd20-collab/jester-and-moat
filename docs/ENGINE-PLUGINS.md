@@ -12,7 +12,7 @@ Allow independently configured AI engines for White and Black, optionally limite
 
 - `name`: display label; `phases`: supported phases; `strength`: engine-specific settings; `getMove(gameState)`: a move in the game's existing format.
 - MinMax is a legacy adapter around `getBestMove`, preserving Easy/Medium/Hard depths 1/2/3 (AI vs AI uses 2). MCTS is implemented in `engines/mcts-engine.js`.
-- White and Black have engine and phase selectors. The selected engine applies only in the selected phase; other phases fall back to MinMax. Settings are stored in `localStorage` under `engineConfig`; reload restoration and UX need runtime checks.
+- White and Black have engine and phase selectors. The selected engine applies only in the selected phase; other phases fall back to MinMax. Settings are stored in `localStorage` under `engineConfig`; ordinary reload restoration was confirmed in browser testing while the cache remained intact. Persistence after clearing the cache has not been tested and is parked for now.
 - Phase detection is `getGamePhase()` in `script.js`: opening if ply < 10 OR total pieces >= 34; endgame if total pieces <= 16; otherwise midgame. This policy is provisional and needs representative-game validation.
 - MCTS presets (in `engines/mcts-engine.js`): 200/700/2000 playouts, depth caps 10/14/18 plies, temperatures 0.35/0.15/0.00. Labels around 800/1200/1600 are estimates, not calibrated ratings. The UI exposes “MCTS (~1200 ELO)”; other levels follow game-mode difficulty. No calibrated, independently configurable rating system is established.
 - Out of scope: weighted blending, opening books, tablebases, neural engines, and self-play tuning.
@@ -21,10 +21,10 @@ Allow independently configured AI engines for White and Black, optionally limite
 
 | Area | Present in repository / source-reviewed | Still unverified or remaining |
 | --- | --- | --- |
-| Plugin setup | Registry/default-selection groundwork; MinMax adapter; MCTS module. PRs #12, #16, #18. | Confirm each engine is selected and returns moves correctly at runtime. |
-| Side/phase UI | White/Black engine and phase selectors; phase-specific selection and MinMax fallback. PRs #20–#22. | Test both sides independently, all phases, fallback behavior, UX, and reload persistence. |
+| Plugin setup | Registry, MinMax adapter, MCTS module and dispatch were exercised in manual browser play; both engines ran without visible errors. | These checks do not establish exhaustive engine correctness. |
+| Side/phase UI | White/Black settings were independent. Runtime logs confirmed phase-specific selection: in the second logged game, White used MCTS in opening, both sides used MinMax in midgame, and Black used MCTS in endgame. | Cache-cleared persistence remains untested. |
 | Loading/build | MCTS script loading, service-worker precache and version alignment (PR #23); loading fix (PR #24); single-file builder embeds MCTS before `script.js`. | Exercise multi-file and built single-file pages. If MCTS fails to load on the multi-file page, startup warns and keeps board/MinMax available; MCTS selection falls back to MinMax. Confirm this recovery path in a browser. |
-| Worker dispatch | Contract tests exercise MinMax and MCTS through the generated worker, verify legal moves and unknown-selector errors, and verify that worker-construction and worker-runtime failures fall back to the selected plugin on the main thread. | Live-browser execution remains unverified. Runtime-error recovery terminates the failed worker and invalidates late responses before retrying the active request once. |
+| Worker dispatch | The reviewed game log showed matching engine-to-worker dispatch and 108 worker replies, with no obvious worker/engine errors. | Browser verification of MCTS load failure, worker-construction fallback, worker-runtime recovery and offline behavior remains outstanding. |
 | Phase policy and ratings | Thresholds and provisional MCTS presets/labels are defined. | Validate phase boundaries against representative games; calibrate strength before presenting ELO-like values as measured ratings. |
 
 ## Decisions to preserve
@@ -37,16 +37,20 @@ Allow independently configured AI engines for White and Black, optionally limite
 
 ## Remaining plan
 
-1. **Runtime worker test:** automated contracts cover MinMax and MCTS dispatch, legal moves, unknown-selector errors, and fallback for worker-construction/runtime failures. Still verify both engines and recovery behavior in a real browser.
-2. **Configuration test:** test White/Black independently, selected-phase-only MCTS, MinMax in other phases, and settings after reload. Fix initialization/persistence if needed.
-3. **Phase test:** exercise opening/midgame/endgame boundaries, especially ply < 10, 34+ pieces, and 16 or fewer pieces.
-4. **Strength calibration:** measure repeatable results and ensure UI labels match configured strength.
-5. **Regression checks:** promotions, swaps, moats, legal moves, no-legal-move/game-over handling, worker errors, and responsive performance.
-6. After each task, record the fix/verification PR and actual results in `docs/HISTORY.md`, then refresh this status document.
+The user considers the current test pass complete and has chosen to move on; do not continue testing this area unless asked. These are future-work items, not blockers to the completed test pass:
+
+1. **Strength calibration:** measure repeatable results before treating ELO-like labels as calibrated ratings.
+2. **Failure recovery:** browser-check MCTS load failure, worker-construction fallback, worker-runtime recovery, and offline/service-worker behavior.
+3. **Additional regressions:** promotions, swaps, moats, no-legal-move/game-over handling, and responsive performance as relevant to future engine changes.
+4. **Cache-cleared persistence:** not tested; ordinary reload restoration was observed while the cache remained intact. Explicitly parked by the user for now.
 
 ## Manual browser verification checklist
 
-Run these checks against the multi-file app served from localhost or HTTPS. Keep the browser console and Network panel open and record observed results; automated VM tests are not a substitute.
+**Completed on 2026-10-31:** normal engine dispatch, side/configuration independence, phase-specific engine selection, and ordinary reload persistence were checked through browser play and the game log. In the second logged game, the opening began with 40 pieces; midgame began at ply 21 with 33 pieces; endgame began at ply 54 with 16 pieces; checkmate occurred at ply 79. The user considers this test pass complete.
+
+**Not covered:** MCTS module-load failure, worker-construction fallback, induced worker-runtime recovery, offline behavior, cache-cleared persistence, strength calibration, and the full special-case regression list. Do not describe these as passed. The optional single-file build remains outside this checklist unless requested.
+
+Historical checklist items below remain candidates for future work, not requirements to continue this test pass.
 
 1. **Normal engine dispatch:** start an AI game with MinMax, then select MCTS for one side and make several moves. Confirm both engines return legal moves, the board continues responding, and the console has no engine errors.
 2. **Side and phase isolation:** set White to MCTS for midgame only and Black to MinMax. Confirm White uses MinMax in opening/endgame and MCTS in midgame. Repeat with Black configured for a different phase.
