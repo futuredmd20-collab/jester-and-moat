@@ -1269,13 +1269,18 @@ function aiMove(){
   status("\u23f3 AI thinking...");
 
   const { engine, depth } = getEngineConfig(state.turn);
+  const phase = getGamePhase(state);
+  const side = state.turn === 'w' ? 'White' : 'Black';
+  const engineName = engine.name || 'Unknown engine';
   const request = { id: ++aiRequestId, engine, depth, state: clone(state) };
   pendingAIRequest = request;
+  debugLogger.add(`AI selection: ${side} | phase: ${phase} | engine: ${engineName} | depth: ${depth}`, 'info');
 
   const worker = ensureAIWorker();
   if (worker) {
     // Route to mctsGetMove for MCTS, getBestMove for MinMax
     const workerFn = engine.name && engine.name.includes('MCTS') ? 'mctsGetMove' : 'getBestMove';
+    debugLogger.add(`AI dispatch: ${side} | engine: ${engineName} | path: worker (${workerFn})`, 'info');
     try {
       worker.postMessage({ id: request.id, state: clone(request.state), depth, workerFn });
     } catch (error) {
@@ -1283,6 +1288,7 @@ function aiMove(){
     }
     return;
   }
+  debugLogger.add(`AI dispatch: ${side} | engine: ${engineName} | path: main thread (worker unavailable)`, 'info');
   runAIOnMainThread(request);
 }
 
