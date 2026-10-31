@@ -1059,10 +1059,9 @@ const EngineContract = Object.freeze({
   }
 });
 
-/* Plugin System: MinMaxLegacy Plugin #1
- * Wraps the existing MinMax engine as a plugin.
- * Reads modeSelect from DOM to replicate aiMove's depth buckets.
- * Behavior unchanged from current implementation. */
+/* Internal MinMax engine, protocol-v1 entry point.
+ * Search receives an immutable contract request and returns a structured result.
+ * Search limits are supplied by the caller; engine logic does not read the UI. */
 const MinMaxLegacy = {
   id: 'minmax_legacy',
   name: 'MinMax',
@@ -1078,15 +1077,6 @@ const MinMaxLegacy = {
       return EngineContract.failed(request, ENGINE_ERROR_CODES.SEARCH_FAILED, error && error.message || error);
     }
   },
-  // Compatibility entry point retained while the worker transport is migrated.
-  getMove: function(gameState, side) {
-    const mode = document.getElementById('modeSelect').value;
-    let depth = 2;
-    if (mode === 'ai_easy') depth = 1;
-    if (mode === 'ai_medium' || mode === 'ai_vs_ai') depth = 2;
-    if (mode === 'ai_hard') depth = 3;
-    return getBestMove(gameState, depth);
-  }
 };
 
 /* Plugin System: Engine Registry */
