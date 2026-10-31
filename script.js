@@ -1005,8 +1005,8 @@ const EngineContract = Object.freeze({
       throw Object.assign(new Error('A generation identifier is required.'), { code: ENGINE_ERROR_CODES.INVALID_REQUEST });
     if (!engineId || typeof engineId !== 'string')
       throw Object.assign(new Error('A stable engineId is required.'), { code: ENGINE_ERROR_CODES.INVALID_REQUEST });
-    if (!position || !Array.isArray(position.board) || position.board.length !== ROWS ||
-        position.board.some(row => !Array.isArray(row) || row.length !== COLS) || !['w', 'b'].includes(position.turn))
+    if (!position || !Array.isArray(position.board) || position.board.length !== 8 ||
+        position.board.some(row => !Array.isArray(row) || row.length !== 10) || !['w', 'b'].includes(position.turn))
       throw Object.assign(new Error('Position snapshot has an invalid board or side to move.'), { code: ENGINE_ERROR_CODES.INVALID_POSITION });
     const depth = limits.depth == null ? 2 : limits.depth;
     if (!Number.isInteger(depth) || depth < 1 || depth > 10)
@@ -1019,7 +1019,7 @@ const EngineContract = Object.freeze({
   },
   validateMove(move) {
     if (!move || typeof move !== 'object' || !move.from || !move.to) return false;
-    const square = s => Number.isInteger(s.r) && Number.isInteger(s.c) && s.r >= 0 && s.r < ROWS && s.c >= 0 && s.c < COLS;
+    const square = s => Number.isInteger(s.r) && Number.isInteger(s.c) && s.r >= 0 && s.r < 8 && s.c >= 0 && s.c < 10;
     // Keep variant flags (swap, castling, en passant, promotion, moat actions) intact.
     return square(move.from) && square(move.to);
   },
