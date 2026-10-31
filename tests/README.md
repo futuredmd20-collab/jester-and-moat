@@ -37,6 +37,8 @@ The engine contract suite evaluates canonical rule/search functions from `script
 - Service-worker registration waits for the window load event.
 - The service-worker precache includes shipped app assets; install precaches before activation, and activation removes old app caches and claims clients.
 - Initial moat placement starts after four moves per side: White places first, then Black; normal play resumes with White to move.
+- Undo/redo restores complete move-log snapshots, moat-placement phase/turn, and terminal-game status.
+- JSON save export/import roundtrips board state, history, clocks, moat state, move logs, and terminal status; malformed boards, pieces, and history-log snapshots are rejected, while legacy saves without per-history log snapshots remain importable.
 
 ## Remaining verification
 

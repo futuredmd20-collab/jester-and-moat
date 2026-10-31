@@ -72,7 +72,7 @@ const sandbox = {
 };
 vm.createContext(sandbox);
 vm.runInContext(source.slice(0, boundary) + `
-globalThis.api = { allLegalState, getBestMove, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getDefaultEngineForSide() { return defaultEngineForSide; }, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, ENGINE_PHASES };
+globalThis.api = { allLegalState, getBestMove, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getDefaultEngineForSide() { return defaultEngineForSide; }, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, ENGINE_PHASES };
 `, sandbox, { filename: 'script.js' });
 vm.runInContext(mcts, sandbox, { filename: 'engines/mcts-engine.js' });
 
@@ -87,7 +87,7 @@ function position() {
     halfmoveClock: 0, positionHistory: {}, clocks: { w: 0, b: 0 }
   };
 }
-const { allLegalState, getBestMove, applyRaw, getGamePhase, ensureAIWorker, play, aiPlaceMoatForColor, confirmMoatPlacement, setPendingMoat, setState, getState, ENGINE_PHASES } = sandbox.api;
+const { allLegalState, getBestMove, applyRaw, getGamePhase, ensureAIWorker, play, aiPlaceMoatForColor, confirmMoatPlacement, setPendingMoat, setState, getState, setHistoryForTest, getHistory, getHistoryMoveLogs, getMoveLog, getGameOver, undoHistoryStep, redoHistoryStep, replaceLatestHistorySnapshot, exportGameData, parseGameData, ENGINE_PHASES } = sandbox.api;
 
 test('MinMax returns a legal move without mutating its input', () => {
   const s = position();
@@ -713,4 +713,105 @@ test('main-thread fallback calls the selected engine when Blob workers are block
     sandbox.URL.createObjectURL = previousCreateObjectURL;
     scheduledCallbacks.length = 0;
   }
+});
+
+
+test('undo and redo restore complete move-log snapshots, including extra moat notices', () => {
+  const before = position();
+  const after = position();
+  after.turn = 'b';
+  after.moats.w = { r: 4, c: 2 };
+  after.moatDestroyed.w = true;
+  const expectedLog = ['💥 MOAT DESTROYED: White moat has been destroyed!', '1. White: Rook A2-A3 (05:00)'];
+  setHistoryForTest([before, after], [[], expectedLog]);
+
+  assert.equal(undoHistoryStep(), true);
+  assert.equal(getState().turn, 'w');
+  assert.equal(JSON.stringify(getMoveLog()), JSON.stringify([]));
+  assert.equal(redoHistoryStep(), true);
+  assert.equal(JSON.stringify(getState()), JSON.stringify(after));
+  assert.equal(JSON.stringify(getMoveLog()), JSON.stringify(expectedLog));
+  assert.equal(JSON.stringify(getHistoryMoveLogs()), JSON.stringify([[], expectedLog]));
+});
+
+test('history snapshots preserve the next moat-placement phase and turn', () => {
+  const before = position();
+  const after = position();
+  after.moats.w = { r: 4, c: 2 };
+  after.hasPlacedMoat.w = true;
+  after.phase = 'place_moat_b';
+  after.turn = 'b';
+  setHistoryForTest([before, after], [[], ['1. White: Moat C4-E4 (05:00)']]);
+
+  assert.equal(undoHistoryStep(), true);
+  assert.equal(getState().phase, 'normal');
+  assert.equal(getState().turn, 'w');
+  assert.equal(redoHistoryStep(), true);
+  assert.equal(getState().phase, 'place_moat_b');
+  assert.equal(getState().turn, 'b');
+  assert.equal(JSON.stringify(getState().moats.w), JSON.stringify({ r: 4, c: 2 }));
+});
+
+test('redo restores terminal-game status after undoing a finished game', () => {
+  const before = position();
+  const terminal = position();
+  terminal.turn = 'b';
+  terminal.ply = 13;
+  sandbox.document.getElementById('status').textContent = 'Checkmate! Black wins.';
+  setHistoryForTest([before, terminal], [[], ['1. White: checkmate']], true);
+
+  assert.equal(undoHistoryStep(), true);
+  assert.equal(getGameOver(), false);
+  assert.equal(redoHistoryStep(), true);
+  assert.equal(getGameOver(), true);
+  assert.equal(sandbox.document.getElementById('status').textContent, 'Checkmate! Black wins.');
+  assert.equal(getState().turn, 'b');
+});
+
+test('export/import roundtrip preserves current state, history, logs, and terminal status', () => {
+  const before = position();
+  before.clocks = { w: 275, b: 301 };
+  const current = position();
+  current.turn = 'b';
+  current.phase = 'place_moat_b';
+  current.moats.w = { r: 4, c: 2 };
+  current.hasPlacedMoat.w = true;
+  current.clocks = { w: 260, b: 299 };
+  const logs = [[], ['1. White: Rook A2-A3 (04:35)', '💥 MOAT DESTROYED: Black moat has been destroyed!']];
+  sandbox.document.getElementById('status').textContent = 'Draw by stalemate.';
+  setHistoryForTest([before, current], logs, true);
+  const exported = JSON.parse(JSON.stringify(exportGameData()));
+  const imported = parseGameData(JSON.stringify(exported), 600);
+
+  assert.equal(JSON.stringify(imported.state), JSON.stringify(current));
+  assert.equal(JSON.stringify(imported.history), JSON.stringify([before, current]));
+  assert.equal(JSON.stringify(imported.moveLog), JSON.stringify(logs[1]));
+  assert.equal(JSON.stringify(imported.historyMoveLogs), JSON.stringify(logs));
+  assert.equal(imported.gameOver, true);
+  assert.equal(imported.gameOverMessage, 'Draw by stalemate.');
+  assert.equal(imported.playerColor, 'w');
+});
+
+test('save import rejects malformed boards, invalid pieces, and mismatched history logs', () => {
+  const state = position();
+  const base = { state, history: [state], moveLog: [], historyMoveLogs: [[]] };
+  const badBoard = JSON.parse(JSON.stringify(base));
+  badBoard.state.board.pop();
+  assert.throws(() => parseGameData(badBoard), /board dimensions/i);
+
+  const badPiece = JSON.parse(JSON.stringify(base));
+  badPiece.state.board[4][4] = { type: 'dragon', color: 'w', moved: false };
+  assert.throws(() => parseGameData(badPiece), /invalid piece/i);
+
+  const badLogs = JSON.parse(JSON.stringify(base));
+  badLogs.historyMoveLogs = [];
+  assert.throws(() => parseGameData(badLogs), /history log snapshots/i);
+});
+
+test('legacy save files without history log snapshots remain importable', () => {
+  const state = position();
+  const legacy = { state, history: [state], moveLog: ['1. White: custom position'] };
+  const imported = parseGameData(legacy);
+  assert.equal(JSON.stringify(imported.moveLog), JSON.stringify(legacy.moveLog));
+  assert.equal(JSON.stringify(imported.historyMoveLogs), JSON.stringify([legacy.moveLog]));
 });

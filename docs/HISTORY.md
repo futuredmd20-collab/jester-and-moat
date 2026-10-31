@@ -145,3 +145,8 @@ Purpose: dated record of decisions and changes, oldest first. Use the repository
 2026-10-31 — Planning index replaces session scratch
 * Added root `PLANS.md` as a concise index to topic-specific work plans, with scope notes so agents can choose the right plan without reading all of them. The index distinguishes plans from reference/procedure documents and reminds agents to verify repository state.
 * Removed stale `docs/RESUME.md`; its session notes described an outdated state and its relevant engine work is already covered by `docs/ENGINE-PLUGINS.md`. Updated agent guidance and HANDOVER's purpose statement to remove the resume-file workflow.
+
+2026-10-31 — Undo/redo and save/load consistency
+* Track a move-log snapshot alongside each history state so undo/redo restores complete logs, including moat-destruction notices, and preserves the next moat-placement phase and turn.
+* Restore terminal-game status on redo and in exported saves. Validate imported board, piece, clock, phase, and history-log structures while keeping legacy saves without per-history log snapshots importable.
+* Added regression tests for history transitions, terminal status, JSON roundtrips, malformed saves, and legacy compatibility. GitHub Actions validation pending.
