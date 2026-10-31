@@ -1210,7 +1210,9 @@ onmessage = function(event) {
   try {
     if (data.contractRequest) {
       const request = data.contractRequest;
-      state = request.position;
+      // Contract snapshots are deeply frozen; search helpers mutate their working state.
+      // Clone the snapshot at the worker boundary so the engine cannot mutate the request.
+      state = clone(request.position);
       if (request.protocolVersion !== 1 || request.engineId !== 'minmax_legacy')
         throw new Error('Unsupported structured engine request.');
       const move = getBestMove(state, request.limits.depth);
