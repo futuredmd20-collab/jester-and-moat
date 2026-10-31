@@ -1232,15 +1232,33 @@ onmessage = function(event) {
     const data = event.data;
     if (data.id !== aiRequestId) return;
     isAIThinking = false;
-    if (pendingAIRequest && pendingAIRequest.id === data.id) pendingAIRequest = null;
+    const completedRequest = pendingAIRequest && pendingAIRequest.id === data.id ? pendingAIRequest : null;
+    if (completedRequest) pendingAIRequest = null;
     if (gameOver) return;
     if (data.error) {
       status(`AI error: ${data.error}`);
       return;
     }
-    // Support workerFn directive: 'mctsGetMove' or 'getBestMove'
-    const move = data.move;
-    if (data.move) play(move, 'pending');
+    // Normalize legacy worker replies into the shared contract at the transport boundary.
+    let move = data.move;
+    if (completedRequest && completedRequest.contractRequest) {
+      const result = EngineContract.completed(completedRequest.contractRequest, move);
+      if (!EngineContract.matchesRequest(result, completedRequest.contractRequest)) {
+        status('AI error: stale or mismatched engine result.');
+        return;
+      }
+      if (result.status === ENGINE_RESULT_STATUS.FAILED) {
+        status(`AI error: ${result.error.message}`);
+        return;
+      }
+      move = result.status === ENGINE_RESULT_STATUS.COMPLETED ? result.move : null;
+    }
+    // The game core, not the engine, decides whether a returned move is legal.
+    if (move && !allLegalState(state).some(legal => JSON.stringify(legal) === JSON.stringify(move))) {
+      status('AI error: engine returned an illegal move.');
+      return;
+    }
+    if (move) play(move, 'pending');
     else {
       gameOver = true;
       stopAutoPlay();
