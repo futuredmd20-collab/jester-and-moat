@@ -151,7 +151,8 @@ Purpose: dated record of decisions and changes, oldest first. Use the repository
 * Restore terminal-game status on redo and in exported saves. Validate imported board, piece, clock, phase, and history-log structures while keeping legacy saves without per-history log snapshots importable.
 * Added regression tests for history transitions, terminal status, JSON roundtrips, malformed saves, and legacy compatibility. GitHub Actions contract tests passed (51 tests, 0 failures).
 
-\n2026-10-31 — Save/import consistency rules and regression coverage
+
+2026-10-31 — Save/import consistency rules and regression coverage
 * Defined the compatibility boundary for save imports: absent legacy fields receive defaults, but explicitly malformed values are rejected.
 * Added consistency checks between the current state and latest history snapshot (allowing current clocks to be newer), and between the current move log and latest history-log snapshot.
 * Added focused tests and an indexed plan. Automated CI and real-browser verification are pending for this follow-up.
