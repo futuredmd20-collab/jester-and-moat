@@ -163,6 +163,101 @@ test('MinMax contract search reports no-move and rejects requests for another en
   assert.ok(rejected.error);
 });
 
+
+test('MinMax and MCTS convert thrown search errors into failed contract results', () => {
+  const engines = [
+    ['minmax_legacy', sandbox.api.MinMaxLegacy],
+    ['mcts', sandbox.mctsEngine(1)]
+  ];
+
+  for (const [engineId, engine] of engines) {
+    const circularPosition = position();
+    circularPosition.self = circularPosition;
+    const request = {
+      protocolVersion: EngineContract.version,
+      requestId: `error-${engineId}`,
+      generation: 1,
+      engineId,
+      position: circularPosition,
+      limits: { depth: 1 },
+      config: {}
+    };
+
+    const result = engine.search(request);
+    assert.equal(result.status, EngineContract.statuses.FAILED, `${engineId} should report a failed search`);
+    assert.equal(result.requestId, request.requestId);
+    assert.equal(result.generation, request.generation);
+    assert.equal(result.error.code, EngineContract.errorCodes.SEARCH_FAILED);
+  }
+});
+
+test('worker rejects failed and malformed completed results for both engine selectors', () => {
+  const previousCreateObjectURL = sandbox.URL.createObjectURL;
+  const previousRevokeObjectURL = sandbox.URL.revokeObjectURL;
+  const previousWorker = sandbox.Worker;
+  const previousWindowWorker = sandbox.window.Worker;
+  const workers = [];
+
+  class ResponseWorker {
+    constructor(url) {
+      this.url = url;
+      this.terminated = false;
+      this.onmessage = null;
+      this.onerror = null;
+      this.request = null;
+      workers.push(this);
+    }
+    postMessage(request) { this.request = request; }
+    terminate() { this.terminated = true; }
+  }
+
+  sandbox.api.resetAIWorker();
+  sandbox.URL.createObjectURL = () => 'blob:engine-result-validation-test';
+  sandbox.URL.revokeObjectURL = () => {};
+  sandbox.Worker = ResponseWorker;
+  sandbox.window.Worker = ResponseWorker;
+
+  try {
+    for (const engineId of ['minmax_legacy', 'mcts']) {
+      for (const resultKind of ['failed', 'malformed']) {
+        sandbox.api.resetAIWorker();
+        mockElement('whiteEngineSelect').value = engineId;
+        mockElement('whiteEnginePhaseSelect').value = 'endgame';
+        mockElement('blackEngineSelect').value = 'minmax_legacy';
+        mockElement('blackEnginePhaseSelect').value = 'opening';
+        sandbox.api.updateEngineConfigUI();
+        sandbox.api.setState(position());
+        sandbox.api.aiMove();
+
+        const worker = workers[workers.length - 1];
+        const contractRequest = worker.request.contractRequest;
+        assert.equal(contractRequest.engineId, engineId, 'the worker request should target the selected engine');
+        const result = resultKind === 'failed'
+          ? EngineContract.failed(contractRequest, EngineContract.errorCodes.SEARCH_FAILED, 'simulated search failure')
+          : {
+              status: EngineContract.statuses.COMPLETED,
+              requestId: contractRequest.requestId,
+              generation: contractRequest.generation,
+              move: { from: { r: -1, c: 0 }, to: { r: 0, c: 0 } }
+            };
+
+        worker.onmessage({ data: { id: worker.request.id, result } });
+
+        assert.match(sandbox.document.getElementById('status').textContent,
+          resultKind === 'failed' ? /AI error: simulated search failure/ : /AI error: engine returned an invalid move/);
+        assert.equal(sandbox.api.getGameOver(), false, 'an engine error must not be mistaken for checkmate');
+        assert.equal(sandbox.api.getActiveAIForTest().thinking, false, 'the failed request should no longer be active');
+      }
+    }
+  } finally {
+    sandbox.api.resetAIWorker();
+    sandbox.URL.createObjectURL = previousCreateObjectURL;
+    sandbox.URL.revokeObjectURL = previousRevokeObjectURL;
+    sandbox.Worker = previousWorker;
+    sandbox.window.Worker = previousWindowWorker;
+  }
+});
+
 test('engine contract matches only the corresponding request identity and generation', () => {
   const request = EngineContract.createRequest({
     requestId: 31, generation: 8, engineId: 'minmax_legacy', position: position(), limits: { depth: 1 }
