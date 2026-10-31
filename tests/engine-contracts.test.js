@@ -72,7 +72,7 @@ const sandbox = {
 };
 vm.createContext(sandbox);
 vm.runInContext(source.slice(0, boundary) + `
-globalThis.api = { allLegalState, getBestMove, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getDefaultEngineForSide() { return defaultEngineForSide; }, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, ENGINE_PHASES };
+globalThis.api = { EngineContract, MinMaxLegacy, allLegalState, getBestMove, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getDefaultEngineForSide() { return defaultEngineForSide; }, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, ENGINE_PHASES };
 `, sandbox, { filename: 'script.js' });
 vm.runInContext(mcts, sandbox, { filename: 'engines/mcts-engine.js' });
 
@@ -858,4 +858,69 @@ test('legacy save files without history log snapshots remain importable', () => 
   const imported = parseGameData(legacy);
   assert.equal(JSON.stringify(imported.moveLog), JSON.stringify(legacy.moveLog));
   assert.equal(JSON.stringify(imported.historyMoveLogs), JSON.stringify([legacy.moveLog]));
+});
+
+
+test('engine contract creates an isolated immutable request snapshot', () => {
+  const s = position();
+  s.board[6][0] = { type: 'r', color: 'w', moved: false };
+  const request = sandbox.api.EngineContract.createRequest({
+    requestId: 'contract-1', generation: 7, engineId: 'minmax_legacy',
+    position: s, limits: { depth: 1 }, config: { profile: 'test' }
+  });
+  s.board[6][0].type = 'q';
+  assert.equal(request.protocolVersion, 1);
+  assert.equal(request.position.board[6][0].type, 'r');
+  assert.equal(Object.isFrozen(request), true);
+  assert.equal(Object.isFrozen(request.position.board[6][0]), true);
+  assert.equal(Object.isFrozen(request.limits), true);
+});
+
+test('engine contract validates request identity, snapshot shape, and limits', () => {
+  const contract = sandbox.api.EngineContract;
+  assert.throws(() => contract.createRequest({ generation: 1, engineId: 'minmax_legacy', position: position() }),
+    error => error.code === contract.errorCodes.INVALID_REQUEST);
+  assert.throws(() => contract.createRequest({ requestId: 1, generation: 1, engineId: 'minmax_legacy',
+    position: { board: [], turn: 'w' } }), error => error.code === contract.errorCodes.INVALID_POSITION);
+  assert.throws(() => contract.createRequest({ requestId: 1, generation: 1, engineId: 'minmax_legacy',
+    position: position(), limits: { depth: 0 } }), error => error.code === contract.errorCodes.INVALID_CONFIG);
+  assert.throws(() => contract.createRequest({ requestId: 1, generation: 1, engineId: 'minmax_legacy',
+    position: position(), limits: { timeMs: -1 } }), error => error.code === contract.errorCodes.INVALID_CONFIG);
+});
+
+test('engine contract preserves variant move flags and rejects malformed coordinates', () => {
+  const contract = sandbox.api.EngineContract;
+  const swap = { from: { r: 4, c: 4 }, to: { r: 4, c: 5 }, swap: true };
+  const request = contract.createRequest({ requestId: 2, generation: 3, engineId: 'minmax_legacy', position: position() });
+  const result = contract.completed(request, swap);
+  assert.equal(result.status, contract.statuses.COMPLETED);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.move)), swap);
+  assert.equal(contract.validateMove({ from: { r: -1, c: 0 }, to: { r: 0, c: 0 } }), false);
+  assert.equal(contract.validateMove({ from: { r: 0, c: 0 }, to: { r: 8, c: 0 } }), false);
+  assert.equal(contract.completed(request, { from: { r: 0, c: 0 }, to: null }).error.code,
+    contract.errorCodes.INVALID_MOVE);
+});
+
+test('MinMax implements the structured search entry point without mutating its snapshot', () => {
+  const s = position();
+  s.board[6][0] = { type: 'r', color: 'w', moved: false };
+  const before = JSON.stringify(s);
+  const request = sandbox.api.EngineContract.createRequest({
+    requestId: 'minmax-contract', generation: 1, engineId: 'minmax_legacy',
+    position: s, limits: { depth: 1 }
+  });
+  const result = sandbox.api.MinMaxLegacy.search(request);
+  assert.equal(result.status, sandbox.api.EngineContract.statuses.COMPLETED);
+  assert.equal(sandbox.api.EngineContract.matchesRequest(result, request), true);
+  assert.ok(allLegalState(s).some(m => JSON.stringify(m) === JSON.stringify(result.move)));
+  assert.equal(JSON.stringify(s), before);
+});
+
+test('engine contract distinguishes no-move, cancellation, failure, and stale results', () => {
+  const contract = sandbox.api.EngineContract;
+  const request = contract.createRequest({ requestId: 8, generation: 9, engineId: 'minmax_legacy', position: position() });
+  assert.equal(contract.completed(request, null).status, contract.statuses.NO_MOVE);
+  assert.equal(contract.cancelled(request).status, contract.statuses.CANCELLED);
+  assert.equal(contract.failed(request, contract.errorCodes.SEARCH_FAILED, 'test').status, contract.statuses.FAILED);
+  assert.equal(contract.matchesRequest(contract.completed(request, null), { ...request, requestId: 99 }), false);
 });
