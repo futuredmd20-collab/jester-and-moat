@@ -99,6 +99,57 @@ test('MinMax returns a legal move without mutating its input', () => {
   assert.equal(JSON.stringify(s), before);
 });
 
+test('MinMax contract search returns a structured legal move without mutating its frozen request', () => {
+  const s = position();
+  s.board[6][0] = { type: 'r', color: 'w', moved: false };
+  const request = EngineContract.createRequest({
+    requestId: 'minmax-contract-legal',
+    generation: 3,
+    engineId: 'minmax_legacy',
+    position: s,
+    limits: { depth: 1 }
+  });
+  const before = JSON.stringify(request);
+  const result = sandbox.api.MinMaxLegacy.search(request);
+
+  assert.equal(result.status, EngineContract.statuses.COMPLETED);
+  assert.equal(result.requestId, request.requestId);
+  assert.equal(result.generation, request.generation);
+  assert.ok(EngineContract.validateMove(result.move));
+  assert.ok(allLegalState(s).some(m => JSON.stringify(m) === JSON.stringify(result.move)));
+  assert.equal(JSON.stringify(request), before);
+});
+
+test('MinMax contract search reports no-move and rejects requests for another engine', () => {
+  const s = position();
+  s.board = Array.from({ length: 8 }, () => Array(10).fill(null));
+  const noMoveRequest = EngineContract.createRequest({
+    requestId: 21, generation: 4, engineId: 'minmax_legacy', position: s, limits: { depth: 1 }
+  });
+  const noMove = sandbox.api.MinMaxLegacy.search(noMoveRequest);
+  assert.equal(noMove.status, EngineContract.statuses.NO_MOVE);
+  assert.equal(noMove.move, null);
+
+  const wrongEngineRequest = EngineContract.createRequest({
+    requestId: 22, generation: 4, engineId: 'mcts', position: position(), limits: { depth: 1 }
+  });
+  const rejected = sandbox.api.MinMaxLegacy.search(wrongEngineRequest);
+  assert.equal(rejected.status, EngineContract.statuses.FAILED);
+  assert.ok(rejected.error);
+});
+
+test('engine contract matches only the corresponding request identity and generation', () => {
+  const request = EngineContract.createRequest({
+    requestId: 31, generation: 8, engineId: 'minmax_legacy', position: position(), limits: { depth: 1 }
+  });
+  const result = EngineContract.completed(request, {
+    from: { r: 7, c: 4 }, to: { r: 6, c: 4 }
+  });
+  assert.equal(EngineContract.matchesRequest(result, request), true);
+  assert.equal(EngineContract.matchesRequest({ ...result, requestId: 32 }, request), false);
+  assert.equal(EngineContract.matchesRequest({ ...result, generation: 9 }, request), false);
+});
+
 test('MinMax and MCTS return null when there are no legal moves', () => {
   const s = position();
   s.board = Array.from({ length: 8 }, () => Array(10).fill(null));
