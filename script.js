@@ -204,6 +204,19 @@ let lastClockDisplay = { w: null, b: null };
 let aiWorker = null;
 let aiRequestId = 0;
 let pendingAIRequest = null;
+
+// Invalidate in-flight work whenever the authoritative game position/lifecycle changes.
+// Worker termination is the cancellation acknowledgment available in the legacy transport.
+function cancelActiveAIRequest(reason = 'state-changed') {
+  aiRequestId++;
+  const worker = aiWorker;
+  aiWorker = null;
+  if (worker && typeof worker.terminate === 'function') worker.terminate();
+  pendingAIRequest = null;
+  isAIThinking = false;
+  clearTimeout(aiTimer);
+  debugLogger.add(`AI request cancelled: ${reason}`, 'info');
+}
 let gameStarted = false;
 let pendingPromotionMove = null;
 let playerColor = 'w';
@@ -541,7 +554,7 @@ function setEditorToggleLabel(label){
 }
 
 function setup(){
-  aiRequestId++;
+  cancelActiveAIRequest('new-game-or-setup');
   clearTimeout(aiTimer);
   stopClock();
   stopAutoPlay();
@@ -2058,7 +2071,7 @@ function clickSquare(r, c){
 }
 
 function undo(){
-  aiRequestId++;
+  cancelActiveAIRequest('undo');
   stopAutoPlay();
   clearTimeout(aiTimer);
   isAIThinking = false;
@@ -2076,7 +2089,7 @@ function undo(){
 }
 
 function redo(){
-  aiRequestId++;
+  cancelActiveAIRequest('redo');
   stopAutoPlay();
   clearTimeout(aiTimer);
   if (redoStack.length === 0 || editMode) return;
@@ -2189,9 +2202,7 @@ document.getElementById('autoBtn').addEventListener('click', toggleAutoPlay);
 document.getElementById('randomBtn').addEventListener('click', generateRandomMidgame);
 document.getElementById('sideSwitchBtn').addEventListener('click', () => {
   if (document.getElementById('modeSelect').value === 'ai_vs_ai') return;
-  aiRequestId++;
-  clearTimeout(aiTimer);
-  isAIThinking = false;
+  cancelActiveAIRequest('side-switch');
   playerColor = playerColor === 'w' ? 'b' : 'w';
   const sideSelect = document.getElementById('playerSideSelect');
   if (sideSelect) sideSelect.value = playerColor;
@@ -2207,6 +2218,7 @@ document.getElementById('sideSwitchBtn').addEventListener('click', () => {
 });
 
 document.getElementById('resetBtn').addEventListener('click', () => {
+  cancelActiveAIRequest('reset-button');
   if (gameStarted && !gameOver && moveLog.length > 0 && !confirm('Start a new game? The current game will be lost.')) return;
   setup();
 });
