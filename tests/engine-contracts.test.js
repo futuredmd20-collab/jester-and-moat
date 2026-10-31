@@ -656,6 +656,10 @@ test('worker runtime errors retry the selected engine on the main thread', () =>
     assert.equal(JSON.stringify(receivedState), JSON.stringify(s), 'fallback clone should preserve the position');
     assert.ok(failedRequestId > 0, 'worker request should have a valid identifier');
 
+    // The fallback deliberately returns null and ends the game; start a fresh test position
+    // before checking that a later request creates a replacement worker.
+    sandbox.api.resetAIWorker();
+    sandbox.api.setState(position());
     sandbox.api.aiMove();
     const replacementWorker = workerInstance;
     assert.notEqual(replacementWorker, failedWorker, 'a later request should create a fresh worker');
