@@ -20,12 +20,10 @@
  *      ensureAIWorker in script.js (clone, other, allLegalState, applyRaw,
  *      inCheck, evaluateBoard, ROWS, COLS). It defines no copies of those,
  *      so it cannot drift from the real rules.
- *   2. The worker message carries { id, state, depth, workerFn }; the worker
- *      dispatches workerFn to mctsGetMove or getBestMove. Both entry points
- *      use the same move signature and return shape.
- *   3. mctsEngine(level) returns the plugin object per the drafted
- *      interface, for when the extended protocol (plugin id + per-side
- *      config) lands. strength = { playouts, capDepth, temperature, rating }.
+ *   2. Structured protocol-v1 worker messages dispatch by engineId. The
+ *      legacy { id, state, depth, workerFn } transport remains as a compatibility path.
+ *   3. mctsEngine(level) exposes protocol-v1 search(request) and retains getMove
+ *      for legacy compatibility. strength = { playouts, capDepth, temperature, rating }.
  *   4. Promotion sentinel: playouts let applyRaw's fallback handle
  *      promoChoice (defaults to 'q'), matching the 'pending' contract
  *      recorded in ENGINE-PLUGINS.md. Do not add promoChoice handling here.
@@ -53,8 +51,8 @@
  *     estimates, not calibrated ratings.
  *
  * INTEGRATION STATUS: this module is referenced by index.html and included
- * in the sw.js precache list. The AI worker serializes these functions from
- * script.js; its dispatch must remain aligned with the workerFn protocol.
+ * in the sw.js precache list. The AI worker serializes its search helpers;
+ * structured requests select MCTS by engineId, with workerFn retained for compatibility.
  */
 
 'use strict';
@@ -199,9 +197,22 @@ function mctsEngine(level) {
   var lvl = mctsLevelFor(level);
   var cfg = MCTS_LEVELS[lvl];
   return {
+    id: 'mcts',
     name: 'MCTS (' + cfg.rating + ')',
     phases: ['opening', 'midgame', 'endgame'],
+    capabilities: [],
     strength: cfg,
+    search: function (request) {
+      if (!request || request.protocolVersion !== 1 || request.engineId !== this.id)
+        return EngineContract.failed(request, 'INVALID_REQUEST', 'Invalid MCTS search request.');
+      try {
+        var searchLevel = mctsLevelFor(request.limits && request.limits.depth);
+        return EngineContract.completed(request, mctsSearch(JSON.parse(JSON.stringify(request.position)), MCTS_LEVELS[searchLevel]));
+      } catch (error) {
+        return EngineContract.failed(request, 'SEARCH_FAILED', error && error.message || error);
+      }
+    },
+    // Compatibility entry point retained until the legacy transport is retired.
     getMove: function (gameState) { return mctsSearch(gameState, cfg); }
   };
 }
