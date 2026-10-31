@@ -131,7 +131,7 @@ test('MCTS contract search returns a structured legal move without mutating its 
     limits: { depth: 1 }
   });
   const before = JSON.stringify(request);
-  const engine = sandbox.api.enginePlugins.get('mcts');
+  const engine = sandbox.mctsEngine(1);
   const result = engine.search(request);
 
   assert.equal(result.status, EngineContract.statuses.COMPLETED);
