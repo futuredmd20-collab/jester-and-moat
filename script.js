@@ -245,7 +245,7 @@ function redoHistoryStep() {
   history.push(clone(state));
   historyMoveLogs.push(moveLog.slice());
   gameOver = Boolean(nextEntry.gameOver);
-  gameOverMessage = nextEntry.gameOverMessage || nextEntry.statusText || '';
+  gameOverMessage = gameOver ? (nextEntry.gameOverMessage || nextEntry.statusText || '') : '';
   if (gameOver) {
     const statusEl = document.getElementById('status');
     if (statusEl) statusEl.textContent = gameOverMessage || 'Game over.';

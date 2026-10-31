@@ -149,4 +149,4 @@ Purpose: dated record of decisions and changes, oldest first. Use the repository
 2026-10-31 — Undo/redo and save/load consistency
 * Track a move-log snapshot alongside each history state so undo/redo restores complete logs, including moat-destruction notices, and preserves the next moat-placement phase and turn.
 * Restore terminal-game status on redo and in exported saves. Validate imported board, piece, clock, phase, and history-log structures while keeping legacy saves without per-history log snapshots importable.
-* Added regression tests for history transitions, terminal status, JSON roundtrips, malformed saves, and legacy compatibility. GitHub Actions validation pending.
+* Added regression tests for history transitions, terminal status, JSON roundtrips, malformed saves, and legacy compatibility. GitHub Actions contract tests passed (51 tests, 0 failures).
