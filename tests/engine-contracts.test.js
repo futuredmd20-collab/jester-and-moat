@@ -1055,6 +1055,81 @@ test('lifecycle cancellation terminates the worker and invalidates the active re
   assert.equal(after.id, before + 1);
 });
 
+test('late worker replies after cancellation cannot affect the current game or replacement search', () => {
+  const previousCreateObjectURL = sandbox.URL.createObjectURL;
+  const previousRevokeObjectURL = sandbox.URL.revokeObjectURL;
+  const previousWorker = sandbox.Worker;
+  const previousWindowWorker = sandbox.window.Worker;
+  const workers = [];
+
+  class DelayedWorker {
+    constructor(url) {
+      this.url = url;
+      this.terminated = false;
+      this.onmessage = null;
+      this.onerror = null;
+      this.request = null;
+      workers.push(this);
+    }
+    postMessage(request) { this.request = request; }
+    terminate() { this.terminated = true; }
+  }
+
+  sandbox.api.resetAIWorker();
+  sandbox.URL.createObjectURL = () => 'blob:delayed-worker-test';
+  sandbox.URL.revokeObjectURL = () => {};
+  sandbox.Worker = DelayedWorker;
+  sandbox.window.Worker = DelayedWorker;
+
+  try {
+    const originalState = position();
+    originalState.board[6][0] = { type: 'r', color: 'w', moved: false };
+    sandbox.api.setState(originalState);
+    sandbox.api.aiMove();
+
+    const cancelledWorker = workers[0];
+    assert.ok(cancelledWorker, 'AI should start a worker search');
+    assert.ok(cancelledWorker.request.contractRequest, 'worker search should use the structured engine contract');
+    const cancelledRequest = cancelledWorker.request.contractRequest;
+    const oldRequestId = cancelledWorker.request.id;
+
+    sandbox.api.cancelActiveAIRequest('test-undo');
+    assert.equal(cancelledWorker.terminated, true, 'cancelling the search should terminate its worker');
+
+    const currentState = position();
+    currentState.board[6][1] = { type: 'r', color: 'w', moved: false };
+    sandbox.api.setState(currentState);
+    sandbox.api.aiMove();
+
+    const replacementWorker = workers[1];
+    assert.ok(replacementWorker, 'a new search should create a replacement worker');
+    assert.notEqual(replacementWorker, cancelledWorker);
+    assert.ok(replacementWorker.request.id > oldRequestId);
+
+    const legalMove = allLegalState(originalState)[0];
+    cancelledWorker.onmessage({
+      data: {
+        id: oldRequestId,
+        result: sandbox.api.EngineContract.completed(cancelledRequest, legalMove)
+      }
+    });
+
+    assert.equal(JSON.stringify(sandbox.api.getState()), JSON.stringify(currentState),
+      'a late reply must not apply a move to the new position');
+    const active = sandbox.api.getActiveAIForTest();
+    assert.equal(active.worker, replacementWorker, 'a stale reply must not replace the active worker');
+    assert.equal(active.request.id, replacementWorker.request.id,
+      'a stale reply must not clear the replacement search');
+    assert.equal(active.thinking, true, 'the replacement search should remain active');
+  } finally {
+    sandbox.api.resetAIWorker();
+    sandbox.URL.createObjectURL = previousCreateObjectURL;
+    sandbox.URL.revokeObjectURL = previousRevokeObjectURL;
+    sandbox.Worker = previousWorker;
+    sandbox.window.Worker = previousWindowWorker;
+  }
+});
+
 test('engine selection resolves the configured engine independently for each side and phase', () => {
   mockElement('whiteEngineSelect').value = 'mcts';
   mockElement('whiteEnginePhaseSelect').value = 'midgame';
