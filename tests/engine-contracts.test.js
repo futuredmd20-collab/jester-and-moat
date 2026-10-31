@@ -120,6 +120,28 @@ test('MinMax contract search returns a structured legal move without mutating it
   assert.equal(JSON.stringify(request), before);
 });
 
+test('MCTS contract search returns a structured legal move without mutating its frozen request', () => {
+  const s = position();
+  s.board[6][0] = { type: 'r', color: 'w', moved: false };
+  const request = EngineContract.createRequest({
+    requestId: 'mcts-contract-legal',
+    generation: 5,
+    engineId: 'mcts',
+    position: s,
+    limits: { depth: 1 }
+  });
+  const before = JSON.stringify(request);
+  const engine = sandbox.mctsEngine(1);
+  const result = engine.search(request);
+
+  assert.equal(result.status, EngineContract.statuses.COMPLETED);
+  assert.equal(result.requestId, request.requestId);
+  assert.equal(result.generation, request.generation);
+  assert.ok(EngineContract.validateMove(result.move));
+  assert.ok(allLegalState(s).some(m => JSON.stringify(m) === JSON.stringify(result.move)));
+  assert.equal(JSON.stringify(request), before);
+});
+
 test('MinMax contract search reports no-move and rejects requests for another engine', () => {
   const s = position();
   s.board = Array.from({ length: 8 }, () => Array(10).fill(null));
@@ -432,18 +454,42 @@ test('worker dispatches MinMax and returns a legal move', async () => {
   assert.ok(allLegalState(s).some(m => JSON.stringify(m) === JSON.stringify(response.result.move)));
 });
 
-test('worker dispatches MCTS and returns a legal move', async () => {
+test('worker dispatches structured MCTS requests and returns a legal move', async () => {
+  const worker = ensureAIWorker();
+  const s = position();
+  s.board[6][0] = { type: 'r', color: 'w', moved: false };
+  const contractRequest = EngineContract.createRequest({
+    requestId: 102, generation: 9, engineId: 'mcts',
+    position: s, limits: { depth: 1 }
+  });
+  const response = await new Promise(async resolve => {
+    worker.onmessage = event => resolve(event.data);
+    await worker.postMessage({ id: 102, contractRequest });
+  });
+
+  assert.equal(response.id, 102);
+  assert.equal(response.error, undefined);
+  assert.equal(response.result.protocolVersion, 1);
+  assert.equal(response.result.requestId, contractRequest.requestId);
+  assert.equal(response.result.generation, contractRequest.generation);
+  assert.equal(response.result.engineId, 'mcts');
+  assert.equal(response.result.status, EngineContract.statuses.COMPLETED);
+  assert.ok(response.result.move, 'structured MCTS worker should return a move');
+  assert.ok(allLegalState(s).some(m => JSON.stringify(m) === JSON.stringify(response.result.move)));
+});
+
+test('worker keeps legacy MCTS selector available during migration', async () => {
   const worker = ensureAIWorker();
   const s = position();
   s.board[6][0] = { type: 'r', color: 'w', moved: false };
   const response = await new Promise(async resolve => {
     worker.onmessage = event => resolve(event.data);
-    await worker.postMessage({ id: 102, state: s, depth: 1, workerFn: 'mctsGetMove' });
+    await worker.postMessage({ id: 104, state: s, depth: 1, workerFn: 'mctsGetMove' });
   });
 
-  assert.equal(response.id, 102);
+  assert.equal(response.id, 104);
   assert.equal(response.error, undefined);
-  assert.ok(response.move, 'MCTS should return a move');
+  assert.ok(response.move, 'legacy MCTS compatibility path should return a move');
   assert.ok(allLegalState(s).some(m => JSON.stringify(m) === JSON.stringify(response.move)));
 });
 

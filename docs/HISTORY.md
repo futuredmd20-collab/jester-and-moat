@@ -188,3 +188,10 @@ Purpose: dated record of decisions and changes, oldest first. Use the repository
 ## 2026-10-31 — Structured MinMax worker transport
 
 Continued the engine-contract migration by changing MinMax worker requests to carry the protocol-v1 request object and worker replies to carry request identity, generation, engine ID, status, move, and structured error details. Added a worker contract regression test. This does not yet replace the underlying `getBestMove` algorithm, and MCTS remains on the compatibility transport. CI verification is pending.
+
+
+## 2026-10-31 — Structured MCTS worker transport
+
+* Added the MCTS engine's protocol-v1 `search(request)` entry point with stable engine ID `mcts`; the existing MCTS search core and level presets are unchanged.
+* Structured worker requests now dispatch by engine ID to MinMax or MCTS and return the common request identity/status/result envelope. `aiMove()` sends structured requests for both engines, and main-thread fallback can use either engine's `search` entry point.
+* Added structured MCTS worker coverage while retaining a regression test for the legacy `workerFn: 'mctsGetMove'` compatibility path. Automated Actions verification is pending; live-browser verification of the migrated MCTS transport remains to be done.
