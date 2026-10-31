@@ -191,9 +191,11 @@ let selected = null;
 let animateNextMove = false;
 let legalTargets = [];
 let history = [];
+let historyMoveLogs = [];
 let redoStack = [];
 let moveLog = [];
 let gameOver = false;
+let gameOverMessage = '';
 let aiTimer = null;
 let autoPlayInterval = null;
 let lastMove = null;
@@ -212,6 +214,153 @@ let isAIThinking = false;
 let lastClockTickTime = null;
 
 function clone(x) { return JSON.parse(JSON.stringify(x)); }
+
+function pushHistorySnapshot() {
+  history.push(clone(state));
+  historyMoveLogs.push(moveLog.slice());
+  redoStack = [];
+}
+function replaceLatestHistorySnapshot() {
+  if (!history.length) { pushHistorySnapshot(); return; }
+  history[history.length - 1] = clone(state);
+  historyMoveLogs[historyMoveLogs.length - 1] = moveLog.slice();
+}
+function undoHistoryStep() {
+  if (history.length <= 1) return false;
+  const currentState = history.pop();
+  const currentMoveLog = historyMoveLogs.pop() || moveLog.slice();
+  redoStack.push({ state: clone(currentState), moveLog: currentMoveLog.slice(), gameOver,
+    gameOverMessage, statusText: document.getElementById('status').textContent });
+  state = clone(history[history.length - 1]);
+  moveLog = (historyMoveLogs[historyMoveLogs.length - 1] || []).slice();
+  gameOver = false;
+  gameOverMessage = '';
+  return true;
+}
+function redoHistoryStep() {
+  if (!redoStack.length) return false;
+  const nextEntry = redoStack.pop();
+  state = clone(nextEntry.state);
+  moveLog = (nextEntry.moveLog || []).slice();
+  history.push(clone(state));
+  historyMoveLogs.push(moveLog.slice());
+  gameOver = Boolean(nextEntry.gameOver);
+  gameOverMessage = gameOver ? (nextEntry.gameOverMessage || nextEntry.statusText || '') : '';
+  if (gameOver) {
+    const statusEl = document.getElementById('status');
+    if (statusEl) statusEl.textContent = gameOverMessage || 'Game over.';
+  }
+  return true;
+}
+function validSavedCoordinate(value, maxRow = ROWS - 1, maxCol = COLS - 1) {
+  return value === null || (value && Number.isInteger(value.r) && Number.isInteger(value.c) &&
+    value.r >= 0 && value.r <= maxRow && value.c >= 0 && value.c <= maxCol);
+}
+function normalizeSavedState(candidate, initialTime = 0) {
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate) || !Array.isArray(candidate.board) ||
+      candidate.board.length !== ROWS || candidate.board.some(row => !Array.isArray(row) || row.length !== COLS)) {
+    throw new Error('Invalid board dimensions in save file.');
+  }
+  if (!['w', 'b'].includes(candidate.turn)) throw new Error('Invalid side to move in save file.');
+  for (const row of candidate.board) for (const piece of row) {
+    if (piece !== null && (!piece || typeof piece !== 'object' || Array.isArray(piece) ||
+        !['k', 'q', 'r', 'b', 'n', 'p', 'j'].includes(piece.type) || !['w', 'b'].includes(piece.color) ||
+        (piece.moved !== undefined && typeof piece.moved !== 'boolean'))) {
+      throw new Error('Invalid piece in save file.');
+    }
+  }
+  const normalized = clone(candidate);
+  if (normalized.phase === undefined) normalized.phase = 'normal';
+  if (!['normal', 'place_moat_w', 'place_moat_b'].includes(normalized.phase)) throw new Error('Invalid game phase in save file.');
+  if (normalized.ply === undefined) normalized.ply = 0;
+  else if (!Number.isInteger(normalized.ply) || normalized.ply < 0) throw new Error('Invalid ply in save file.');
+  if (normalized.ep === undefined) normalized.ep = null;
+  if (!validSavedCoordinate(normalized.ep)) throw new Error('Invalid en passant target in save file.');
+  if (normalized.moats === undefined) normalized.moats = { w: null, b: null };
+  if (!normalized.moats || typeof normalized.moats !== 'object' || Array.isArray(normalized.moats)) throw new Error('Invalid moat coordinates in save file.');
+  for (const side of ['w', 'b']) {
+    if (normalized.moats[side] === undefined) normalized.moats[side] = null;
+    if (!validSavedCoordinate(normalized.moats[side], ROWS - 1, COLS - 3)) throw new Error('Invalid moat coordinates in save file.');
+  }
+  const normalizeSideMap = (field, defaults, validate, errorMessage) => {
+    if (normalized[field] === undefined) normalized[field] = clone(defaults);
+    if (!normalized[field] || typeof normalized[field] !== 'object' || Array.isArray(normalized[field])) throw new Error(errorMessage);
+    for (const side of ['w', 'b']) {
+      if (normalized[field][side] === undefined) normalized[field][side] = clone(defaults[side]);
+      if (!validate(normalized[field][side])) throw new Error(errorMessage);
+    }
+  };
+  normalizeSideMap('moatDestroyed', { w: false, b: false }, value => typeof value === 'boolean', 'Invalid moat status in save file.');
+  normalizeSideMap('hasPlacedMoat', { w: Boolean(normalized.moats.w), b: Boolean(normalized.moats.b) },
+    value => typeof value === 'boolean', 'Invalid moat placement status in save file.');
+  normalizeSideMap('moveCounts', { w: 0, b: 0 }, value => Number.isInteger(value) && value >= 0, 'Invalid move counts in save file.');
+  normalizeSideMap('captured', { w: [], b: [] }, value => Array.isArray(value) && value.every(piece =>
+    piece && typeof piece === 'object' && !Array.isArray(piece) &&
+    ['k', 'q', 'r', 'b', 'n', 'p', 'j'].includes(piece.type) && ['w', 'b'].includes(piece.color) &&
+    (piece.moved === undefined || typeof piece.moved === 'boolean')), 'Invalid captured pieces in save file.');
+  if (normalized.halfmoveClock === undefined) normalized.halfmoveClock = 0;
+  else if (!Number.isFinite(normalized.halfmoveClock) || normalized.halfmoveClock < 0) throw new Error('Invalid halfmove clock in save file.');
+  if (normalized.positionHistory === undefined) normalized.positionHistory = {};
+  if (!normalized.positionHistory || typeof normalized.positionHistory !== 'object' || Array.isArray(normalized.positionHistory)) throw new Error('Invalid position history in save file.');
+  if (normalized.clocks === undefined) normalized.clocks = { w: initialTime, b: initialTime };
+  if (!normalized.clocks || typeof normalized.clocks !== 'object' || Array.isArray(normalized.clocks)) throw new Error('Invalid clocks in save file.');
+  for (const side of ['w', 'b']) {
+    if (normalized.clocks[side] === undefined) normalized.clocks[side] = initialTime;
+    if (!Number.isFinite(normalized.clocks[side]) || normalized.clocks[side] < 0) throw new Error('Invalid clocks in save file.');
+  }
+  return normalized;
+}
+function canonicalSavedValue(value) {
+  if (Array.isArray(value)) return value.map(canonicalSavedValue);
+  if (value && typeof value === 'object') {
+    const sorted = {};
+    for (const key of Object.keys(value).sort()) sorted[key] = canonicalSavedValue(value[key]);
+    return sorted;
+  }
+  return value;
+}
+function savedValuesEqual(a, b) {
+  return JSON.stringify(canonicalSavedValue(a)) === JSON.stringify(canonicalSavedValue(b));
+}
+function exportGameData() {
+  return { state: clone(state), moveLog: moveLog.slice(), history: clone(history),
+    historyMoveLogs: clone(historyMoveLogs), gameStarted, playerColor, gameOver, gameOverMessage };
+}
+function parseGameData(input, initialTime = 0) {
+  const parsed = typeof input === 'string' ? JSON.parse(input) : input;
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || !Array.isArray(parsed.history) || parsed.history.length === 0) throw new Error('Invalid save state format.');
+  const normalizedState = normalizeSavedState(parsed.state, initialTime);
+  const normalizedHistory = parsed.history.map(item => normalizeSavedState(item, initialTime));
+  const logs = parsed.moveLog === undefined ? [] : parsed.moveLog;
+  if (!Array.isArray(logs) || logs.some(line => typeof line !== 'string')) throw new Error('Invalid move log in save file.');
+  let logHistory;
+  if (parsed.historyMoveLogs !== undefined) {
+    logHistory = parsed.historyMoveLogs;
+    if (!Array.isArray(logHistory) || logHistory.length !== normalizedHistory.length ||
+        logHistory.some(snapshot => !Array.isArray(snapshot) || snapshot.some(line => typeof line !== 'string'))) throw new Error('Invalid history log snapshots in save file.');
+    logHistory = logHistory.map(snapshot => snapshot.slice());
+    if (!savedValuesEqual(logs, logHistory[logHistory.length - 1])) throw new Error('Current move log does not match the latest history log snapshot.');
+  } else {
+    logHistory = normalizedHistory.map((_, index) => index === normalizedHistory.length - 1 ? logs.slice() : logs.slice(0, Math.min(index, logs.length)));
+  }
+  const currentComparable = clone(normalizedState);
+  const latestHistoryComparable = clone(normalizedHistory[normalizedHistory.length - 1]);
+  // Clocks tick between moves, so the current saved clocks may legitimately be newer than the history snapshot.
+  delete currentComparable.clocks;
+  delete latestHistoryComparable.clocks;
+  if (!savedValuesEqual(currentComparable, latestHistoryComparable)) throw new Error('Current state does not match the latest history snapshot.');
+  // Keep the current clock values when redo restores the latest position after loading.
+  normalizedHistory[normalizedHistory.length - 1].clocks = clone(normalizedState.clocks);
+  const savedPlayerColor = parsed.playerColor === undefined ? 'w' : parsed.playerColor;
+  if (!['w', 'b'].includes(savedPlayerColor)) throw new Error('Invalid player side in save file.');
+  if (parsed.gameStarted !== undefined && typeof parsed.gameStarted !== 'boolean') throw new Error('Invalid game-started flag in save file.');
+  if (parsed.gameOver !== undefined && typeof parsed.gameOver !== 'boolean') throw new Error('Invalid game-over flag in save file.');
+  if (parsed.gameOverMessage !== undefined && typeof parsed.gameOverMessage !== 'string') throw new Error('Invalid game-over message in save file.');
+  return { state: normalizedState, moveLog: logs.slice(), history: normalizedHistory, historyMoveLogs: logHistory,
+    gameStarted: parsed.gameStarted === undefined ? true : parsed.gameStarted, playerColor: savedPlayerColor,
+    gameOver: parsed.gameOver === true, gameOverMessage: parsed.gameOverMessage || '' };
+}
+
 function inside(r, c) { return r >= 0 && r < ROWS && c >= 0 && c < COLS; }
 function other(color) { return color === "w" ? "b" : "w"; }
 function makePiece(type, color) { return { type, color, moved: false }; }
@@ -448,7 +597,7 @@ function setup(){
   };
 
   state.positionHistory[getPositionKey(state)] = 1;
-  selected = null; legalTargets = []; history = [clone(state)]; redoStack = []; moveLog = []; lastMove = null; gameOver = false; gameStarted = false; pendingPromotionMove = null;
+  selected = null; legalTargets = []; moveLog = []; history = [clone(state)]; historyMoveLogs = [moveLog.slice()]; redoStack = []; lastMove = null; gameOver = false; gameOverMessage = ''; gameStarted = false; pendingPromotionMove = null;
   hideGameOverOverlay();
   
   lastClockDisplay = { w: null, b: null };
@@ -474,6 +623,7 @@ function status(s) {
   }
   const statusEl = document.getElementById("status");
   statusEl.textContent = fullMsg;
+  if (gameOver) gameOverMessage = fullMsg;
   debugLogger.add(fullMsg, 'info');
 }
 
@@ -1196,14 +1346,14 @@ function play(m, promoChoice = 'q', silent = false){
 
   lastMove = {from: m.from, to: m.to};
   if (!silent) animateNextMove = true;
-  history.push(clone(state));
-  redoStack = [];
+  pushHistorySnapshot();
   selected = null; legalTargets = [];
 
   if (promo === 'moat') {
     state.phase = `place_moat_${mover}`;
     state.turn = mover;
     pendingMoat = null;
+    replaceLatestHistorySnapshot();
     if (!silent) {
       status(`MOAT RE-DEPLOYMENT: ${mover==='w'?'White':'Black'}'s new 1x3 moat!`);
       updateClockUI();
@@ -1233,6 +1383,7 @@ function play(m, promoChoice = 'q', silent = false){
         setTimeout(()=>aiPlaceMoatForColor('b'), getSpeed());
       }
     }
+    replaceLatestHistorySnapshot();
     if (!silent) {
       updateClockUI();
       render();
@@ -1337,8 +1488,7 @@ function confirmMoatPlacement(){
   const moveNumber = moveLog.length + 1;
   moveLog.push(`${moveNumber}. ${color==='w'?'White':'Black'}: Moat ${col1}${rowName}-${col3}${rowName} (${formatTime(state.clocks[color])})`);
 
-  history.push(clone(state));
-  redoStack = [];
+  pushHistorySnapshot();
   pendingMoat = null;
 
   if (color==='w' && !state.hasPlacedMoat['b']){
@@ -1360,6 +1510,7 @@ function confirmMoatPlacement(){
       aiTimer = setTimeout(aiMove, getSpeed());
     }
   }
+  replaceLatestHistorySnapshot();
 }
 
 function aiPlaceMoatForColor(color, silent = false){
@@ -1379,8 +1530,7 @@ function aiPlaceMoatForColor(color, silent = false){
   const moveNumber = moveLog.length + 1;
   moveLog.push(`${moveNumber}. ${color==='w'?'White':'Black'}: Moat ${col1}${rowName}-${col3}${rowName} (${formatTime(state.clocks[color])})`);
 
-  history.push(clone(state));
-  redoStack = [];
+  pushHistorySnapshot();
 
   if (color === 'w' && !state.hasPlacedMoat['b']){
     state.phase = 'place_moat_b';
@@ -1405,6 +1555,7 @@ function aiPlaceMoatForColor(color, silent = false){
       }
     }
   }
+  replaceLatestHistorySnapshot();
 }
 
 function toggleEditor(){
@@ -1500,9 +1651,10 @@ function validateAndPlayPosition(){
   document.getElementById('editorPanel').classList.remove('active');
   setEditorToggleLabel('Edit Board');
   gameStarted = true;
-  history = [clone(state)];
-  redoStack = [];
   moveLog = ["1. Position & clocks set via Board Editor."];
+  history = [clone(state)];
+  historyMoveLogs = [moveLog.slice()];
+  redoStack = [];
   selected = null; legalTargets = [];
   status(`Custom position loaded! Game started. Turn: ${state.turn==='w'?'White':'Black'}`);
   updateClockUI();
@@ -1776,13 +1928,10 @@ function undo(){
   isAIThinking = false;
   if (history.length <= 1 || editMode) return;
 
-  const currentLog = moveLog.pop();
-  const currentState = history.pop();
-  redoStack.push({ state: currentState, log: currentLog });
-  state = clone(history[history.length - 1]);
+  if (!undoHistoryStep()) return;
 
   gameStarted = (history.length > 1);
-  selected = null; legalTargets = []; lastMove = null; gameOver = false; pendingMoat = null;
+  selected = null; legalTargets = []; lastMove = null; pendingMoat = null;
   hideGameOverOverlay();
   status(`Turn: ${state.turn === 'w' ? 'White' : 'Black'}`);
   lastClockTickTime = performance.now();
@@ -1796,22 +1945,22 @@ function redo(){
   clearTimeout(aiTimer);
   if (redoStack.length === 0 || editMode) return;
 
-  const nextEntry = redoStack.pop();
-  history.push(nextEntry.state);
-  if (nextEntry.log) moveLog.push(nextEntry.log);
+  if (!redoHistoryStep()) return;
   
-  state = clone(nextEntry.state);
   gameStarted = true;
-  selected = null; legalTargets = []; gameOver = false; pendingMoat = null;
-  hideGameOverOverlay();
-  status(`Turn: ${state.turn === 'w' ? 'White' : 'Black'}`);
+  selected = null; legalTargets = []; pendingMoat = null;
+  if (!gameOver) {
+    hideGameOverOverlay();
+    status(`Turn: ${state.turn === 'w' ? 'White' : 'Black'}`);
+  }
   lastClockTickTime = performance.now();
   updateClockUI();
   render();
+  if (gameOver) showGameOverOverlay();
 }
 
 document.getElementById('exportFileBtn').addEventListener('click', () => {
-  const data = JSON.stringify({state, moveLog, history, gameStarted, playerColor}, null, 2);
+  const data = JSON.stringify(exportGameData(), null, 2);
   const blob = new Blob([data], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1832,36 +1981,31 @@ document.getElementById('fileInput').addEventListener('change', (event) => {
   const reader = new FileReader();
   reader.onload = function(e){
     try {
-      const parsed = JSON.parse(e.target.result);
-      if (parsed && parsed.state && parsed.history){
-        state = parsed.state;
-        gameStarted = parsed.gameStarted !== undefined ? parsed.gameStarted : true;
-        if (parsed.playerColor) {
-          playerColor = parsed.playerColor;
-          document.getElementById('playerSideSelect').value = playerColor;
-          const boardEl = document.getElementById('board');
-          if (playerColor === 'b') boardEl.classList.add('flipped');
-          else boardEl.classList.remove('flipped');
-        }
-        if (!state.captured) state.captured = {w:[], b:[]};
-        if (!state.halfmoveClock) state.halfmoveClock = 0;
-        if (!state.clocks) {
-          const initT = parseInt(document.getElementById('timeSelect').value, 10);
-          state.clocks = { w: initT, b: initT };
-        }
-        if (!state.positionHistory) {
-          state.positionHistory = {};
-          state.positionHistory[getPositionKey(state)] = 1;
-        }
-        moveLog = parsed.moveLog || [];
-        history = parsed.history || [clone(state)];
-        redoStack = []; selected = null; legalTargets = []; lastMove = null; gameOver = false; pendingMoat = null;
-        lastClockTickTime = performance.now();
-        updateClockUI();
-        render();
-        status("Game state loaded from file successfully!");
+      const initialTime = parseInt(document.getElementById('timeSelect').value, 10) || 0;
+      const parsed = parseGameData(e.target.result, initialTime);
+      state = parsed.state;
+      gameStarted = parsed.gameStarted;
+      playerColor = parsed.playerColor;
+      document.getElementById('playerSideSelect').value = playerColor;
+      const boardEl = document.getElementById('board');
+      if (playerColor === 'b') boardEl.classList.add('flipped');
+      else boardEl.classList.remove('flipped');
+      moveLog = parsed.moveLog;
+      history = parsed.history;
+      historyMoveLogs = parsed.historyMoveLogs;
+      redoStack = [];
+      gameOver = parsed.gameOver;
+      gameOverMessage = parsed.gameOverMessage;
+      selected = null; legalTargets = []; lastMove = null; pendingMoat = null;
+      lastClockTickTime = performance.now();
+      updateClockUI();
+      render();
+      if (gameOver) {
+        status(gameOverMessage || 'Game over.');
+        showGameOverOverlay();
       } else {
-        alert("Invalid save state format.");
+        hideGameOverOverlay();
+        status("Game state loaded from file successfully!");
       }
     } catch(err) {
       alert("Could not parse JSON file.");
