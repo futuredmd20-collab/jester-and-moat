@@ -4,7 +4,7 @@ Purpose: capture the proposed shared contract and staged implementation plan for
 
 ## Status and scope
 
-**Status:** Implementation in progress — protocol v1 and the initial MinMax contract entry point are in place; the complete MinMax refactor and MCTS migration remain pending.
+**Status:** Implementation in progress — protocol v1 is in place; the UI-coupled MinMax `getMove` compatibility entry point has been removed on the current work branch. Worker transport still uses the legacy raw-move function, and the complete MinMax refactor and MCTS migration remain pending.
 
 The goal is a reliable, easy-to-extend internal interface for the game's own engines, initially MinMax and MCTS. This is not a public third-party plugin SDK and does not call for a dynamic plugin marketplace or general-purpose extension framework.
 
@@ -66,7 +66,7 @@ This plan records the design baseline discussed on 2026-10-31. It distinguishes 
 
 - [x] **A. Inspect current runtime and tests.** Map current engine registry, worker dispatch, move formats, cancellation behavior, state snapshots, configuration, and failure paths. Resolve any mismatch between this plan and actual code before implementation.
 - [x] **B. Specify the contract.** Initial protocol v1 defines request identity/generation, isolated frozen position snapshots, depth/time limits, result statuses, stable error codes, and move-shape validation. Lifecycle cancellation has now been added at key game transitions by invalidating the active request and terminating the legacy worker. A manager-owned cancellation acknowledgment protocol is still outstanding. Define lifecycle states, request/response shapes, canonical move schema, snapshot completeness, capability declarations, configuration validation, cancellation semantics, stale-result rules, and error categories.
-- [ ] **C. Refactor MinMax.** In progress: MinMax now exposes a structured `search(request)` entry point; the legacy algorithm and worker selector remain as a compatibility path and must still be removed/refactored before this step is complete. Implement the contract while preserving move legality and existing difficulty behavior. Add or update contract-level tests.
+- [ ] **C. Refactor MinMax.** In progress: MinMax exposes structured `search(request)` and no longer exposes the UI-coupled `getMove(gameState, side)` entry point. The worker transport still selects the legacy raw-move `getBestMove` function, so the algorithm/transport boundary is not yet fully migrated. Preserve move legality and existing difficulty behavior; add contract-level tests.
 - [ ] **D. Verify MinMax.** Test successful searches, cancellation, stale responses, invalid output rejection, resets/context changes, configuration validation, and failure reporting.
 - [ ] **E. Adapt MCTS.** Implement the same contract and declare only capabilities it truly supports.
 - [ ] **F. Verify cross-engine behavior.** Run shared contract tests against both engines, then integration/regression tests for worker transport, side/phase selection, special moves, game lifecycle changes, and fallback policy.
@@ -98,3 +98,5 @@ This plan records the design baseline discussed on 2026-10-31. It distinguishes 
 - **2026-10-31:** Recorded the shared-engine architecture baseline and proposed implementation sequence from design discussion.
 - **2026-10-31:** Started implementation on `feat/engine-contract-minmax-2026-10-31`. Added protocol-v1 request/result helpers, an initial structured MinMax search entry point, worker-boundary result normalization and legality checks, and contract tests. Automated tests have not yet been run; MCTS migration, structured worker transport, lifecycle manager/cancellation acknowledgment, and complete MinMax refactoring remain outstanding.
 - **2026-10-31:** Added lifecycle invalidation for setup/new-game, reset, undo, redo, and side switching. It terminates the legacy worker and invalidates pending request identity to prevent late replies from changing the current game. This is best-effort transport cancellation, not the planned explicit cancellation-acknowledgment protocol. Added a focused regression test; the suite has not yet been executed.
+
+- **2026-10-31:** Continued after PR #62 was merged. Removed MinMax's UI-coupled legacy `getMove` entry point so the engine itself no longer reads `modeSelect`; search depth comes from the structured request. Added a regression assertion. This is a partial refactor only: worker dispatch still uses the legacy raw-move function, and this branch's CI result is pending.
