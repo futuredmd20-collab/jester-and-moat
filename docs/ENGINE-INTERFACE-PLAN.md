@@ -4,7 +4,7 @@ Purpose: capture the proposed shared contract and staged implementation plan for
 
 ## Status and scope
 
-**Status:** Design recorded; implementation not started by this plan.
+**Status:** Implementation in progress — protocol v1 and the initial MinMax contract entry point are in place; the complete MinMax refactor and MCTS migration remain pending.
 
 The goal is a reliable, easy-to-extend internal interface for the game's own engines, initially MinMax and MCTS. This is not a public third-party plugin SDK and does not call for a dynamic plugin marketplace or general-purpose extension framework.
 
@@ -64,9 +64,9 @@ This plan records the design baseline discussed on 2026-10-31. It distinguishes 
 
 ## Proposed implementation sequence
 
-- [ ] **A. Inspect current runtime and tests.** Map current engine registry, worker dispatch, move formats, cancellation behavior, state snapshots, configuration, and failure paths. Resolve any mismatch between this plan and actual code before implementation.
-- [ ] **B. Specify the contract.** Define lifecycle states, request/response shapes, canonical move schema, snapshot completeness, capability declarations, configuration validation, cancellation semantics, stale-result rules, and error categories.
-- [ ] **C. Refactor MinMax.** Implement the contract while preserving move legality and existing difficulty behavior. Add or update contract-level tests.
+- [x] **A. Inspect current runtime and tests.** Map current engine registry, worker dispatch, move formats, cancellation behavior, state snapshots, configuration, and failure paths. Resolve any mismatch between this plan and actual code before implementation.
+- [x] **B. Specify the contract.** Initial protocol v1 defines request identity/generation, isolated frozen position snapshots, depth/time limits, result statuses, stable error codes, and move-shape validation. The full lifecycle/cancellation manager remains to be implemented. Define lifecycle states, request/response shapes, canonical move schema, snapshot completeness, capability declarations, configuration validation, cancellation semantics, stale-result rules, and error categories.
+- [ ] **C. Refactor MinMax.** In progress: MinMax now exposes a structured `search(request)` entry point; the legacy algorithm and worker selector remain as a compatibility path and must still be removed/refactored before this step is complete. Implement the contract while preserving move legality and existing difficulty behavior. Add or update contract-level tests.
 - [ ] **D. Verify MinMax.** Test successful searches, cancellation, stale responses, invalid output rejection, resets/context changes, configuration validation, and failure reporting.
 - [ ] **E. Adapt MCTS.** Implement the same contract and declare only capabilities it truly supports.
 - [ ] **F. Verify cross-engine behavior.** Run shared contract tests against both engines, then integration/regression tests for worker transport, side/phase selection, special moves, game lifecycle changes, and fallback policy.
@@ -95,4 +95,5 @@ This plan records the design baseline discussed on 2026-10-31. It distinguishes 
 
 ## Change log
 
-- **2026-10-31:** Recorded the shared-engine architecture baseline and proposed implementation sequence from design discussion. No runtime code or tests were changed by this plan.
+- **2026-10-31:** Recorded the shared-engine architecture baseline and proposed implementation sequence from design discussion.
+- **2026-10-31:** Started implementation on `feat/engine-contract-minmax-2026-10-31`. Added protocol-v1 request/result helpers, an initial structured MinMax search entry point, worker-boundary result normalization and legality checks, and contract tests. Automated tests have not yet been run; MCTS migration, lifecycle manager/cancellation acknowledgment, and complete MinMax refactoring remain outstanding.
