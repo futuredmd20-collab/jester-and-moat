@@ -206,7 +206,7 @@ let aiRequestId = 0;
 let pendingAIRequest = null;
 
 // Invalidate in-flight work whenever the authoritative game position/lifecycle changes.
-// Worker termination is the cancellation acknowledgment available in the legacy transport.
+// The legacy transport has no cancellation acknowledgment; terminating its worker is the hard-stop mechanism.
 function cancelActiveAIRequest(reason = 'state-changed') {
   aiRequestId++;
   const worker = aiWorker;
