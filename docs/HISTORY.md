@@ -160,3 +160,10 @@ Purpose: dated record of decisions and changes, oldest first. Use the repository
 2026-10-31 — Browser verification of save/import and undo/redo
 * The user tested the current task branch through GitHub Pages. Save/reload or import, undo/redo and clocks, moat transitions, and rejection of malformed saves without disturbing the active game all passed.
 * Recorded as manual browser verification, separate from the 56-test GitHub Actions result on commit `6191f3c`. No game code changed for this verification.
+
+
+2026-10-31 — Engine Plugins browser verification completed
+* The user concluded the current Engine Plugins test pass. Manual play exercised MinMax and MCTS without visible errors; White/Black configuration independence and restoration after ordinary reload were confirmed while the browser cache remained intact.
+* The full game log showed phase-specific engine selection and matching worker dispatch. In the second game, White used MCTS in opening, both sides used MinMax in midgame, and Black used MCTS in endgame. The game ended by checkmate at ply 79; no obvious engine/worker errors appeared in the reviewed log.
+* Persistence after cache clearing, MCTS load failure, worker-construction/runtime recovery, offline behavior, strength calibration, and additional special-case regressions remain unverified or future work. The user chose to stop testing for now.
+* No game code changed for this verification.
