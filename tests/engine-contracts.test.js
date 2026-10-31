@@ -909,11 +909,12 @@ test('late worker result after a crash cannot bypass or duplicate the scheduled 
   sandbox.Worker = CrashingWorker;
   sandbox.window.Worker = CrashingWorker;
   sandbox.api.enginePlugins.set('minmax_legacy', {
+    id: 'minmax_legacy',
     name: 'MinMax crash fallback probe',
     phases: ['opening', 'midgame', 'endgame'],
-    getMove() {
+    search(request) {
       calls++;
-      return null;
+      return EngineContract.failed(request, EngineContract.errorCodes.SEARCH_FAILED, 'fallback probe');
     }
   });
 
