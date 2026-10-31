@@ -1051,3 +1051,34 @@ test('lifecycle cancellation terminates the worker and invalidates the active re
   assert.equal(after.thinking, false);
   assert.equal(after.id, before + 1);
 });
+
+test('engine selection resolves the configured engine independently for each side and phase', () => {
+  mockElement('whiteEngineSelect').value = 'mcts';
+  mockElement('whiteEnginePhaseSelect').value = 'midgame';
+  mockElement('blackEngineSelect').value = 'mcts';
+  mockElement('blackEnginePhaseSelect').value = 'endgame';
+  sandbox.api.updateEngineConfigUI();
+
+  const midgame = position();
+  midgame.ply = 10;
+  midgame.board = Array.from({ length: 8 }, () => Array(10).fill(null));
+  for (let i = 0; i < 20; i++) {
+    midgame.board[Math.floor(i / 10)][i % 10] = {
+      type: 'p', color: i % 2 ? 'b' : 'w', moved: true
+    };
+  }
+  setState(midgame);
+  assert.equal(getEngineForSide('w').id, 'mcts', 'White should use MCTS in its configured midgame phase');
+  assert.equal(getEngineForSide('b').id, 'minmax_legacy', 'Black should retain MinMax outside its configured endgame phase');
+
+  const endgame = position();
+  endgame.board = Array.from({ length: 8 }, () => Array(10).fill(null));
+  for (let i = 0; i < 16; i++) {
+    endgame.board[Math.floor(i / 10)][i % 10] = {
+      type: 'p', color: i % 2 ? 'b' : 'w', moved: true
+    };
+  }
+  setState(endgame);
+  assert.equal(getEngineForSide('w').id, 'minmax_legacy', 'White should retain MinMax outside its configured midgame phase');
+  assert.equal(getEngineForSide('b').id, 'mcts', 'Black should use MCTS in its configured endgame phase');
+});
