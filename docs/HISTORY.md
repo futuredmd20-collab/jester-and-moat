@@ -156,3 +156,7 @@ Purpose: dated record of decisions and changes, oldest first. Use the repository
 * Defined the compatibility boundary for save imports: absent legacy fields receive defaults, but explicitly malformed values are rejected.
 * Added consistency checks between the current state and latest history snapshot (allowing current clocks to be newer), and between the current move log and latest history-log snapshot.
 * Added focused tests and an indexed plan. GitHub Actions passed the complete contract suite (56 tests, 0 failures) on commit `6191f3c`; real-browser verification remains outstanding.
+
+2026-10-31 — Browser verification of save/import and undo/redo
+* The user tested the current task branch through GitHub Pages. Save/reload or import, undo/redo and clocks, moat transitions, and rejection of malformed saves without disturbing the active game all passed.
+* Recorded as manual browser verification, separate from the 56-test GitHub Actions result on commit `6191f3c`. No game code changed for this verification.
