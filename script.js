@@ -214,8 +214,8 @@ function cancelActiveAIRequest(reason = 'state-changed') {
   if (worker && typeof worker.terminate === 'function') worker.terminate();
   pendingAIRequest = null;
   isAIThinking = false;
-  clearTimeout(aiTimer);
-  debugLogger.add(`AI request cancelled: ${reason}`, 'info');
+  if (typeof clearTimeout === 'function') clearTimeout(aiTimer);
+  if (debugLogger && typeof debugLogger.add === 'function') debugLogger.add(`AI request cancelled: ${reason}`, 'info');
 }
 let gameStarted = false;
 let pendingPromotionMove = null;
