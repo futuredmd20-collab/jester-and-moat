@@ -195,3 +195,10 @@ Continued the engine-contract migration by changing MinMax worker requests to ca
 * Added the MCTS engine's protocol-v1 `search(request)` entry point with stable engine ID `mcts`; the existing MCTS search core and level presets are unchanged.
 * Structured worker requests now dispatch by engine ID to MinMax or MCTS and return the common request identity/status/result envelope. `aiMove()` sends structured requests for both engines, and main-thread fallback can use either engine's `search` entry point.
 * Added structured MCTS worker coverage while retaining a regression test for the legacy `workerFn: 'mctsGetMove'` compatibility path. Automated Actions verification is pending; live-browser verification of the migrated MCTS transport remains to be done.
+
+
+## 2026-10-31 — MCTS structured transport verified
+
+* PR #66 (`refactor: migrate MCTS to structured engine protocol`) was merged and its feature branch deleted by the repository owner.
+* GitHub Actions run 105 passed all 67 tests with 0 failures.
+* The repository owner tested the merged GitHub Pages build and reported no visible issues. This is browser verification of the exercised path, not a claim that every engine/lifecycle/fallback scenario has been covered.
