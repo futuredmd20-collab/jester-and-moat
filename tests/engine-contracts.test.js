@@ -75,6 +75,9 @@ vm.runInContext(source.slice(0, boundary) + `
 globalThis.api = { EngineContract, MinMaxLegacy, cancelActiveAIRequest, setActiveAIForTest(worker, request) { aiWorker = worker; pendingAIRequest = request; isAIThinking = true; }, getActiveAIForTest() { return { worker: aiWorker, request: pendingAIRequest, thinking: isAIThinking, id: aiRequestId }; }, allLegalState, getBestMove, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; gameOver = false; gameOverMessage = ''; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getDefaultEngineForSide() { return defaultEngineForSide; }, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, ENGINE_PHASES };
 `, sandbox, { filename: 'script.js' });
 vm.runInContext(mcts, sandbox, { filename: 'engines/mcts-engine.js' });
+// The app's HTML loads the MCTS module before script.js; register its plugin here
+// because this test harness evaluates script.js first to expose the test API.
+sandbox.api.enginePlugins.set('mcts', sandbox.mctsEngine(2));
 
 function position() {
   const board = Array.from({ length: 8 }, () => Array(10).fill(null));
@@ -1050,4 +1053,36 @@ test('lifecycle cancellation terminates the worker and invalidates the active re
   assert.equal(after.request, null);
   assert.equal(after.thinking, false);
   assert.equal(after.id, before + 1);
+});
+
+test('engine selection resolves the configured engine independently for each side and phase', () => {
+  mockElement('whiteEngineSelect').value = 'mcts';
+  mockElement('whiteEnginePhaseSelect').value = 'midgame';
+  mockElement('blackEngineSelect').value = 'mcts';
+  mockElement('blackEnginePhaseSelect').value = 'endgame';
+  sandbox.api.updateEngineConfigUI();
+
+  const midgame = position();
+  midgame.ply = 10;
+  midgame.board = Array.from({ length: 8 }, () => Array(10).fill(null));
+  for (let i = 0; i < 20; i++) {
+    midgame.board[Math.floor(i / 10)][i % 10] = {
+      type: 'p', color: i % 2 ? 'b' : 'w', moved: true
+    };
+  }
+  setState(midgame);
+  assert.equal(sandbox.api.getEngineForSide('w').id, 'mcts', 'White should use MCTS in its configured midgame phase');
+  assert.equal(sandbox.api.getEngineForSide('b').id, 'minmax_legacy', 'Black should retain MinMax outside its configured endgame phase');
+
+  const endgame = position();
+  endgame.ply = 10;
+  endgame.board = Array.from({ length: 8 }, () => Array(10).fill(null));
+  for (let i = 0; i < 16; i++) {
+    endgame.board[Math.floor(i / 10)][i % 10] = {
+      type: 'p', color: i % 2 ? 'b' : 'w', moved: true
+    };
+  }
+  setState(endgame);
+  assert.equal(sandbox.api.getEngineForSide('w').id, 'minmax_legacy', 'White should retain MinMax outside its configured midgame phase');
+  assert.equal(sandbox.api.getEngineForSide('b').id, 'mcts', 'Black should use MCTS in its configured endgame phase');
 });
