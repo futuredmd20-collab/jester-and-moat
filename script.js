@@ -1354,7 +1354,17 @@ function runAIOnMainThread(request) {
     if (request.id !== aiRequestId) return;
     isAIThinking = false;
     if (pendingAIRequest === request) pendingAIRequest = null;
+    if (bestMove && !allLegalState(state).some(legal => JSON.stringify(legal) === JSON.stringify(bestMove))) {
+      status('AI error: engine returned an illegal move.');
+      return;
+    }
     if (bestMove) play(bestMove, 'pending');
+    else {
+      gameOver = true;
+      stopAutoPlay();
+      stopClock();
+      status('No legal moves available.');
+    }
   }, 20);
 }
 
