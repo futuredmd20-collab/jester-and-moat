@@ -173,3 +173,8 @@ Purpose: dated record of decisions and changes, oldest first. Use the repository
 * Began the approved engine-interface plan on `feat/engine-contract-minmax-2026-10-31`. Added protocol-v1 request/result helpers, frozen standalone position snapshots, depth/time-limit validation, result/error statuses, and canonical coordinate-shape validation while preserving variant move flags.
 * MinMax now exposes a structured `search(request)` entry point; worker replies for MinMax are normalized through the contract and checked against the current legal move list before being applied. The old search function and worker selector remain as a migration compatibility path; the MinMax refactor is not complete.
 * Added contract tests for request isolation, validation, variant move flags, MinMax search results, status/error distinctions, and stale request identity. Tests have not yet been executed in this environment; no passing result is claimed. MCTS migration and the lifecycle/cancellation manager remain future steps.
+
+
+2026-10-31 — Engine request lifecycle invalidation
+* Added a shared cancellation helper for setup/new game, reset, undo, redo, and side switching. It invalidates the active request ID, clears pending state, and terminates the legacy worker so late results cannot affect the changed game.
+* Added a regression test for worker termination and request invalidation. This is transport-level cancellation by worker termination, not an explicit engine cancellation acknowledgment; the central lifecycle manager and protocol-level cancellation remain unfinished. Automated tests have not yet been run.
