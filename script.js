@@ -204,6 +204,19 @@ let lastClockDisplay = { w: null, b: null };
 let aiWorker = null;
 let aiRequestId = 0;
 let pendingAIRequest = null;
+
+// Invalidate in-flight work whenever the authoritative game position/lifecycle changes.
+// The legacy transport has no cancellation acknowledgment; terminating its worker is the hard-stop mechanism.
+function cancelActiveAIRequest(reason = 'state-changed') {
+  aiRequestId++;
+  const worker = aiWorker;
+  aiWorker = null;
+  if (worker && typeof worker.terminate === 'function') worker.terminate();
+  pendingAIRequest = null;
+  isAIThinking = false;
+  if (typeof clearTimeout === 'function') clearTimeout(aiTimer);
+  if (debugLogger && typeof debugLogger.add === 'function') debugLogger.add(`AI request cancelled: ${reason}`, 'info');
+}
 let gameStarted = false;
 let pendingPromotionMove = null;
 let playerColor = 'w';
@@ -541,7 +554,7 @@ function setEditorToggleLabel(label){
 }
 
 function setup(){
-  aiRequestId++;
+  cancelActiveAIRequest('new-game-or-setup');
   clearTimeout(aiTimer);
   stopClock();
   stopAutoPlay();
@@ -970,14 +983,102 @@ function getBestMove(st, depth) {
 }
 
 
+/* Shared internal engine contract, protocol v1.
+ * Transport adapters translate to/from this shape; the game core validates and applies moves. */
+const ENGINE_PROTOCOL_VERSION = 1;
+const ENGINE_CAPABILITIES = Object.freeze({
+  EVALUATION: 'evaluation', PRINCIPAL_VARIATION: 'principalVariation',
+  SEARCH_STATS: 'searchStats', PROGRESS: 'progress'
+});
+const ENGINE_RESULT_STATUS = Object.freeze({
+  COMPLETED: 'completed', NO_MOVE: 'no-move', CANCELLED: 'cancelled', FAILED: 'failed'
+});
+const ENGINE_ERROR_CODES = Object.freeze({
+  INVALID_REQUEST: 'INVALID_REQUEST', INVALID_POSITION: 'INVALID_POSITION',
+  INVALID_CONFIG: 'INVALID_CONFIG', INVALID_MOVE: 'INVALID_MOVE',
+  SEARCH_FAILED: 'SEARCH_FAILED', CANCELLED: 'CANCELLED'
+});
+function engineDeepFreeze(value) {
+  if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
+  Object.freeze(value);
+  for (const key of Object.keys(value)) engineDeepFreeze(value[key]);
+  return value;
+}
+function engineCopy(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
+function engineError(code, message, details = null) {
+  return { code, message: String(message || code), details: details == null ? null : engineCopy(details) };
+}
+const EngineContract = Object.freeze({
+  version: ENGINE_PROTOCOL_VERSION, capabilities: ENGINE_CAPABILITIES,
+  statuses: ENGINE_RESULT_STATUS, errorCodes: ENGINE_ERROR_CODES,
+  createRequest({ requestId, generation, engineId, position, limits = {}, config = {} } = {}) {
+    if ((typeof requestId !== 'string' && !Number.isSafeInteger(requestId)) || String(requestId).length === 0)
+      throw Object.assign(new Error('A unique requestId is required.'), { code: ENGINE_ERROR_CODES.INVALID_REQUEST });
+    if ((typeof generation !== 'string' && !Number.isSafeInteger(generation)) || String(generation).length === 0)
+      throw Object.assign(new Error('A generation identifier is required.'), { code: ENGINE_ERROR_CODES.INVALID_REQUEST });
+    if (!engineId || typeof engineId !== 'string')
+      throw Object.assign(new Error('A stable engineId is required.'), { code: ENGINE_ERROR_CODES.INVALID_REQUEST });
+    if (!position || !Array.isArray(position.board) || position.board.length !== 8 ||
+        position.board.some(row => !Array.isArray(row) || row.length !== 10) || !['w', 'b'].includes(position.turn))
+      throw Object.assign(new Error('Position snapshot has an invalid board or side to move.'), { code: ENGINE_ERROR_CODES.INVALID_POSITION });
+    const depth = limits.depth == null ? 2 : limits.depth;
+    if (!Number.isInteger(depth) || depth < 1 || depth > 10)
+      throw Object.assign(new Error('Search depth must be an integer from 1 to 10.'), { code: ENGINE_ERROR_CODES.INVALID_CONFIG });
+    const timeMs = limits.timeMs == null ? null : limits.timeMs;
+    if (timeMs !== null && (!Number.isFinite(timeMs) || timeMs <= 0))
+      throw Object.assign(new Error('timeMs must be a positive finite number when provided.'), { code: ENGINE_ERROR_CODES.INVALID_CONFIG });
+    return engineDeepFreeze({ protocolVersion: ENGINE_PROTOCOL_VERSION, requestId, generation, engineId,
+      position: engineCopy(position), limits: { depth, timeMs }, config: engineCopy(config) });
+  },
+  validateMove(move) {
+    if (!move || typeof move !== 'object' || !move.from || !move.to) return false;
+    const square = s => Number.isInteger(s.r) && Number.isInteger(s.c) && s.r >= 0 && s.r < 8 && s.c >= 0 && s.c < 10;
+    // Keep variant flags (swap, castling, en passant, promotion, moat actions) intact.
+    return square(move.from) && square(move.to);
+  },
+  completed(request, move, metadata = {}) {
+    if (!request || request.protocolVersion !== ENGINE_PROTOCOL_VERSION)
+      return this.failed(request, ENGINE_ERROR_CODES.INVALID_REQUEST, 'Unsupported or missing engine request.');
+    if (move == null) return { status: ENGINE_RESULT_STATUS.NO_MOVE, requestId: request.requestId,
+      generation: request.generation, move: null, metadata: engineCopy(metadata) };
+    if (!this.validateMove(move)) return this.failed(request, ENGINE_ERROR_CODES.INVALID_MOVE, 'Engine returned a malformed move.');
+    return { status: ENGINE_RESULT_STATUS.COMPLETED, requestId: request.requestId,
+      generation: request.generation, move: engineCopy(move), metadata: engineCopy(metadata) };
+  },
+  cancelled(request, message = 'Search cancelled.') {
+    return { status: ENGINE_RESULT_STATUS.CANCELLED, requestId: request && request.requestId,
+      generation: request && request.generation, error: engineError(ENGINE_ERROR_CODES.CANCELLED, message) };
+  },
+  failed(request, code, message, details = null) {
+    return { status: ENGINE_RESULT_STATUS.FAILED, requestId: request && request.requestId,
+      generation: request && request.generation, error: engineError(code || ENGINE_ERROR_CODES.SEARCH_FAILED, message, details) };
+  },
+  matchesRequest(result, request) {
+    return !!result && !!request && result.requestId === request.requestId &&
+      result.generation === request.generation && request.protocolVersion === ENGINE_PROTOCOL_VERSION;
+  }
+});
+
 /* Plugin System: MinMaxLegacy Plugin #1
  * Wraps the existing MinMax engine as a plugin.
  * Reads modeSelect from DOM to replicate aiMove's depth buckets.
  * Behavior unchanged from current implementation. */
 const MinMaxLegacy = {
-  name: 'MinMax (Legacy)',
+  id: 'minmax_legacy',
+  name: 'MinMax',
   phases: [ENGINE_PHASES.OPENING, ENGINE_PHASES.MIDGAME, ENGINE_PHASES.ENDGAME],
+  capabilities: [],
   strength: 'default',
+  search: function(request) {
+    if (!request || request.protocolVersion !== ENGINE_PROTOCOL_VERSION || request.engineId !== this.id)
+      return EngineContract.failed(request, ENGINE_ERROR_CODES.INVALID_REQUEST, 'Invalid MinMax search request.');
+    try {
+      return EngineContract.completed(request, getBestMove(engineCopy(request.position), request.limits.depth));
+    } catch (error) {
+      return EngineContract.failed(request, ENGINE_ERROR_CODES.SEARCH_FAILED, error && error.message || error);
+    }
+  },
+  // Compatibility entry point retained while the worker transport is migrated.
   getMove: function(gameState, side) {
     const mode = document.getElementById('modeSelect').value;
     let depth = 2;
@@ -1144,15 +1245,33 @@ onmessage = function(event) {
     const data = event.data;
     if (data.id !== aiRequestId) return;
     isAIThinking = false;
-    if (pendingAIRequest && pendingAIRequest.id === data.id) pendingAIRequest = null;
+    const completedRequest = pendingAIRequest && pendingAIRequest.id === data.id ? pendingAIRequest : null;
+    if (completedRequest) pendingAIRequest = null;
     if (gameOver) return;
     if (data.error) {
       status(`AI error: ${data.error}`);
       return;
     }
-    // Support workerFn directive: 'mctsGetMove' or 'getBestMove'
-    const move = data.move;
-    if (data.move) play(move, 'pending');
+    // Normalize legacy worker replies into the shared contract at the transport boundary.
+    let move = data.move;
+    if (completedRequest && completedRequest.contractRequest) {
+      const result = EngineContract.completed(completedRequest.contractRequest, move);
+      if (!EngineContract.matchesRequest(result, completedRequest.contractRequest)) {
+        status('AI error: stale or mismatched engine result.');
+        return;
+      }
+      if (result.status === ENGINE_RESULT_STATUS.FAILED) {
+        status(`AI error: ${result.error.message}`);
+        return;
+      }
+      move = result.status === ENGINE_RESULT_STATUS.COMPLETED ? result.move : null;
+    }
+    // The game core, not the engine, decides whether a returned move is legal.
+    if (move && !allLegalState(state).some(legal => JSON.stringify(legal) === JSON.stringify(move))) {
+      status('AI error: engine returned an illegal move.');
+      return;
+    }
+    if (move) play(move, 'pending');
     else {
       gameOver = true;
       stopAutoPlay();
@@ -1225,9 +1344,19 @@ function runAIOnMainThread(request) {
 
     let bestMove = null;
     try {
-      bestMove = request.engine.getMove
-        ? request.engine.getMove(clone(request.state), request.state.turn)
-        : null;
+      if (typeof request.engine.search === 'function' && request.contractRequest) {
+        const result = request.engine.search(request.contractRequest);
+        if (!EngineContract.matchesRequest(result, request.contractRequest))
+          throw new Error('Engine returned a stale or mismatched result.');
+        if (result.status === ENGINE_RESULT_STATUS.FAILED)
+          throw new Error(result.error && result.error.message || 'Engine search failed.');
+        if (result.status === ENGINE_RESULT_STATUS.CANCELLED) return;
+        bestMove = result.status === ENGINE_RESULT_STATUS.COMPLETED ? result.move : null;
+      } else {
+        bestMove = request.engine.getMove
+          ? request.engine.getMove(clone(request.state), request.state.turn)
+          : null;
+      }
     } catch (error) {
       isAIThinking = false;
       if (pendingAIRequest === request) pendingAIRequest = null;
@@ -1238,7 +1367,17 @@ function runAIOnMainThread(request) {
     if (request.id !== aiRequestId) return;
     isAIThinking = false;
     if (pendingAIRequest === request) pendingAIRequest = null;
+    if (bestMove && !allLegalState(state).some(legal => JSON.stringify(legal) === JSON.stringify(bestMove))) {
+      status('AI error: engine returned an illegal move.');
+      return;
+    }
     if (bestMove) play(bestMove, 'pending');
+    else {
+      gameOver = true;
+      stopAutoPlay();
+      stopClock();
+      status('No legal moves available.');
+    }
   }, 20);
 }
 
@@ -1272,7 +1411,11 @@ function aiMove(){
   const phase = getGamePhase(state);
   const side = state.turn === 'w' ? 'White' : 'Black';
   const engineName = engine.name || 'Unknown engine';
-  const request = { id: ++aiRequestId, engine, depth, state: clone(state) };
+  const id = ++aiRequestId;
+  const contractRequest = engine.id === 'minmax_legacy'
+    ? EngineContract.createRequest({ requestId: id, generation: id, engineId: engine.id, position: clone(state), limits: { depth } })
+    : null;
+  const request = { id, engine, depth, state: clone(state), contractRequest };
   pendingAIRequest = request;
   debugLogger.add(`AI selection: ${side} | phase: ${phase} | engine: ${engineName} | depth: ${depth}`, 'info');
 
@@ -1928,7 +2071,7 @@ function clickSquare(r, c){
 }
 
 function undo(){
-  aiRequestId++;
+  cancelActiveAIRequest('undo');
   stopAutoPlay();
   clearTimeout(aiTimer);
   isAIThinking = false;
@@ -1946,7 +2089,7 @@ function undo(){
 }
 
 function redo(){
-  aiRequestId++;
+  cancelActiveAIRequest('redo');
   stopAutoPlay();
   clearTimeout(aiTimer);
   if (redoStack.length === 0 || editMode) return;
@@ -2059,9 +2202,7 @@ document.getElementById('autoBtn').addEventListener('click', toggleAutoPlay);
 document.getElementById('randomBtn').addEventListener('click', generateRandomMidgame);
 document.getElementById('sideSwitchBtn').addEventListener('click', () => {
   if (document.getElementById('modeSelect').value === 'ai_vs_ai') return;
-  aiRequestId++;
-  clearTimeout(aiTimer);
-  isAIThinking = false;
+  cancelActiveAIRequest('side-switch');
   playerColor = playerColor === 'w' ? 'b' : 'w';
   const sideSelect = document.getElementById('playerSideSelect');
   if (sideSelect) sideSelect.value = playerColor;
@@ -2078,6 +2219,7 @@ document.getElementById('sideSwitchBtn').addEventListener('click', () => {
 
 document.getElementById('resetBtn').addEventListener('click', () => {
   if (gameStarted && !gameOver && moveLog.length > 0 && !confirm('Start a new game? The current game will be lost.')) return;
+  cancelActiveAIRequest('reset-button');
   setup();
 });
 document.getElementById('modeSelect').addEventListener('change', () => { saveOptions(); setup(); });document.getElementById('playerSideSelect').addEventListener('change', () => { saveOptions(); setup(); });
