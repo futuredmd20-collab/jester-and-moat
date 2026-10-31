@@ -2218,8 +2218,8 @@ document.getElementById('sideSwitchBtn').addEventListener('click', () => {
 });
 
 document.getElementById('resetBtn').addEventListener('click', () => {
-  cancelActiveAIRequest('reset-button');
   if (gameStarted && !gameOver && moveLog.length > 0 && !confirm('Start a new game? The current game will be lost.')) return;
+  cancelActiveAIRequest('reset-button');
   setup();
 });
 document.getElementById('modeSelect').addEventListener('change', () => { saveOptions(); setup(); });document.getElementById('playerSideSelect').addEventListener('change', () => { saveOptions(); setup(); });
