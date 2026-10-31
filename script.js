@@ -1039,23 +1039,29 @@ const EngineContract = Object.freeze({
   completed(request, move, metadata = {}) {
     if (!request || request.protocolVersion !== ENGINE_PROTOCOL_VERSION)
       return this.failed(request, ENGINE_ERROR_CODES.INVALID_REQUEST, 'Unsupported or missing engine request.');
-    if (move == null) return { status: ENGINE_RESULT_STATUS.NO_MOVE, requestId: request.requestId,
+    if (move == null) return { protocolVersion: request.protocolVersion, engineId: request.engineId,
+      status: ENGINE_RESULT_STATUS.NO_MOVE, requestId: request.requestId,
       generation: request.generation, move: null, metadata: engineCopy(metadata) };
     if (!this.validateMove(move)) return this.failed(request, ENGINE_ERROR_CODES.INVALID_MOVE, 'Engine returned a malformed move.');
-    return { status: ENGINE_RESULT_STATUS.COMPLETED, requestId: request.requestId,
+    return { protocolVersion: request.protocolVersion, engineId: request.engineId,
+      status: ENGINE_RESULT_STATUS.COMPLETED, requestId: request.requestId,
       generation: request.generation, move: engineCopy(move), metadata: engineCopy(metadata) };
   },
   cancelled(request, message = 'Search cancelled.') {
-    return { status: ENGINE_RESULT_STATUS.CANCELLED, requestId: request && request.requestId,
+    return { protocolVersion: request && request.protocolVersion, engineId: request && request.engineId,
+      status: ENGINE_RESULT_STATUS.CANCELLED, requestId: request && request.requestId,
       generation: request && request.generation, error: engineError(ENGINE_ERROR_CODES.CANCELLED, message) };
   },
   failed(request, code, message, details = null) {
-    return { status: ENGINE_RESULT_STATUS.FAILED, requestId: request && request.requestId,
+    return { protocolVersion: request && request.protocolVersion, engineId: request && request.engineId,
+      status: ENGINE_RESULT_STATUS.FAILED, requestId: request && request.requestId,
       generation: request && request.generation, error: engineError(code || ENGINE_ERROR_CODES.SEARCH_FAILED, message, details) };
   },
   matchesRequest(result, request) {
-    return !!result && !!request && result.requestId === request.requestId &&
-      result.generation === request.generation && request.protocolVersion === ENGINE_PROTOCOL_VERSION;
+    return !!result && !!request && result.protocolVersion === ENGINE_PROTOCOL_VERSION &&
+      result.protocolVersion === request.protocolVersion && result.engineId === request.engineId &&
+      result.requestId === request.requestId && result.generation === request.generation &&
+      request.protocolVersion === ENGINE_PROTOCOL_VERSION;
   }
 });
 
