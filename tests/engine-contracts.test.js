@@ -882,6 +882,86 @@ test('worker runtime errors retry the selected engine on the main thread', () =>
 });
 
 
+test('late worker result after a crash cannot bypass or duplicate the scheduled main-thread fallback', () => {
+  const previousCreateObjectURL = sandbox.URL.createObjectURL;
+  const previousRevokeObjectURL = sandbox.URL.revokeObjectURL;
+  const previousWorker = sandbox.Worker;
+  const previousWindowWorker = sandbox.window.Worker;
+  const originalMinMax = sandbox.api.enginePlugins.get('minmax_legacy');
+  let workerInstance;
+  let calls = 0;
+
+  class CrashingWorker {
+    constructor(url) {
+      this.url = url;
+      this.terminated = false;
+      this.onmessage = null;
+      this.onerror = null;
+      workerInstance = this;
+    }
+    postMessage(request) { this.request = request; }
+    terminate() { this.terminated = true; }
+  }
+
+  sandbox.api.resetAIWorker();
+  sandbox.URL.createObjectURL = () => 'blob:worker-crash-late-result-test';
+  sandbox.URL.revokeObjectURL = () => {};
+  sandbox.Worker = CrashingWorker;
+  sandbox.window.Worker = CrashingWorker;
+  sandbox.api.enginePlugins.set('minmax_legacy', {
+    name: 'MinMax crash fallback probe',
+    phases: ['opening', 'midgame', 'endgame'],
+    getMove() {
+      calls++;
+      return null;
+    }
+  });
+
+  try {
+    const s = position();
+    s.board[6][0] = { type: 'r', color: 'w', moved: false };
+    sandbox.api.setState(s);
+    const stateBeforeFailure = JSON.stringify(s);
+
+    sandbox.api.aiMove();
+    const failedWorker = workerInstance;
+    assert.ok(failedWorker?.request?.contractRequest, 'AI should dispatch a contract request to the worker');
+    const originalRequest = failedWorker.request;
+    const originalContractRequest = originalRequest.contractRequest;
+    const lateLegalMove = allLegalState(s)[0];
+
+    failedWorker.onerror({ message: 'simulated crash before result' });
+    assert.equal(failedWorker.terminated, true);
+    assert.equal(calls, 0, 'fallback must remain scheduled until its callback runs');
+    assert.equal(scheduledCallbacks.length, 1, 'the crash should schedule exactly one fallback');
+
+    failedWorker.onmessage({
+      data: {
+        id: originalRequest.id,
+        result: EngineContract.completed(originalContractRequest, lateLegalMove)
+      }
+    });
+
+    assert.equal(JSON.stringify(sandbox.api.getState()), stateBeforeFailure,
+      'a late result from the crashed worker must not apply its move');
+    assert.equal(calls, 0, 'a late result must not run or replace the fallback');
+    assert.equal(scheduledCallbacks.length, 1, 'a late result must not schedule a second fallback');
+
+    scheduledCallbacks.shift()();
+    assert.equal(calls, 1, 'the selected engine should run exactly once on the main thread');
+    assert.equal(scheduledCallbacks.length, 0, 'no duplicate fallback should remain scheduled');
+  } finally {
+    sandbox.api.enginePlugins.set('minmax_legacy', originalMinMax);
+    sandbox.api.resetAIWorker();
+    sandbox.URL.createObjectURL = previousCreateObjectURL;
+    sandbox.URL.revokeObjectURL = previousRevokeObjectURL;
+    sandbox.Worker = previousWorker;
+    sandbox.window.Worker = previousWindowWorker;
+    scheduledCallbacks.length = 0;
+  }
+});
+
+
 test('main-thread fallback calls the selected engine when Blob workers are blocked', () => {
   const previousCreateObjectURL = sandbox.URL.createObjectURL;
   const originalMinMax = sandbox.api.enginePlugins.get('minmax_legacy');
