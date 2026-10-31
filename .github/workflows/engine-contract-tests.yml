@@ -5,6 +5,8 @@ on:
   push:
     paths:
       - 'tests/**'
+      - 'script.js'
+      - 'engines/**'
       - 'index.html'
       - 'build.js'
       - 'sw.js'
@@ -14,6 +16,8 @@ on:
   pull_request:
     paths:
       - 'tests/**'
+      - 'script.js'
+      - 'engines/**'
       - 'index.html'
       - 'build.js'
       - 'sw.js'
