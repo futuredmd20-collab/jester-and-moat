@@ -39,4 +39,4 @@ These are manual browser observations, separate from the automated GitHub Action
 
 ## Verification boundary
 
-The automated VM suite is not a substitute for browser validation. Do not mark browser checks complete until they have been observed against the running app.
+The automated VM suite is not a substitute for browser validation. The checklist above records manual observations made against the running GitHub Pages app.
