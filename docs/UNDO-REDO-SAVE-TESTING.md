@@ -22,7 +22,7 @@ Keep the saved current position, history snapshots, move-log snapshots, clocks, 
 - [x] Define rules for current-state/history and current-log/history-log consistency, including the clock-ticking exception.
 - [x] Add focused regression tests for mismatched state/log snapshots, invalid supplied fields, and legacy defaults.
 - [x] Inspect the import handler: it calls `parseGameData` before assigning parsed values to live game state.
-- [ ] Verify the complete Node test suite in GitHub Actions for the resulting commit.
+- [x] Verify the complete Node test suite in GitHub Actions for commit `6191f3c` (56 tests, 0 failures).
 - [ ] Perform browser checks for save → reload/import → undo/redo, clocks, moat transitions, and rejection of malformed saves.
 - [ ] Record browser observations separately from automated CI results.
 

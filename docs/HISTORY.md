@@ -155,4 +155,4 @@ Purpose: dated record of decisions and changes, oldest first. Use the repository
 2026-10-31 — Save/import consistency rules and regression coverage
 * Defined the compatibility boundary for save imports: absent legacy fields receive defaults, but explicitly malformed values are rejected.
 * Added consistency checks between the current state and latest history snapshot (allowing current clocks to be newer), and between the current move log and latest history-log snapshot.
-* Added focused tests and an indexed plan. Automated CI and real-browser verification are pending for this follow-up.
+* Added focused tests and an indexed plan. GitHub Actions passed the complete contract suite (56 tests, 0 failures) on commit `6191f3c`; real-browser verification remains outstanding.
