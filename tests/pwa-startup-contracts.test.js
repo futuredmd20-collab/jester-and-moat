@@ -235,6 +235,6 @@ test('service-worker activation deletes old app caches and claims clients', asyn
   let activationPromise;
   handlers.activate({ waitUntil: promise => { activationPromise = promise; } });
   await activationPromise;
-  assert.deepEqual(deleted, ['jm-cache-old']);
+  assert.deepEqual(deleted, ['jm-cache-old', 'jm-cache-v0.8.0-compact-ui-15']);
   assert.equal(claimed, true);
 });
