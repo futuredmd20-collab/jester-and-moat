@@ -714,7 +714,7 @@ test('worker dispatches MinMax and returns a legal move', async () => {
   assert.equal(response.result.requestId, contractRequest.requestId);
   assert.equal(response.result.generation, contractRequest.generation);
   assert.equal(response.result.engineId, contractRequest.engineId);
-  assert.equal(response.result.status, EngineContract.statuses.COMPLETED);
+  assert.equal(response.result.status, EngineContract.statuses.COMPLETED, JSON.stringify(response.result));
   assert.ok(response.result.move, 'structured MinMax worker should return a move');
   assert.ok(allLegalState(s).some(m => JSON.stringify(m) === JSON.stringify(response.result.move)));
 });
