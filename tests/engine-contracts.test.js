@@ -255,6 +255,12 @@ test('structured worker serializes and invokes the MinMax contract entry point',
   assert.ok(workerSourceStart >= 0 && workerSourceEnd > workerSourceStart,
     'worker source template should be present');
   const workerSource = source.slice(workerSourceStart, workerSourceEnd);
+  assert.match(source, /function createEngineContract\(\)/,
+    'the main thread should define the canonical engine contract factory');
+  assert.match(workerSource, /\$\{createEngineContract\.toString\(\)\}/,
+    'the worker should serialize the canonical contract factory rather than maintain a duplicate');
+  assert.doesNotMatch(workerSource, /const EngineContract = \{/,
+    'the worker must not define a second hand-maintained contract object');
   assert.match(workerSource, /const MinMaxLegacy = \{ id: 'minmax_legacy', search: \\?\$\{MinMaxLegacy\.search\.toString\(\)\} \}/);
   assert.match(workerSource, /: MinMaxLegacy\.search\(request\)/,
     'structured MinMax worker requests must go through the contract search entry point');
