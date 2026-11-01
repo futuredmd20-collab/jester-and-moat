@@ -1418,7 +1418,12 @@ function runAIOnMainThread(request) {
           throw new Error('Engine returned a stale or mismatched result.');
         if (result.status === ENGINE_RESULT_STATUS.FAILED)
           throw new Error(result.error && result.error.message || 'Engine search failed.');
-        if (result.status === ENGINE_RESULT_STATUS.CANCELLED) return;
+        if (result.status === ENGINE_RESULT_STATUS.CANCELLED) {
+          isAIThinking = false;
+          if (pendingAIRequest === request) pendingAIRequest = null;
+          status('AI search cancelled.');
+          return;
+        }
         bestMove = result.status === ENGINE_RESULT_STATUS.COMPLETED ? result.move : null;
       } else {
         bestMove = request.engine.getMove
