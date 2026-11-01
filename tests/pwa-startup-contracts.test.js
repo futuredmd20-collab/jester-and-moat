@@ -50,7 +50,7 @@ async function runBoot({ inline = false, spriteFailure = false, mctsFailure = fa
         appendedScripts.push(script.src);
         if (script.src === 'engines/mcts-engine.js' || script.src === 'engines/minmax-engine.js') {
           setImmediate(() => {
-            if (mctsFailure) script.onerror && script.onerror();
+            if (mctsFailure && script.src === 'engines/mcts-engine.js') script.onerror && script.onerror();
             else script.onload && script.onload();
           });
         }
