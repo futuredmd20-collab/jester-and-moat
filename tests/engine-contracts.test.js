@@ -2027,6 +2027,9 @@ test('structured main-thread fallback dispatches the selected MinMax and MCTS co
       const s = position();
       s.board[6][0] = { type: 'r', color: 'w', moved: false };
       sandbox.api.setState(s);
+      // The selected engine is applied to one phase only; match the current position's phase.
+      mockElement('whiteEnginePhaseSelect').value = sandbox.api.getGamePhase(s);
+      mockElement('whiteEngineSelect').onchange();
       sandbox.api.aiMove();
 
       assert.equal(scheduledCallbacks.length, 1, 'main-thread fallback should be scheduled');
