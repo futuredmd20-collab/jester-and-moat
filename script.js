@@ -867,18 +867,40 @@ function applyRaw(s, m, promoChoice = 'q') {
   return { captured: target || null, moatsDestroyed };
 }
 
+/* Fast isolated copy for legality probes. The rule check mutates only the
+ * board, en-passant target, moat state, capture lists and move counters; share
+ * other read-only metadata instead of JSON-serializing the entire position for
+ * every candidate move. Piece objects on the board are always copied. */
+function cloneForMoveLegality(st) {
+  const copy = {
+    ...st,
+    board: st.board.map(row => row.map(piece => piece ? { ...piece } : null)),
+    ep: st.ep ? { ...st.ep } : null,
+    moats: st.moats ? {
+      w: st.moats.w ? { ...st.moats.w } : null,
+      b: st.moats.b ? { ...st.moats.b } : null
+    } : st.moats,
+    moatDestroyed: st.moatDestroyed ? { ...st.moatDestroyed } : st.moatDestroyed,
+    captured: st.captured ? {
+      w: (st.captured.w || []).slice(),
+      b: (st.captured.b || []).slice()
+    } : st.captured
+  };
+  return copy;
+}
+
 function legalMovesFromState(st, r, c) {
   const p = st.board[r][c]; if (!p || p.color !== st.turn) return [];
   const result = [];
   for (const m of pseudoMoves(r, c, st.board, st.ep, st.moats)) {
-    const s = clone(st); applyRaw(s, m);
+    const s = cloneForMoveLegality(st); applyRaw(s, m);
     if (!inCheck(p.color, s.board, s.moats)) result.push(m);
   }
   if (p.type === 'j') {
     for (const [dr, dc] of DIRS) {
       const rr = r + dr, cc = c + dc; if (!inside(rr, cc)) continue;
       const q = st.board[rr][cc]; if (!q || q.color !== p.color || !q.moved) continue;
-      const s = clone(st);
+      const s = cloneForMoveLegality(st);
       const a = s.board[r][c], z = s.board[rr][cc];
       s.board[r][c] = z; s.board[rr][cc] = a; a.moved = true; z.moved = true; s.turn = other(s.turn); s.ply++;
       s.halfmoveClock = (s.halfmoveClock || 0) + 1;
