@@ -351,7 +351,7 @@ test('engine cancellation messages preserve request identity and distinguish out
     position: { board: Array.from({ length: 8 }, () => Array(10).fill(null)), turn: 'w' }, limits: { depth: 2 }
   });
   const cancellation = EngineContract.createCancellationRequest(request, 'undo');
-  assert.deepEqual(cancellation, {
+  assert.deepEqual({ ...cancellation }, {
     type: 'cancel', protocolVersion: 1, engineId: 'minmax_legacy',
     requestId: 'cancel-42', generation: 7, reason: 'undo'
   });
