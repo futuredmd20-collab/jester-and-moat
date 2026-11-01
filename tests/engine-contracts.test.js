@@ -41,6 +41,7 @@ function mockElement(id) {
       append(...children) { this.children.push(...children); },
       removeChild(child) { this.children = this.children.filter(item => item !== child); },
       setAttribute() {},
+      querySelector() { return null; },
       getAttribute() { return null; },
       focus() {},
       click() {}
@@ -1986,5 +1987,69 @@ test('engine contract rejects each individual response identity mismatch', () =>
   for (const result of mismatches) {
     assert.equal(contract.matchesRequest(result, request), false,
       `should reject mismatched identity: ${JSON.stringify(result)}`);
+  }
+});
+
+
+test('structured main-thread fallback dispatches the selected MinMax and MCTS contracts', () => {
+  const previousCreateObjectURL = sandbox.URL.createObjectURL;
+  const originalEngines = new Map([
+    ['minmax_legacy', sandbox.api.enginePlugins.get('minmax_legacy')],
+    ['mcts', sandbox.api.enginePlugins.get('mcts')]
+  ]);
+  const calls = [];
+  const move = { from: { r: 6, c: 0 }, to: { r: 5, c: 0 } };
+
+  sandbox.api.resetAIWorker();
+  sandbox.URL.createObjectURL = () => { throw new Error('Blob workers blocked by test'); };
+
+  try {
+    for (const engineId of ['minmax_legacy', 'mcts']) {
+      sandbox.api.resetAIWorker();
+      const engine = {
+        id: engineId,
+        name: engineId === 'mcts' ? 'MCTS structured fallback probe' : 'MinMax structured fallback probe',
+        phases: ['opening', 'midgame', 'endgame'],
+        search(request) {
+          calls.push({ engineId, request });
+          return EngineContract.completed(request, move);
+        }
+      };
+      sandbox.api.enginePlugins.set(engineId, engine);
+      mockElement('modeSelect').value = 'ai_vs_ai';
+      mockElement('whiteEngineSelect').value = engineId;
+      mockElement('whiteEnginePhaseSelect').value = 'opening';
+      mockElement('blackEngineSelect').value = 'minmax_legacy';
+      mockElement('blackEnginePhaseSelect').value = 'opening';
+      // Mirror the browser select-change handler so the per-phase engine overrides update.
+      mockElement('whiteEngineSelect').onchange();
+
+      const s = position();
+      s.board[6][0] = { type: 'r', color: 'w', moved: false };
+      sandbox.api.setState(s);
+      // The selected engine is applied to one phase only; match the current position's phase.
+      mockElement('whiteEnginePhaseSelect').value = sandbox.api.getGamePhase(s);
+      mockElement('whiteEngineSelect').onchange();
+      sandbox.api.aiMove();
+
+      assert.equal(scheduledCallbacks.length, 1, 'main-thread fallback should be scheduled');
+      scheduledCallbacks.shift()();
+
+      const call = calls[calls.length - 1];
+      assert.equal(call.engineId, engineId, 'fallback should call the selected engine');
+      assert.equal(call.request.engineId, engineId);
+      assert.equal(call.request.requestId, call.request.generation);
+      assert.notEqual(call.request.position, s, 'the contract should receive an isolated position snapshot');
+      assert.equal(sandbox.api.getState().board[5][0].type, 'r', 'the legal fallback move should be applied');
+      assert.equal(sandbox.api.getState().turn, 'b');
+      assert.equal(sandbox.api.getActiveAIForTest().thinking, false);
+      assert.equal(sandbox.api.getActiveAIForTest().request, null);
+    }
+    assert.equal(calls.length, 2, 'each engine should be called exactly once');
+  } finally {
+    for (const [engineId, engine] of originalEngines) sandbox.api.enginePlugins.set(engineId, engine);
+    sandbox.api.resetAIWorker();
+    sandbox.URL.createObjectURL = previousCreateObjectURL;
+    scheduledCallbacks.length = 0;
   }
 });
