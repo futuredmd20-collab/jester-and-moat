@@ -1487,6 +1487,21 @@ function handleAIWorkerFailure(worker, request) {
   // Invalidate any late response from the failed worker and retry this request once.
   pendingAIRequest = null;
   request.id = ++aiRequestId;
+  // A fallback is a new search attempt: issue fresh identity and snapshot data.
+  if (request.contractRequest) {
+    request.state = clone(state);
+    request.contractRequest = EngineContract.createRequest({
+      requestId: request.id,
+      generation: request.id,
+      engineId: request.engine.id,
+      position: request.state,
+      limits: {
+        depth: request.depth,
+        timeMs: request.contractRequest.limits.timeMs
+      },
+      config: request.contractRequest.config
+    });
+  }
   pendingAIRequest = request;
   status('AI worker failed; retrying on the main thread.');
   runAIOnMainThread(request);
