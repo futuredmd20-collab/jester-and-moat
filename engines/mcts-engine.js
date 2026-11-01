@@ -185,6 +185,57 @@ function mctsSearch(st, cfg) {
   return best ? best.move : null;
 }
 
+
+/* Cooperative worker variant. Yield after each playout so the Worker event
+ * loop can process cancellation messages; a single playout remains bounded by
+ * cfg.capDepth. The synchronous search remains available for direct callers. */
+async function mctsSearchAsync(st, cfg, shouldCancel, yieldControl) {
+  var rootState = clone(st);
+  var root = mctsNode(rootState, null, null, other(rootState.turn));
+  root.untried = allLegalState(rootState, rootState.turn);
+  if (root.untried.length === 0) return { move: null, cancelled: false };
+
+  for (var i = 0; i < cfg.playouts; i++) {
+    if (shouldCancel()) return { move: null, cancelled: true };
+    var node = root;
+    while (node.untried !== null && node.untried.length === 0 && node.children.length > 0) {
+      node = mctsUctChild(node);
+    }
+    var child;
+    if (node.untried !== null && node.untried.length > 0) {
+      var idx = Math.floor(Math.random() * node.untried.length);
+      var mv = node.untried.splice(idx, 1)[0];
+      var cs = clone(node.state);
+      mctsApplyMove(cs, mv);
+      child = mctsNode(cs, mv, node, node.state.turn);
+      node.children.push(child);
+    } else child = node;
+
+    var white = mctsPlayout(clone(child.state), cfg.capDepth);
+    var res = child.playerJustMoved === 'w' ? white : 1 - white;
+    var n = child;
+    while (n) {
+      n.visits++;
+      n.wins += (n.playerJustMoved === child.playerJustMoved) ? res : 1 - res;
+      n = n.parent;
+    }
+    if (i < cfg.playouts - 1) {
+      await yieldControl();
+      if (shouldCancel()) return { move: null, cancelled: true };
+    }
+  }
+
+  if (cfg.temperature > 0 && root.children.length > 1 && Math.random() < cfg.temperature) {
+    var top = root.children.slice().sort(function (a, b) { return b.visits - a.visits; }).slice(0, 3);
+    return { move: top[Math.floor(Math.random() * top.length)].move, cancelled: false };
+  }
+  var best = null;
+  for (var j = 0; j < root.children.length; j++) {
+    if (!best || root.children[j].visits > best.visits) best = root.children[j];
+  }
+  return { move: best ? best.move : null, cancelled: false };
+}
+
 /* Drop-in for the current worker protocol: same signature and return
  * shape as getBestMove(st, depth). depth doubles as the level 1-3. */
 function mctsGetMove(st, depth) {
