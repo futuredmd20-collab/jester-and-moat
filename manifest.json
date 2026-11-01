@@ -2,7 +2,7 @@
   "name": "Jester & Moat",
   "short_name": "Jester & Moat",
   "description": "Jester & Moat — a 10x8 chess variant with moats, jester swaps and AI.",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
