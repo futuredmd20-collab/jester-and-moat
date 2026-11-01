@@ -1166,18 +1166,23 @@ function isAIMode() {
 function loadEngineConfig() {
   const defaults = {
     whiteEngine: 'minmax_legacy',
-    whitePhase: ENGINE_PHASES.OPENING,
+    whitePhase: ENGINE_PHASES.MIDGAME,
     blackEngine: 'minmax_legacy',
-    blackPhase: ENGINE_PHASES.OPENING
+    blackPhase: ENGINE_PHASES.MIDGAME
   };
   const validEngines = new Set(['minmax_legacy', 'mcts']);
   const validPhases = new Set(Object.values(ENGINE_PHASES));
   let saved = null;
+  let configSource = 'defaults';
   try {
     const raw = localStorage.getItem('engineConfig');
-    if (raw) saved = JSON.parse(raw);
+    if (raw) {
+      saved = JSON.parse(raw);
+      configSource = 'localStorage';
+    }
   } catch (e) {
     // Missing or inaccessible storage and malformed JSON use safe defaults.
+    configSource = 'defaults (storage unavailable or invalid JSON)';
   }
   const config = { ...defaults };
   if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
@@ -1191,6 +1196,10 @@ function loadEngineConfig() {
   document.getElementById('blackEngineSelect').value = config.blackEngine;
   document.getElementById('blackEnginePhaseSelect').value = config.blackPhase;
   updateEngineConfigUI();
+  debugLogger.add(
+    `Engine config loaded | source: ${configSource} | White: ${config.whiteEngine} @ ${config.whitePhase} | Black: ${config.blackEngine} @ ${config.blackPhase}`,
+    'info'
+  );
   return config;
 }
 
@@ -1562,7 +1571,11 @@ function aiMove(){
     : null;
   const request = { id, engine, depth, state: clone(state), contractRequest };
   pendingAIRequest = request;
-  debugLogger.add(`AI selection: ${side} | phase: ${phase} | engine: ${engineName} | depth: ${depth}`, 'info');
+  const sideConfig = defaultEngineForSide[state.turn];
+  debugLogger.add(
+    `AI selection: ${side} | phase: ${phase} | engine: ${engineName} | depth: ${depth} | configured phases: ${JSON.stringify(sideConfig.phaseOverrides || {})}`,
+    'info'
+  );
 
   const worker = ensureAIWorker();
   if (worker) {
