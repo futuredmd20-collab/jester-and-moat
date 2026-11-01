@@ -918,6 +918,24 @@ function allLegalState(st, color = st.turn) {
   st.turn = old; return out;
 }
 
+/* Compare move data independent of object property order, then return the
+ * canonical legal move object so the live game never receives engine extras. */
+function stableMoveValue(value) {
+  if (Array.isArray(value)) return value.map(stableMoveValue);
+  if (value && typeof value === 'object') {
+    const sorted = {};
+    for (const key of Object.keys(value).sort()) sorted[key] = stableMoveValue(value[key]);
+    return sorted;
+  }
+  return value;
+}
+
+function findLegalMoveMatch(st, candidate) {
+  if (!candidate || typeof candidate !== 'object') return null;
+  const signature = JSON.stringify(stableMoveValue(candidate));
+  return allLegalState(st).find(legal => JSON.stringify(stableMoveValue(legal)) === signature) || null;
+}
+
 function allLegal(color = state.turn) { return allLegalState(state, color); }
 
 function getJesterValue(st) {
@@ -1472,9 +1490,14 @@ function runAIOnMainThread(request) {
     if (request.id !== aiRequestId) return;
     isAIThinking = false;
     if (pendingAIRequest === request) pendingAIRequest = null;
-    if (bestMove && !allLegalState(state).some(legal => JSON.stringify(legal) === JSON.stringify(bestMove))) {
-      status('AI error: engine returned an illegal move.');
-      return;
+    if (bestMove) {
+      const legalMove = findLegalMoveMatch(state, bestMove);
+      if (!legalMove) {
+        status('AI error: engine returned an illegal move.');
+        debugLogger.add(`Rejected engine move: ${JSON.stringify(bestMove)}`, 'error');
+        return;
+      }
+      bestMove = legalMove;
     }
     if (bestMove) play(bestMove, 'pending');
     else {
