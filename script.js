@@ -204,6 +204,8 @@ let lastClockDisplay = { w: null, b: null };
 let aiWorker = null;
 let aiRequestId = 0;
 let pendingAIRequest = null;
+let aiWorkerTimeout = null;
+const AI_WORKER_TIMEOUT_MS = 15000;
 
 // Invalidate in-flight work whenever the authoritative game position/lifecycle changes.
 // The legacy transport has no cancellation acknowledgment; terminating its worker is the hard-stop mechanism.
@@ -211,6 +213,8 @@ function cancelActiveAIRequest(reason = 'state-changed') {
   aiRequestId++;
   const worker = aiWorker;
   aiWorker = null;
+  if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout);
+  aiWorkerTimeout = null;
   if (worker && typeof worker.terminate === 'function') worker.terminate();
   pendingAIRequest = null;
   isAIThinking = false;
@@ -1303,6 +1307,8 @@ onmessage = function(event) {
     debugLogger.add('Worker message received', 'info');
     const data = event.data;
     if (data.id !== aiRequestId) return;
+    if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout);
+    aiWorkerTimeout = null;
     isAIThinking = false;
     const completedRequest = pendingAIRequest && pendingAIRequest.id === data.id ? pendingAIRequest : null;
     if (completedRequest) pendingAIRequest = null;
@@ -1457,6 +1463,8 @@ function runAIOnMainThread(request) {
 function handleAIWorkerFailure(worker, request) {
   // Ignore stale errors from a worker that has already been replaced.
   if (aiWorker !== worker) return;
+  if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout);
+  aiWorkerTimeout = null;
   aiWorker = null;
   if (worker && typeof worker.terminate === 'function') worker.terminate();
 
@@ -1497,6 +1505,13 @@ function aiMove(){
     const workerFn = engine.name && engine.name.includes('MCTS') ? 'mctsGetMove' : 'getBestMove';
     debugLogger.add(`AI dispatch: ${side} | engine: ${engineName} | path: worker (${request.contractRequest ? 'structured protocol v1' : workerFn})`, 'info');
     try {
+      aiWorkerTimeout = setTimeout(() => {
+        // Only the still-active request may trigger recovery; stale watchdogs are inert.
+        if (aiWorker === worker && pendingAIRequest === request && request.id === aiRequestId) {
+          debugLogger.add(`AI worker timed out after ${AI_WORKER_TIMEOUT_MS} ms; retrying on the main thread.`, 'warn');
+          handleAIWorkerFailure(worker, request);
+        }
+      }, AI_WORKER_TIMEOUT_MS);
       worker.postMessage(request.contractRequest
         ? { id: request.id, contractRequest: request.contractRequest }
         : { id: request.id, state: clone(request.state), depth, workerFn });
