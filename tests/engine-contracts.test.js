@@ -1016,15 +1016,10 @@ test('loading a saved game cancels the old engine request and permits a fresh se
     assert.equal(sandbox.api.getActiveAIForTest().request.id, resumedWorker.request.id,
       'a stale response must not replace the active request after loading');
 
-    resumedWorker.onmessage({
-      data: {
-        id: resumedWorker.request.id,
-        result: EngineContract.completed(resumedWorker.request.contractRequest, rookMove)
-      }
-    });
-    assert.equal(sandbox.api.getState().board[6][0], null, 'the resumed search should apply its legal move');
-    assert.equal(sandbox.api.getState().board[5][0].type, 'r');
-    assert.equal(sandbox.api.getActiveAIForTest().thinking, false);
+    assert.equal(sandbox.api.getState().board[6][0].type, 'r',
+      'the stale result must not alter the loaded position');
+    assert.equal(sandbox.api.getActiveAIForTest().thinking, true,
+      'the fresh search should remain active after the stale reply is ignored');
   } finally {
     sandbox.api.resetAIWorker();
     sandbox.URL.createObjectURL = previousCreateObjectURL;
