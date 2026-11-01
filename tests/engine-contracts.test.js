@@ -2021,6 +2021,8 @@ test('structured main-thread fallback dispatches the selected MinMax and MCTS co
       mockElement('whiteEnginePhaseSelect').value = 'opening';
       mockElement('blackEngineSelect').value = 'minmax_legacy';
       mockElement('blackEnginePhaseSelect').value = 'opening';
+      // Mirror the browser select-change handler so the per-phase engine overrides update.
+      mockElement('whiteEngineSelect').onchange();
 
       const s = position();
       s.board[6][0] = { type: 'r', color: 'w', moved: false };
