@@ -150,14 +150,14 @@ test('single-file startup skips sprite and MCTS fetches when symbols are inline'
 test('sprite fetch failure logs an error and still starts script.js', async () => {
   const result = await runBoot({ spriteFailure: true });
   assert.deepEqual(result.fetchCalls, ['pieces.svg', 'pieces-flat.svg']);
-  assert.deepEqual(result.appendedScripts, ['script.js']);
+  assert.deepEqual(result.appendedScripts, ['engines/minmax-engine.js', 'script.js']);
   assert.equal(result.errors.length, 1);
   assert.match(String(result.errors[0][0]), /Piece sprite failed to load/);
 });
 
 test('MCTS load failure still starts script.js as a MinMax fallback', async () => {
   const result = await runBoot({ mctsFailure: true });
-  assert.deepEqual(result.appendedScripts, ['engines/mcts-engine.js', 'script.js']);
+  assert.deepEqual(result.appendedScripts, ['engines/mcts-engine.js', 'engines/minmax-engine.js', 'script.js']);
   assert.equal(result.errors.length, 1);
   assert.match(String(result.errors[0][0]), /MCTS engine failed to load/);
 });
