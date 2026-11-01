@@ -8,6 +8,7 @@ const piecesSvg = fs.readFileSync(path.join(__dirname, "pieces.svg"), "utf8");
 const piecesFlatSvg = fs.readFileSync(path.join(__dirname, "pieces-flat.svg"), "utf8");
 const scriptJs = fs.readFileSync(path.join(__dirname, "script.js"), "utf8");
 const mctsEngineJs = fs.readFileSync(path.join(__dirname, "engines", "mcts-engine.js"), "utf8");
+const minmaxEngineJs = fs.readFileSync(path.join(__dirname, "engines", "minmax-engine.js"), "utf8");
 
 let combined = indexHtml.replace(
   '<link rel="stylesheet" href="style.css">',
@@ -38,9 +39,10 @@ combined = combined.replace(
 const strictDirective = '"use strict";';
 const scriptBody = scriptJs.replace(/^"use strict";\s*/, "");
 const mctsBody = mctsEngineJs.replace(/^'use strict;'\s*/, "");
+const minmaxBody = minmaxEngineJs.replace(/^'use strict;'\s*/, "");
 combined = combined.replace(
   /<!-- GAME-BOOT:BEGIN[\s\S]*?<!-- GAME-BOOT:END -->/,
-  `<script>\n${strictDirective}\n${mctsBody}\n${scriptBody}\n</script>`
+  `<script>\n${strictDirective}\n${mctsBody}\n${minmaxBody}\n${scriptBody}\n</script>`
 );
 
 fs.writeFileSync(path.join(__dirname, "jester-and-moat.html"), combined, "utf8");
