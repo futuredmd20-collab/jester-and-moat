@@ -964,6 +964,32 @@ const EngineContract = Object.freeze({
       status: ENGINE_RESULT_STATUS.FAILED, requestId: request && request.requestId,
       generation: request && request.generation, error: engineError(code || ENGINE_ERROR_CODES.SEARCH_FAILED, message, details) };
   },
+  createCancellationRequest(request, reason = 'state-changed') {
+    if (!request || request.protocolVersion !== ENGINE_PROTOCOL_VERSION ||
+        (typeof request.requestId !== 'string' && !Number.isSafeInteger(request.requestId)) ||
+        (typeof request.generation !== 'string' && !Number.isSafeInteger(request.generation)) ||
+        typeof request.engineId !== 'string' || !request.engineId)
+      throw Object.assign(new Error('A valid active request is required to request cancellation.'), { code: ENGINE_ERROR_CODES.INVALID_REQUEST });
+    return Object.freeze({ type: 'cancel', protocolVersion: ENGINE_PROTOCOL_VERSION,
+      engineId: request.engineId, requestId: request.requestId, generation: request.generation,
+      reason: String(reason || 'state-changed') });
+  },
+  createCancellationAcknowledgment(request, outcome = 'cancelled', details = null) {
+    if (!request || request.type !== 'cancel' || request.protocolVersion !== ENGINE_PROTOCOL_VERSION)
+      throw Object.assign(new Error('A valid cancellation request is required.'), { code: ENGINE_ERROR_CODES.INVALID_REQUEST });
+    if (!['cancelled', 'already-finished', 'not-found'].includes(outcome))
+      throw Object.assign(new Error('Unsupported cancellation acknowledgment outcome.'), { code: ENGINE_ERROR_CODES.INVALID_REQUEST });
+    return { type: 'cancel-ack', protocolVersion: ENGINE_PROTOCOL_VERSION, engineId: request.engineId,
+      requestId: request.requestId, generation: request.generation, outcome,
+      details: details == null ? null : engineCopy(details) };
+  },
+  matchesCancellationAcknowledgment(ack, request) {
+    return !!ack && !!request && request.type === 'cancel' && ack.type === 'cancel-ack' &&
+      ack.protocolVersion === ENGINE_PROTOCOL_VERSION && ack.protocolVersion === request.protocolVersion &&
+      ack.engineId === request.engineId && ack.requestId === request.requestId &&
+      ack.generation === request.generation &&
+      ['cancelled', 'already-finished', 'not-found'].includes(ack.outcome);
+  },
   matchesRequest(result, request) {
     return !!result && !!request && result.protocolVersion === ENGINE_PROTOCOL_VERSION &&
       result.protocolVersion === request.protocolVersion && result.engineId === request.engineId &&

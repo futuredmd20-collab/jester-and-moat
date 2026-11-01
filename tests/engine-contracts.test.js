@@ -345,6 +345,27 @@ test('worker rejects failed and malformed completed results for both engine sele
   }
 });
 
+test('engine cancellation messages preserve request identity and distinguish outcomes', () => {
+  const request = EngineContract.createRequest({
+    requestId: 'cancel-42', generation: 7, engineId: 'minmax_legacy',
+    position: { board: Array.from({ length: 8 }, () => Array(10).fill(null)), turn: 'w' }, limits: { depth: 2 }
+  });
+  const cancellation = EngineContract.createCancellationRequest(request, 'undo');
+  assert.deepEqual({ ...cancellation }, {
+    type: 'cancel', protocolVersion: 1, engineId: 'minmax_legacy',
+    requestId: 'cancel-42', generation: 7, reason: 'undo'
+  });
+  const ack = EngineContract.createCancellationAcknowledgment(cancellation, 'cancelled');
+  assert.equal(EngineContract.matchesCancellationAcknowledgment(ack, cancellation), true);
+  assert.equal(EngineContract.matchesCancellationAcknowledgment(
+    { ...ack, requestId: 'different-request' }, cancellation), false);
+  assert.equal(EngineContract.matchesCancellationAcknowledgment(
+    { ...ack, generation: 8 }, cancellation), false);
+  assert.equal(EngineContract.createCancellationAcknowledgment(cancellation, 'already-finished').outcome, 'already-finished');
+  assert.equal(EngineContract.createCancellationAcknowledgment(cancellation, 'not-found').outcome, 'not-found');
+  assert.throws(() => EngineContract.createCancellationAcknowledgment(cancellation, 'success'));
+});
+
 test('engine contract matches only the corresponding request identity and generation', () => {
   const request = EngineContract.createRequest({
     requestId: 31, generation: 8, engineId: 'minmax_legacy', position: position(), limits: { depth: 1 }
