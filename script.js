@@ -972,6 +972,10 @@ const EngineContract = Object.freeze({
  * Search receives an immutable contract request and returns a structured result.
  * Search limits are supplied by the caller; engine logic does not read the UI. */
 const MinMaxSearchCore = MinMaxSearchCoreFactory({ clone, other, applyRaw, allLegalState, inCheck, getJesterValue });
+// Compatibility adapters for shared evaluation helpers used by MCTS and diagnostics.
+function evaluateBoard(st) { return MinMaxSearchCore.evaluateBoard(st); }
+function minimax(st, depth, alpha, beta, isMaximizing) { return MinMaxSearchCore.minimax(st, depth, alpha, beta, isMaximizing); }
+function getBestMove(st, depth) { return MinMaxSearchCore.getBestMove(st, depth); }
 
 const MinMaxLegacy = {
   id: 'minmax_legacy',
@@ -1099,7 +1103,7 @@ loadEngineConfig();
 
 function ensureAIWorker() {
   if (aiWorker || !('Worker' in window)) return aiWorker;
-  const engineFunctions = [clone, inside, other, pieceAt, getMoatCells, isMoatCell, checkMoatDestructionState, attacked, kingPos, inCheck, pseudoMoves, applyRaw, legalMovesFromState, allLegalState, getJesterValue, MinMaxSearchCoreFactory];
+  const engineFunctions = [clone, inside, other, pieceAt, getMoatCells, isMoatCell, checkMoatDestructionState, attacked, kingPos, inCheck, pseudoMoves, applyRaw, legalMovesFromState, allLegalState, getJesterValue, evaluateBoard, minimax, getBestMove, MinMaxSearchCoreFactory];
   // MCTS helpers live in engines/mcts-engine.js. Serialize them only when that module loaded.
   if (typeof mctsGetMove === 'function' && typeof mctsSearch === 'function') {
     engineFunctions.push(mctsLevelFor, mctsApplyMove, mctsPlayout, mctsNode, mctsUctChild, mctsSearch, mctsGetMove, mctsEngine);
