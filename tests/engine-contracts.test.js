@@ -684,7 +684,8 @@ test('worker dispatches MinMax and returns a legal move', async () => {
       const source = await workerBlobs.get(this.url).text();
       let response;
       const workerContext = {
-        postMessage(message) { response = message; }
+        postMessage(message) { response = message; },
+        setTimeout(callback) { callback(); return 1; }
       };
       vm.createContext(workerContext);
       vm.runInContext(source, workerContext, { filename: 'ai-worker.js' });
