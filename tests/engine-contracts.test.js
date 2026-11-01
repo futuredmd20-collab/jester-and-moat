@@ -48,7 +48,8 @@ function mockElement(id) {
 }
 const sandbox = {
   console, URLSearchParams, Blob,
-  setTimeout(callback) { scheduledCallbacks.push(callback); return scheduledCallbacks.length; },
+  setTimeout(callback, delay) { callback.delay = delay; scheduledCallbacks.push(callback); return scheduledCallbacks.length; },
+  clearTimeout() {},
   URL: { createObjectURL() { throw new Error('Blob workers blocked by test'); }, revokeObjectURL() {} },
   window: { location: { search: '' }, innerWidth: 1024, Worker: function Worker() {}, addEventListener() {} },
   document: {
@@ -72,7 +73,7 @@ const sandbox = {
 };
 vm.createContext(sandbox);
 vm.runInContext(source.slice(0, boundary) + `
-globalThis.api = { EngineContract, MinMaxLegacy, cancelActiveAIRequest, setActiveAIForTest(worker, request) { aiWorker = worker; pendingAIRequest = request; isAIThinking = true; }, getActiveAIForTest() { return { worker: aiWorker, request: pendingAIRequest, thinking: isAIThinking, id: aiRequestId }; }, allLegalState, getBestMove, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; gameOver = false; gameOverMessage = ''; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getDefaultEngineForSide() { return defaultEngineForSide; }, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, ENGINE_PHASES };
+globalThis.api = { EngineContract, MinMaxLegacy, cancelActiveAIRequest, setActiveAIForTest(worker, request) { aiWorker = worker; pendingAIRequest = request; isAIThinking = true; }, getActiveAIForTest() { return { worker: aiWorker, request: pendingAIRequest, thinking: isAIThinking, id: aiRequestId }; }, allLegalState, getBestMove, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout); aiWorkerTimeout = null; if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; gameOver = false; gameOverMessage = ''; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getDefaultEngineForSide() { return defaultEngineForSide; }, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, ENGINE_PHASES };
 `, sandbox, { filename: 'script.js' });
 vm.runInContext(mcts, sandbox, { filename: 'engines/mcts-engine.js' });
 // The app's HTML loads the MCTS module before script.js; register its plugin here
@@ -958,6 +959,89 @@ test('cancelled main-thread contract search releases the active AI request', () 
   }
 });
 
+
+
+test('unresponsive worker times out, retries once on the main thread, and ignores its late reply', () => {
+  const previousCreateObjectURL = sandbox.URL.createObjectURL;
+  const previousRevokeObjectURL = sandbox.URL.revokeObjectURL;
+  const previousWorker = sandbox.Worker;
+  const previousWindowWorker = sandbox.window.Worker;
+  const originalMinMax = sandbox.api.enginePlugins.get('minmax_legacy');
+  let workerInstance;
+  let fallbackCalls = 0;
+
+  class HangingWorker {
+    constructor(url) {
+      this.url = url;
+      this.terminated = false;
+      this.onmessage = null;
+      this.onerror = null;
+      workerInstance = this;
+    }
+    postMessage(request) { this.request = request; }
+    terminate() { this.terminated = true; }
+  }
+
+  sandbox.api.resetAIWorker();
+  sandbox.URL.createObjectURL = () => 'blob:worker-timeout-test';
+  sandbox.URL.revokeObjectURL = () => {};
+  sandbox.Worker = HangingWorker;
+  sandbox.window.Worker = HangingWorker;
+  sandbox.api.enginePlugins.set('minmax_legacy', {
+    id: 'minmax_legacy',
+    name: 'MinMax timeout fallback probe',
+    phases: ['opening', 'midgame', 'endgame'],
+    search(request) {
+      fallbackCalls++;
+      return EngineContract.failed(request, EngineContract.errorCodes.SEARCH_FAILED, 'timeout fallback probe');
+    }
+  });
+
+  try {
+    mockElement('modeSelect').value = 'human_vs_ai';
+    mockElement('whiteEngineSelect').value = 'minmax_legacy';
+    mockElement('whiteEnginePhaseSelect').value = 'opening';
+    mockElement('blackEngineSelect').value = 'minmax_legacy';
+    mockElement('blackEnginePhaseSelect').value = 'opening';
+    sandbox.api.updateEngineConfigUI();
+    sandbox.api.setState(position());
+    sandbox.api.aiMove();
+
+    const originalRequest = workerInstance.request;
+    assert.ok(originalRequest.contractRequest, 'the hanging worker should receive a structured request');
+    const timeoutCallback = scheduledCallbacks.findLast(callback => callback.delay === 15000);
+    assert.ok(timeoutCallback, 'a worker response watchdog should be scheduled');
+
+    timeoutCallback();
+    assert.equal(workerInstance.terminated, true, 'the unresponsive worker should be terminated');
+    assert.match(mockElement('status').textContent, /retrying on the main thread/i);
+    assert.equal(fallbackCalls, 0, 'fallback should wait for its scheduled callback');
+
+    workerInstance.onmessage({
+      data: {
+        id: originalRequest.id,
+        result: EngineContract.completed(originalRequest.contractRequest, allLegalState(position())[0])
+      }
+    });
+    assert.equal(fallbackCalls, 0, 'a late response from the timed-out worker must be ignored');
+
+    const fallbackCallback = scheduledCallbacks.findLast(callback => callback.delay === 20);
+    assert.ok(fallbackCallback, 'the main-thread retry should be scheduled');
+    fallbackCallback();
+    assert.equal(fallbackCalls, 1, 'the selected engine should be retried exactly once');
+    assert.equal(sandbox.api.getActiveAIForTest().thinking, false);
+    assert.equal(sandbox.api.getActiveAIForTest().request, null);
+    assert.match(mockElement('status').textContent, /timeout fallback probe/);
+  } finally {
+    sandbox.api.enginePlugins.set('minmax_legacy', originalMinMax);
+    sandbox.api.resetAIWorker();
+    sandbox.URL.createObjectURL = previousCreateObjectURL;
+    sandbox.URL.revokeObjectURL = previousRevokeObjectURL;
+    sandbox.Worker = previousWorker;
+    sandbox.window.Worker = previousWindowWorker;
+    scheduledCallbacks.length = 0;
+  }
+});
 
 test('worker runtime errors retry the selected engine on the main thread', () => {
   const previousCreateObjectURL = sandbox.URL.createObjectURL;
