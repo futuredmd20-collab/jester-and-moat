@@ -1207,8 +1207,8 @@ function ensureAIWorker() {
 const ROWS = 8, COLS = 10;
 const DIRS = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
 const ENGINE_PROTOCOL_VERSION = 1;
-const ENGINE_RESULT_STATUS = { COMPLETED: 'completed', NO_MOVE: 'no-move', FAILED: 'failed' };
-const ENGINE_ERROR_CODES = { INVALID_REQUEST: 'INVALID_REQUEST', INVALID_MOVE: 'INVALID_MOVE', SEARCH_FAILED: 'SEARCH_FAILED' };
+const ENGINE_RESULT_STATUS = { COMPLETED: 'completed', NO_MOVE: 'no-move', CANCELLED: 'cancelled', FAILED: 'failed' };
+const ENGINE_ERROR_CODES = { INVALID_REQUEST: 'INVALID_REQUEST', INVALID_MOVE: 'INVALID_MOVE', CANCELLED: 'CANCELLED', SEARCH_FAILED: 'SEARCH_FAILED' };
 function engineCopy(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
 function engineError(code, message) { return { code, message: String(message || code), details: null }; }
 const EngineContract = {
@@ -1228,6 +1228,11 @@ const EngineContract = {
     return { protocolVersion: request.protocolVersion, engineId: request.engineId,
       status: ENGINE_RESULT_STATUS.COMPLETED, requestId: request.requestId,
       generation: request.generation, move: engineCopy(move), metadata: engineCopy(metadata) };
+  },
+  cancelled(request, message = 'Search cancelled.') {
+    return { protocolVersion: request && request.protocolVersion, engineId: request && request.engineId,
+      status: ENGINE_RESULT_STATUS.CANCELLED, requestId: request && request.requestId,
+      generation: request && request.generation, error: engineError(ENGINE_ERROR_CODES.CANCELLED, message) };
   },
   failed(request, code, message) {
     return { protocolVersion: request && request.protocolVersion, engineId: request && request.engineId,
@@ -1327,6 +1332,10 @@ onmessage = function(event) {
       }
       if (result.status === ENGINE_RESULT_STATUS.FAILED) {
         status(`AI error: ${result.error && result.error.message || 'Engine search failed.'}`);
+        return;
+      }
+      if (result.status === ENGINE_RESULT_STATUS.CANCELLED) {
+        status('AI search cancelled.');
         return;
       }
       if (![ENGINE_RESULT_STATUS.COMPLETED, ENGINE_RESULT_STATUS.NO_MOVE].includes(result.status)) {
