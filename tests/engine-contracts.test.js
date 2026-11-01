@@ -920,6 +920,8 @@ test('loading an editor position restores castling rights for a home king and co
 
 test('cancelled main-thread contract search releases the active AI request', () => {
   const originalEngine = sandbox.api.enginePlugins.get('minmax_legacy');
+  const previousWorker = sandbox.Worker;
+  const previousWindowWorker = sandbox.window.Worker;
   const cancelledEngine = {
     id: 'minmax_legacy',
     name: 'Cancelled search test engine',
@@ -928,6 +930,9 @@ test('cancelled main-thread contract search releases the active AI request', () 
       return EngineContract.cancelled(request);
     }
   };
+  sandbox.api.resetAIWorker();
+  sandbox.Worker = undefined;
+  sandbox.window.Worker = undefined;
   sandbox.api.enginePlugins.set('minmax_legacy', cancelledEngine);
   mockElement('modeSelect').value = 'ai_easy';
   const s = position();
@@ -947,6 +952,8 @@ test('cancelled main-thread contract search releases the active AI request', () 
   } finally {
     sandbox.api.enginePlugins.set('minmax_legacy', originalEngine);
     sandbox.api.resetAIWorker();
+    sandbox.Worker = previousWorker;
+    sandbox.window.Worker = previousWindowWorker;
     scheduledCallbacks.splice(callbackIndex);
   }
 });
