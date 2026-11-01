@@ -1123,6 +1123,7 @@ function ensureAIWorker() {
   const workerSource = `"use strict";
 const ROWS = 8, COLS = 10;
 const DIRS = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+function engineCopy(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
 ${createEngineContract.toString()}
 const EngineContract = createEngineContract();
 const ENGINE_PROTOCOL_VERSION = EngineContract.version;
