@@ -2252,6 +2252,19 @@ function applyLoadedGame(parsed) {
   selected = null; legalTargets = []; lastMove = null; pendingMoat = null;
 }
 
+// Import pauses auto-play while the file picker is open. Resume the loaded
+// position according to its mode only after the file has parsed successfully.
+function resumeLoadedGamePlayback() {
+  if (gameOver) return;
+  const mode = document.getElementById('modeSelect').value;
+  if (mode === 'ai_vs_ai') {
+    if (!autoPlayInterval) toggleAutoPlay();
+  } else if (isAIMode() && state.turn !== playerColor) {
+    clearTimeout(aiTimer);
+    aiTimer = setTimeout(aiMove, getSpeed());
+  }
+}
+
 document.getElementById('fileInput').addEventListener('change', (event) => {
   const file = event.target.files[0];
   if (!file) return;
@@ -2270,6 +2283,7 @@ document.getElementById('fileInput').addEventListener('change', (event) => {
       } else {
         hideGameOverOverlay();
         status("Game state loaded from file successfully!");
+        resumeLoadedGamePlayback();
       }
     } catch(err) {
       alert("Could not parse JSON file.");
