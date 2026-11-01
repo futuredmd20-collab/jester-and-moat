@@ -296,8 +296,7 @@ test('structured worker serializes and invokes the MinMax contract entry point',
 
 test('structured worker keeps cooperative cancellation dispatch for both engines', () => {
   const workerSourceStart = source.indexOf('const workerSource = `');
-  const workerSourceEnd = source.indexOf('`;
-  let blob, url;', workerSourceStart);
+  const workerSourceEnd = source.indexOf('`;', workerSourceStart);
   assert.ok(workerSourceStart >= 0 && workerSourceEnd > workerSourceStart,
     'worker source template should be present');
   const workerSource = source.slice(workerSourceStart, workerSourceEnd);
