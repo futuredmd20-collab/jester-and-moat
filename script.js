@@ -1201,7 +1201,7 @@ function ensureAIWorker() {
   const engineFunctions = [clone, inside, other, pieceAt, getMoatCells, isMoatCell, checkMoatDestructionState, attacked, kingPos, inCheck, pseudoMoves, applyRaw, legalMovesFromState, allLegalState, getJesterValue, evaluateBoard, minimax, getBestMove];
   // MCTS helpers live in engines/mcts-engine.js. Serialize them only when that module loaded.
   if (typeof mctsGetMove === 'function' && typeof mctsSearch === 'function') {
-    engineFunctions.push(mctsLevelFor, mctsApplyMove, mctsPlayout, mctsNode, mctsUctChild, mctsSearch, mctsGetMove);
+    engineFunctions.push(mctsLevelFor, mctsApplyMove, mctsPlayout, mctsNode, mctsUctChild, mctsSearch, mctsGetMove, mctsEngine);
   }
   const workerSource = `"use strict";
 const ROWS = 8, COLS = 10;
@@ -1258,16 +1258,10 @@ onmessage = function(event) {
       // Contract snapshots are deeply frozen; search helpers mutate their working state.
       // Clone the snapshot at the worker boundary so the engine cannot mutate the request.
       state = clone(request.position);
-      if (request.protocolVersion !== 1 || !['minmax_legacy', 'mcts'].includes(request.engineId))
-        throw new Error('Unsupported structured engine request.');
+      if (!['minmax_legacy', 'mcts'].includes(request.engineId))
+        throw new Error('Unsupported structured engine selector.');
       const result = request.engineId === 'mcts'
-        ? (() => {
-            const move = mctsGetMove(state, request.limits.depth);
-            return { protocolVersion: request.protocolVersion, requestId: request.requestId,
-              generation: request.generation, engineId: request.engineId,
-              status: move ? ENGINE_RESULT_STATUS.COMPLETED : ENGINE_RESULT_STATUS.NO_MOVE,
-              move: move || null, error: null };
-          })()
+        ? mctsEngine(request.limits && request.limits.depth).search(request)
         : MinMaxLegacy.search(request);
       postMessage({ id: data.id, result });
       return;
