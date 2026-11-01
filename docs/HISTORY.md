@@ -1,3 +1,8 @@
+2026-11-01 — Version 0.8.1 checkpoint
+* Prepared a PATCH release after the MinMax search-core extraction and saved-game/active-AI-search recovery fix (PRs #90 and #91).
+* Synchronized the visible version labels and manifest to 0.8.1; advanced the service-worker cache identifier to `jm-cache-v0.8.1-compact-ui-16` so returning PWA clients refresh the changed precached app shell.
+* Release tag and publication follow after the merged version change is verified on GitHub Pages.
+
 2026-11-01 — Saved-game load during AI search
 * Loading a valid saved game now cancels the in-flight engine request before replacing the active position, preventing stale worker results from racing the imported game.
 * Added a regression test covering cancellation, stale-response rejection, and successful AI search resumption.
