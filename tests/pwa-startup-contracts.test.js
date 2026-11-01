@@ -48,7 +48,7 @@ async function runBoot({ inline = false, spriteFailure = false, mctsFailure = fa
     body: {
       appendChild(script) {
         appendedScripts.push(script.src);
-        if (script.src === 'engines/mcts-engine.js') {
+        if (script.src === 'engines/mcts-engine.js' || script.src === 'engines/minmax-engine.js') {
           setImmediate(() => {
             if (mctsFailure) script.onerror && script.onerror();
             else script.onload && script.onload();
@@ -136,7 +136,7 @@ test('development Eruda stays out of the service-worker precache and single-file
 test('multi-file startup loads both sprites and MCTS before script.js', async () => {
   const result = await runBoot();
   assert.deepEqual(result.fetchCalls, ['pieces.svg', 'pieces-flat.svg']);
-  assert.deepEqual(result.appendedScripts, ['engines/mcts-engine.js', 'script.js']);
+  assert.deepEqual(result.appendedScripts, ['engines/mcts-engine.js', 'engines/minmax-engine.js', 'script.js']);
   assert.match(result.elements.get('pieceSprite').innerHTML, /pieces\.svg/);
   assert.match(result.elements.get('pieceFlatSprite').innerHTML, /pieces-flat\.svg/);
 });
@@ -144,7 +144,7 @@ test('multi-file startup loads both sprites and MCTS before script.js', async ()
 test('single-file startup skips sprite and MCTS fetches when symbols are inline', async () => {
   const result = await runBoot({ inline: true });
   assert.deepEqual(result.fetchCalls, []);
-  assert.deepEqual(result.appendedScripts, ['script.js']);
+  assert.deepEqual(result.appendedScripts, ['engines/minmax-engine.js', 'script.js']);
 });
 
 test('sprite fetch failure logs an error and still starts script.js', async () => {
@@ -187,7 +187,7 @@ test('service-worker precache covers the shipped multi-file app, not source art 
   for (const file of [
     './', './index.html', './style.css', './pieces.css', './pieces.svg',
     './pieces-flat.svg', './script.js', './manifest.json',
-    './engines/mcts-engine.js', './icon-192.png', './icon-512.png',
+    './engines/mcts-engine.js', './engines/minmax-engine.js', './icon-192.png', './icon-512.png',
     './icon-maskable-512.png', './apple-touch-icon.png'
   ]) assert.ok(context.__precache.includes(file), `precache should include ${file}`);
   assert.ok(!context.__precache.some(file => /(?:light|flat)-.*\.svg$/.test(file)));
@@ -224,7 +224,7 @@ test('service-worker activation deletes old app caches and claims clients', asyn
       clients: { claim: async () => { claimed = true; } }
     },
     caches: {
-      keys: async () => ['jm-cache-old', 'unrelated-cache', 'jm-cache-v0.8.0-compact-ui-14'],
+      keys: async () => ['jm-cache-old', 'unrelated-cache', 'jm-cache-v0.8.0-compact-ui-15'],
       delete: async key => { deleted.push(key); return true; }
     },
     Promise
