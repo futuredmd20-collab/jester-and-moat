@@ -888,6 +888,9 @@ function getJesterValue(st) {
 
 /* Shared internal engine contract, protocol v1.
  * Transport adapters translate to/from this shape; the game core validates and applies moves. */
+// Shared utility retained for engine adapters outside the contract factory.
+function engineCopy(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
+
 function createEngineContract() {
 const ENGINE_PROTOCOL_VERSION = 1;
 const ENGINE_CAPABILITIES = Object.freeze({
