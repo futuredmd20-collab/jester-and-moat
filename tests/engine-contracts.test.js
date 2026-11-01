@@ -294,6 +294,28 @@ test('structured worker serializes and invokes the MinMax contract entry point',
     'structured MinMax worker requests must use the cooperative asynchronous search entry point');
 });
 
+test('structured worker keeps cooperative cancellation dispatch for both engines', () => {
+  const workerSourceStart = source.indexOf('const workerSource = `');
+  const workerSourceEnd = source.indexOf('`;
+  let blob, url;', workerSourceStart);
+  assert.ok(workerSourceStart >= 0 && workerSourceEnd > workerSourceStart,
+    'worker source template should be present');
+  const workerSource = source.slice(workerSourceStart, workerSourceEnd);
+
+  assert.match(workerSource, /mctsSearchAsync/,
+    'the MCTS async search must be serialized into the worker');
+  assert.match(workerSource, /if \(request\.engineId === 'mcts'\)/,
+    'structured MCTS requests must use their dedicated worker branch');
+  assert.match(workerSource, /mctsSearchAsync\(/,
+    'structured MCTS requests must use the cooperative async search entry point');
+  assert.match(workerSource, /MinMaxSearchCore\.getBestMoveAsync\(/,
+    'structured MinMax requests must use the cooperative async search entry point');
+  assert.match(workerSource, /EngineContract\.createCancellationAcknowledgment\(/,
+    'the worker must acknowledge cooperative cancellation using the shared contract');
+  assert.match(workerSource, /activeSearches\.delete\(key\)/,
+    'completed or cancelled worker searches must be removed from the active registry');
+});
+
 test('worker rejects failed and malformed completed results for both engine selectors', () => {
   const previousCreateObjectURL = sandbox.URL.createObjectURL;
   const previousRevokeObjectURL = sandbox.URL.revokeObjectURL;
