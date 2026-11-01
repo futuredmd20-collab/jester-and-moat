@@ -1,3 +1,7 @@
+2026-11-01 — Saved-game load during AI search
+* Loading a valid saved game now cancels the in-flight engine request before replacing the active position, preventing stale worker results from racing the imported game.
+* Added a regression test covering cancellation, stale-response rejection, and successful AI search resumption.
+
 # HISTORY.md — Change Log
 
 Purpose: dated record of decisions and changes, oldest first. Use the repository for current state and HANDOVER.md for rules.
