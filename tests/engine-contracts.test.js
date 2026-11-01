@@ -918,6 +918,39 @@ test('loading an editor position restores castling rights for a home king and co
 });
 
 
+test('cancelled main-thread contract search releases the active AI request', () => {
+  const originalEngine = sandbox.api.enginePlugins.get('minmax_legacy');
+  const cancelledEngine = {
+    id: 'minmax_legacy',
+    name: 'Cancelled search test engine',
+    phases: ['opening', 'midgame', 'endgame'],
+    search(request) {
+      return EngineContract.cancelled(request);
+    }
+  };
+  sandbox.api.enginePlugins.set('minmax_legacy', cancelledEngine);
+  const s = position();
+  s.board[6][0] = { type: 'r', color: 'w', moved: false };
+  sandbox.api.setState(s);
+  const callbackIndex = scheduledCallbacks.length;
+
+  try {
+    sandbox.api.aiMove();
+    assert.equal(scheduledCallbacks.length, callbackIndex + 1, 'main-thread search should be scheduled');
+    scheduledCallbacks[callbackIndex]();
+    const active = sandbox.api.getActiveAIForTest();
+    assert.equal(active.thinking, false, 'cancelled search must not leave the AI locked as thinking');
+    assert.equal(active.request, null, 'cancelled search must clear the active request');
+    assert.equal(sandbox.api.getGameOver(), false, 'cancellation must not end the game');
+    assert.match(mockElement('status').textContent, /AI search cancelled/);
+  } finally {
+    sandbox.api.enginePlugins.set('minmax_legacy', originalEngine);
+    sandbox.api.resetAIWorker();
+    scheduledCallbacks.splice(callbackIndex);
+  }
+});
+
+
 test('worker runtime errors retry the selected engine on the main thread', () => {
   const previousCreateObjectURL = sandbox.URL.createObjectURL;
   const previousRevokeObjectURL = sandbox.URL.revokeObjectURL;
