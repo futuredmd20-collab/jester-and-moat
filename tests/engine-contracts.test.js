@@ -123,6 +123,22 @@ test('MinMax cooperative search yields and exits when cancellation is requested'
   assert.equal(JSON.stringify(s), before, 'cancellation must not mutate the input position');
 });
 
+test('MCTS cooperative search yields and exits when cancellation is requested', async () => {
+  const s = position();
+  s.board[6][0] = { type: 'r', color: 'w', moved: false };
+  const before = JSON.stringify(s);
+  let yields = 0;
+  const outcome = await sandbox.mctsSearchAsync(
+    s, { playouts: 10, capDepth: 2, temperature: 0 },
+    () => yields > 0,
+    async () => { yields++; }
+  );
+  assert.equal(outcome.cancelled, true);
+  assert.equal(outcome.move, null);
+  assert.equal(yields, 1);
+  assert.equal(JSON.stringify(s), before, 'cancellation must not mutate the input position');
+});
+
 test('MinMax contract search returns a structured legal move without mutating its frozen request', () => {
   const s = position();
   s.board[6][0] = { type: 'r', color: 'w', moved: false };
