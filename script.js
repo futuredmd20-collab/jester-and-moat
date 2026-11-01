@@ -2143,6 +2143,26 @@ document.getElementById('importFileBtn').addEventListener('click', () => {
   document.getElementById('fileInput').click();
 });
 
+function applyLoadedGame(parsed) {
+  // Loading a saved position replaces the authoritative state; any in-flight
+  // engine request belongs to the old position and must not race the import.
+  cancelActiveAIRequest('load-saved-game');
+  state = parsed.state;
+  gameStarted = parsed.gameStarted;
+  playerColor = parsed.playerColor;
+  document.getElementById('playerSideSelect').value = playerColor;
+  const boardEl = document.getElementById('board');
+  if (playerColor === 'b') boardEl.classList.add('flipped');
+  else boardEl.classList.remove('flipped');
+  moveLog = parsed.moveLog;
+  history = parsed.history;
+  historyMoveLogs = parsed.historyMoveLogs;
+  redoStack = [];
+  gameOver = parsed.gameOver;
+  gameOverMessage = parsed.gameOverMessage;
+  selected = null; legalTargets = []; lastMove = null; pendingMoat = null;
+}
+
 document.getElementById('fileInput').addEventListener('change', (event) => {
   const file = event.target.files[0];
   if (!file) return;
@@ -2151,20 +2171,7 @@ document.getElementById('fileInput').addEventListener('change', (event) => {
     try {
       const initialTime = parseInt(document.getElementById('timeSelect').value, 10) || 0;
       const parsed = parseGameData(e.target.result, initialTime);
-      state = parsed.state;
-      gameStarted = parsed.gameStarted;
-      playerColor = parsed.playerColor;
-      document.getElementById('playerSideSelect').value = playerColor;
-      const boardEl = document.getElementById('board');
-      if (playerColor === 'b') boardEl.classList.add('flipped');
-      else boardEl.classList.remove('flipped');
-      moveLog = parsed.moveLog;
-      history = parsed.history;
-      historyMoveLogs = parsed.historyMoveLogs;
-      redoStack = [];
-      gameOver = parsed.gameOver;
-      gameOverMessage = parsed.gameOverMessage;
-      selected = null; legalTargets = []; lastMove = null; pendingMoat = null;
+      applyLoadedGame(parsed);
       lastClockTickTime = performance.now();
       updateClockUI();
       render();
