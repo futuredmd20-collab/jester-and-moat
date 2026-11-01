@@ -52,7 +52,7 @@ const sandbox = {
   console, URLSearchParams, Blob,
   setTimeout(callback, delay) {
     callback.delay = delay;
-    if (delay === 15000) { scheduledTimeouts.push(callback); return -scheduledTimeouts.length; }
+    if (delay === 15000 || delay === 250) { scheduledTimeouts.push(callback); return -scheduledTimeouts.length; }
     scheduledCallbacks.push(callback);
     return scheduledCallbacks.length;
   },
@@ -274,8 +274,8 @@ test('structured worker serializes and invokes the MinMax contract entry point',
   assert.doesNotMatch(workerSource, /const EngineContract = \{/,
     'the worker must not define a second hand-maintained contract object');
   assert.match(workerSource, /const MinMaxLegacy = \{ id: 'minmax_legacy', search: \\?\$\{MinMaxLegacy\.search\.toString\(\)\} \}/);
-  assert.match(workerSource, /: MinMaxLegacy\.search\(request\)/,
-    'structured MinMax worker requests must go through the contract search entry point');
+  assert.match(workerSource, /MinMaxSearchCore\.getBestMoveAsync/,
+    'structured MinMax worker requests must use the cooperative asynchronous search entry point');
 });
 
 test('worker rejects failed and malformed completed results for both engine selectors', () => {
@@ -688,7 +688,7 @@ test('worker dispatches MinMax and returns a legal move', async () => {
       };
       vm.createContext(workerContext);
       vm.runInContext(source, workerContext, { filename: 'ai-worker.js' });
-      workerContext.onmessage({ data });
+      await workerContext.onmessage({ data });
       if (this.onmessage) this.onmessage({ data: response });
       return response;
     }
@@ -1030,7 +1030,11 @@ test('loading a saved game cancels the old engine request and permits a fresh se
     assert.ok(staleRequest?.contractRequest, 'an engine request should be active before loading');
 
     sandbox.api.applyLoadedGame(parsed);
-    assert.equal(staleWorker.terminated, true, 'loading a save should terminate the worker for the old position');
+    assert.equal(staleWorker.terminated, false, 'loading a save should first request cooperative cancellation');
+    const cancellation = staleWorker.request.cancellation;
+    assert.ok(cancellation, 'loading should send a cancellation envelope for the old request');
+    staleWorker.onmessage?.({ data: { id: staleRequest.id, cancellationAck: EngineContract.createCancellationAcknowledgment(cancellation, 'cancelled') } });
+    assert.equal(staleWorker.terminated, true, 'the acknowledged old worker should then be terminated');
     assert.equal(sandbox.api.getActiveAIForTest().request, null, 'loading should clear the old request');
     assert.equal(sandbox.api.getActiveAIForTest().thinking, false, 'loading should release the AI thinking lock');
     assert.equal(sandbox.api.getState().board[6][0].type, 'r', 'the saved position should become authoritative');
@@ -1822,7 +1826,11 @@ test('late worker replies after cancellation cannot affect the current game or r
     const oldRequestId = cancelledWorker.request.id;
 
     sandbox.api.cancelActiveAIRequest('test-undo');
-    assert.equal(cancelledWorker.terminated, true, 'cancelling the search should terminate its worker');
+    assert.equal(cancelledWorker.terminated, false, 'cancellation should allow the worker to acknowledge cooperatively');
+    const cancellation = cancelledWorker.request.cancellation;
+    assert.ok(cancellation, 'cancellation should be sent using the shared contract envelope');
+    cancelledWorker.onmessage({ data: { id: oldRequestId, cancellationAck: EngineContract.createCancellationAcknowledgment(cancellation, 'cancelled') } });
+    assert.equal(cancelledWorker.terminated, true, 'the worker should terminate after acknowledging cancellation');
 
     const currentState = position();
     currentState.board[6][1] = { type: 'r', color: 'w', moved: false };
