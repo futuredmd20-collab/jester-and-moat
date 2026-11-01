@@ -104,7 +104,33 @@
   }
   return bestMove;
 }
-    return Object.freeze({ evaluateBoard, minimax, getBestMove });
+    async function getBestMoveAsync(st, depth, shouldCancel = () => false, yieldControl = () => new Promise(resolve => setTimeout(resolve, 0))) {
+  const moves = allLegalState(st, st.turn);
+  if (!moves.length) return { move: null, cancelled: false };
+  let bestMove = null;
+  const isMax = st.turn === 'w';
+  let bestEval = isMax ? -Infinity : Infinity;
+  moves.sort(() => Math.random() - 0.5);
+  for (let i = 0; i < moves.length; i++) {
+    if (shouldCancel()) return { move: null, cancelled: true };
+    const m = moves[i];
+    const nextState = clone(st);
+    if (m.swap) {
+      const p = nextState.board[m.from.r][m.from.c], q = nextState.board[m.to.r][m.to.c];
+      nextState.board[m.to.r][m.to.c] = p; nextState.board[m.from.r][m.from.c] = q;
+      p.moved = true; q.moved = true; nextState.turn = other(nextState.turn); nextState.ply++;
+    } else applyRaw(nextState, m);
+    const ev = minimax(nextState, depth - 1, -Infinity, Infinity, !isMax);
+    if (isMax ? ev > bestEval : ev < bestEval) { bestEval = ev; bestMove = m; }
+    // Yield between root branches so a Worker can receive a cancellation message.
+    if (i < moves.length - 1) {
+      await yieldControl();
+      if (shouldCancel()) return { move: null, cancelled: true };
+    }
+  }
+  return { move: bestMove, cancelled: false };
+}
+    return Object.freeze({ evaluateBoard, minimax, getBestMove, getBestMoveAsync });
   }
   root.MinMaxSearchCoreFactory = MinMaxSearchCoreFactory;
 })(globalThis);

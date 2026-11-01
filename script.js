@@ -205,17 +205,39 @@ let aiWorker = null;
 let aiRequestId = 0;
 let pendingAIRequest = null;
 let aiWorkerTimeout = null;
+let pendingCancellation = null;
+let aiCancellationTimeout = null;
 const AI_WORKER_TIMEOUT_MS = 15000;
+const AI_CANCELLATION_GRACE_MS = 250;
 
-// Invalidate in-flight work whenever the authoritative game position/lifecycle changes.
-// The legacy transport has no cancellation acknowledgment; terminating its worker is the hard-stop mechanism.
+// Invalidate the request immediately, then give cooperative workers a short chance to acknowledge.
 function cancelActiveAIRequest(reason = 'state-changed') {
   aiRequestId++;
   const worker = aiWorker;
+  const activeRequest = pendingAIRequest;
   aiWorker = null;
   if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout);
   aiWorkerTimeout = null;
-  if (worker && typeof worker.terminate === 'function') worker.terminate();
+  if (pendingCancellation && typeof pendingCancellation.worker.terminate === 'function') pendingCancellation.worker.terminate();
+  if (aiCancellationTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiCancellationTimeout);
+  aiCancellationTimeout = null;
+  pendingCancellation = null;
+  if (worker && activeRequest && activeRequest.contractRequest && typeof worker.postMessage === 'function') {
+    try {
+      const cancellation = EngineContract.createCancellationRequest(activeRequest.contractRequest, reason);
+      pendingCancellation = { worker, cancellation };
+      worker.postMessage({ id: activeRequest.id, cancellation });
+      aiCancellationTimeout = setTimeout(() => {
+        if (pendingCancellation && pendingCancellation.worker === worker) {
+          if (typeof worker.terminate === 'function') worker.terminate();
+          pendingCancellation = null;
+          aiCancellationTimeout = null;
+        }
+      }, AI_CANCELLATION_GRACE_MS);
+    } catch (_) {
+      if (typeof worker.terminate === 'function') worker.terminate();
+    }
+  } else if (worker && typeof worker.terminate === 'function') worker.terminate();
   pendingAIRequest = null;
   isAIThinking = false;
   if (typeof clearTimeout === 'function') clearTimeout(aiTimer);
@@ -1165,20 +1187,53 @@ const MCTS_LEVELS = {
 };
 const MCTS_EXPLORATION = 0.7;
 let state = null;
+const activeSearches = new Map();
+const finishedSearches = new Set();
 ${engineFunctions.map(fn => fn.toString()).join('\n')}
-onmessage = function(event) {
+onmessage = async function(event) {
   const data = event.data;
   try {
+    if (data.cancellation) {
+      const cancellation = data.cancellation;
+      const key = String(cancellation.requestId);
+      const active = activeSearches.get(key);
+      if (active) active.cancelled = true;
+      else {
+        const outcome = finishedSearches.has(key) ? 'already-finished' : 'not-found';
+        postMessage({ id: data.id, cancellationAck: EngineContract.createCancellationAcknowledgment(cancellation, outcome) });
+      }
+      return;
+    }
     if (data.contractRequest) {
       const request = data.contractRequest;
-      // Contract snapshots are deeply frozen; search helpers mutate their working state.
-      // Clone the snapshot at the worker boundary so the engine cannot mutate the request.
       state = clone(request.position);
       if (!['minmax_legacy', 'mcts'].includes(request.engineId))
         throw new Error('Unsupported structured engine selector.');
-      const result = request.engineId === 'mcts'
-        ? mctsEngine(request.limits && request.limits.depth).search(request)
-        : MinMaxLegacy.search(request);
+      const control = { cancelled: false };
+      const key = String(request.requestId);
+      activeSearches.set(key, control);
+      let result;
+      if (request.engineId === 'mcts') {
+        result = mctsEngine(request.limits && request.limits.depth).search(request);
+      } else {
+        const outcome = await MinMaxSearchCore.getBestMoveAsync(
+          clone(request.position), request.limits.depth,
+          () => control.cancelled,
+          () => new Promise(resolve => setTimeout(resolve, 0))
+        );
+        if (outcome.cancelled) {
+          activeSearches.delete(key);
+          finishedSearches.add(key);
+          postMessage({ id: data.id, cancellationAck: EngineContract.createCancellationAcknowledgment(
+            { type: 'cancel', protocolVersion: request.protocolVersion, engineId: request.engineId,
+              requestId: request.requestId, generation: request.generation, reason: 'cancelled' }, 'cancelled') });
+          return;
+        }
+        result = EngineContract.completed(request, outcome.move);
+      }
+      activeSearches.delete(key);
+      finishedSearches.add(key);
+      if (finishedSearches.size > 100) finishedSearches.delete(finishedSearches.values().next().value);
       postMessage({ id: data.id, result });
       return;
     }
@@ -1221,6 +1276,17 @@ onmessage = function(event) {
   aiWorker.onmessage = (event) => {
     debugLogger.add('Worker message received', 'info');
     const data = event.data;
+    if (data.cancellationAck) {
+      const cancellation = pendingCancellation;
+      if (cancellation && cancellation.worker === workerInstance &&
+          EngineContract.matchesCancellationAcknowledgment(data.cancellationAck, cancellation.cancellation)) {
+        if (aiCancellationTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiCancellationTimeout);
+        aiCancellationTimeout = null;
+        pendingCancellation = null;
+        if (typeof workerInstance.terminate === 'function') workerInstance.terminate();
+      }
+      return;
+    }
     if (data.id !== aiRequestId) return;
     if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout);
     aiWorkerTimeout = null;
