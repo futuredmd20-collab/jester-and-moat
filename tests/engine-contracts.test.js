@@ -193,6 +193,17 @@ test('MinMax and MCTS convert thrown search errors into failed contract results'
   }
 });
 
+test('structured worker serializes and invokes the MinMax contract entry point', () => {
+  const workerSourceStart = source.indexOf('const workerSource = `');
+  const workerSourceEnd = source.indexOf('`;\n  let blob, url;', workerSourceStart);
+  assert.ok(workerSourceStart >= 0 && workerSourceEnd > workerSourceStart,
+    'worker source template should be present');
+  const workerSource = source.slice(workerSourceStart, workerSourceEnd);
+  assert.match(workerSource, /const MinMaxLegacy = \{ id: 'minmax_legacy', search: \\?\$\{MinMaxLegacy\.search\.toString\(\)\} \}/);
+  assert.match(workerSource, /: MinMaxLegacy\.search\(request\)/,
+    'structured MinMax worker requests must go through the contract search entry point');
+});
+
 test('worker rejects failed and malformed completed results for both engine selectors', () => {
   const previousCreateObjectURL = sandbox.URL.createObjectURL;
   const previousRevokeObjectURL = sandbox.URL.revokeObjectURL;
