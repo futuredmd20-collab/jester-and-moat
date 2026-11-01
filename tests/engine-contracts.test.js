@@ -318,6 +318,27 @@ test('engine contract matches only the corresponding request identity and genera
   assert.equal(EngineContract.matchesRequest({ ...result, engineId: undefined }, request), false);
 });
 
+test('MCTS contract search returns a correctly identified no-move result', () => {
+  const s = position();
+  s.board = Array.from({ length: 8 }, () => Array(10).fill(null));
+  const request = EngineContract.createRequest({
+    requestId: 'mcts-contract-no-move',
+    generation: 11,
+    engineId: 'mcts',
+    position: s,
+    limits: { depth: 1 }
+  });
+
+  const result = sandbox.mctsEngine(1).search(request);
+  assert.equal(result.status, EngineContract.statuses.NO_MOVE);
+  assert.equal(result.move, null);
+  assert.equal(result.protocolVersion, request.protocolVersion);
+  assert.equal(result.engineId, request.engineId);
+  assert.equal(result.requestId, request.requestId);
+  assert.equal(result.generation, request.generation);
+  assert.equal(EngineContract.matchesRequest(result, request), true);
+});
+
 test('MinMax and MCTS return null when there are no legal moves', () => {
   const s = position();
   s.board = Array.from({ length: 8 }, () => Array(10).fill(null));
