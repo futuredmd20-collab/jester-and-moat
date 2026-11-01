@@ -1166,7 +1166,7 @@ function ensureAIWorker() {
   const engineFunctions = [clone, inside, other, pieceAt, getMoatCells, isMoatCell, checkMoatDestructionState, attacked, kingPos, inCheck, pseudoMoves, applyRaw, legalMovesFromState, allLegalState, getJesterValue, evaluateBoard, minimax, getBestMove, MinMaxSearchCoreFactory];
   // MCTS helpers live in engines/mcts-engine.js. Serialize them only when that module loaded.
   if (typeof mctsGetMove === 'function' && typeof mctsSearch === 'function') {
-    engineFunctions.push(mctsLevelFor, mctsApplyMove, mctsPlayout, mctsNode, mctsUctChild, mctsSearch, mctsGetMove, mctsEngine);
+    engineFunctions.push(mctsLevelFor, mctsApplyMove, mctsPlayout, mctsNode, mctsUctChild, mctsSearch, mctsSearchAsync, mctsGetMove, mctsEngine);
   }
   const workerSource = `"use strict";
 const ROWS = 8, COLS = 10;
@@ -1214,7 +1214,20 @@ onmessage = async function(event) {
       activeSearches.set(key, control);
       let result;
       if (request.engineId === 'mcts') {
-        result = mctsEngine(request.limits && request.limits.depth).search(request);
+        const outcome = await mctsSearchAsync(
+          clone(request.position), MCTS_LEVELS[mctsLevelFor(request.limits && request.limits.depth)],
+          () => control.cancelled,
+          () => new Promise(resolve => setTimeout(resolve, 0))
+        );
+        if (outcome.cancelled) {
+          activeSearches.delete(key);
+          finishedSearches.add(key);
+          postMessage({ id: data.id, cancellationAck: EngineContract.createCancellationAcknowledgment(
+            { type: 'cancel', protocolVersion: request.protocolVersion, engineId: request.engineId,
+              requestId: request.requestId, generation: request.generation, reason: 'cancelled' }, 'cancelled') });
+          return;
+        }
+        result = EngineContract.completed(request, outcome.move);
       } else {
         const outcome = await MinMaxSearchCore.getBestMoveAsync(
           clone(request.position), request.limits.depth,
