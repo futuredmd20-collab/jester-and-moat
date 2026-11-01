@@ -279,7 +279,7 @@ test('worker rejects failed and malformed completed results for both engine sele
 
   try {
     for (const engineId of ['minmax_legacy', 'mcts']) {
-      for (const resultKind of ['failed', 'malformed', 'wrong-protocol', 'wrong-engine']) {
+      for (const resultKind of ['failed', 'malformed', 'wrong-protocol', 'wrong-engine', 'wrong-request-id', 'wrong-generation']) {
         sandbox.api.resetAIWorker();
         mockElement('whiteEngineSelect').value = engineId;
         mockElement('whiteEnginePhaseSelect').value = 'endgame';
@@ -299,8 +299,8 @@ test('worker rejects failed and malformed completed results for both engine sele
               protocolVersion: resultKind === 'wrong-protocol' ? EngineContract.version + 1 : EngineContract.version,
               engineId: resultKind === 'wrong-engine' ? (engineId === 'mcts' ? 'minmax_legacy' : 'mcts') : engineId,
               status: EngineContract.statuses.COMPLETED,
-              requestId: contractRequest.requestId,
-              generation: contractRequest.generation,
+              requestId: resultKind === 'wrong-request-id' ? `${contractRequest.requestId}-stale` : contractRequest.requestId,
+              generation: resultKind === 'wrong-generation' ? contractRequest.generation + 1 : contractRequest.generation,
               move: resultKind === 'malformed'
                 ? { from: { r: -1, c: 0 }, to: { r: 0, c: 0 } }
                 : validMove
@@ -312,7 +312,9 @@ test('worker rejects failed and malformed completed results for both engine sele
           failed: /AI error: simulated search failure/,
           malformed: /AI error: engine returned an invalid move/,
           'wrong-protocol': /AI error: stale or mismatched engine result/,
-          'wrong-engine': /AI error: stale or mismatched engine result/
+          'wrong-engine': /AI error: stale or mismatched engine result/,
+          'wrong-request-id': /AI error: stale or mismatched engine result/,
+          'wrong-generation': /AI error: stale or mismatched engine result/
         }[resultKind];
         assert.match(sandbox.document.getElementById('status').textContent, expectedError);
         assert.equal(sandbox.api.getGameOver(), false, 'an engine error must not be mistaken for checkmate');
