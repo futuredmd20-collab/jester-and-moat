@@ -110,19 +110,77 @@
   let bestMove = null;
   const isMax = st.turn === 'w';
   let bestEval = isMax ? -Infinity : Infinity;
+  const searchControl = { visitedNodes: 0 };
   moves.sort(() => Math.random() - 0.5);
+
+  // Unlike the synchronous compatibility path, this recursive search periodically
+  // yields to the Worker event loop so cancellation messages can be processed
+  // even while exploring a single root branch.
+  async function minimaxCooperative(nodeState, remainingDepth, alpha, beta, maximizing) {
+    if (shouldCancel()) return null;
+    searchControl.visitedNodes++;
+    if (searchControl.visitedNodes % 32 === 0) {
+      await yieldControl();
+      if (shouldCancel()) return null;
+    }
+
+    const nodeMoves = allLegalState(nodeState, nodeState.turn);
+    const check = inCheck(nodeState.turn, nodeState.board, nodeState.moats);
+    if (remainingDepth === 0 || nodeMoves.length === 0) {
+      if (nodeMoves.length === 0) {
+        if (check) return maximizing ? -9999 + (3 - remainingDepth) : 9999 - (3 - remainingDepth);
+        return 0;
+      }
+      return evaluateBoard(nodeState);
+    }
+
+    let best = maximizing ? -Infinity : Infinity;
+    for (const move of nodeMoves) {
+      if (shouldCancel()) return null;
+      const nextState = clone(nodeState);
+      if (move.swap) {
+        const p = nextState.board[move.from.r][move.from.c], q = nextState.board[move.to.r][move.to.c];
+        nextState.board[move.to.r][move.to.c] = p;
+        nextState.board[move.from.r][move.from.c] = q;
+        p.moved = true; q.moved = true;
+        nextState.turn = other(nextState.turn); nextState.ply++;
+      } else {
+        applyRaw(nextState, move);
+      }
+
+      const value = await minimaxCooperative(nextState, remainingDepth - 1, alpha, beta, !maximizing);
+      if (value === null) return null;
+      if (maximizing) {
+        best = Math.max(best, value);
+        alpha = Math.max(alpha, value);
+      } else {
+        best = Math.min(best, value);
+        beta = Math.min(beta, value);
+      }
+      if (beta <= alpha) break;
+    }
+    return best;
+  }
+
   for (let i = 0; i < moves.length; i++) {
     if (shouldCancel()) return { move: null, cancelled: true };
-    const m = moves[i];
+    const move = moves[i];
     const nextState = clone(st);
-    if (m.swap) {
-      const p = nextState.board[m.from.r][m.from.c], q = nextState.board[m.to.r][m.to.c];
-      nextState.board[m.to.r][m.to.c] = p; nextState.board[m.from.r][m.from.c] = q;
+    if (move.swap) {
+      const p = nextState.board[move.from.r][move.from.c], q = nextState.board[move.to.r][move.to.c];
+      nextState.board[move.to.r][move.to.c] = p;
+      nextState.board[move.from.r][move.from.c] = q;
       p.moved = true; q.moved = true; nextState.turn = other(nextState.turn); nextState.ply++;
-    } else applyRaw(nextState, m);
-    const ev = minimax(nextState, depth - 1, -Infinity, Infinity, !isMax);
-    if (isMax ? ev > bestEval : ev < bestEval) { bestEval = ev; bestMove = m; }
-    // Yield between root branches so a Worker can receive a cancellation message.
+    } else {
+      applyRaw(nextState, move);
+    }
+
+    const value = await minimaxCooperative(nextState, depth - 1, -Infinity, Infinity, !isMax);
+    if (value === null) return { move: null, cancelled: true };
+    if (isMax ? value > bestEval : value < bestEval) {
+      bestEval = value;
+      bestMove = move;
+    }
     if (i < moves.length - 1) {
       await yieldControl();
       if (shouldCancel()) return { move: null, cancelled: true };
