@@ -1439,7 +1439,13 @@ function runAIOnMainThread(request) {
           status('AI search cancelled.');
           return;
         }
-        bestMove = result.status === ENGINE_RESULT_STATUS.COMPLETED ? result.move : null;
+        if (result.status === ENGINE_RESULT_STATUS.COMPLETED) {
+          bestMove = result.move;
+        } else if (result.status === ENGINE_RESULT_STATUS.NO_MOVE) {
+          bestMove = null;
+        } else {
+          throw new Error('Engine returned an unsupported result status.');
+        }
       } else {
         bestMove = request.engine.getMove
           ? request.engine.getMove(clone(request.state), request.state.turn)
