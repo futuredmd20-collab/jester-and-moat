@@ -124,7 +124,7 @@ test('MinMax contract search returns a structured legal move without mutating it
   const before = JSON.stringify(request);
   const result = sandbox.api.MinMaxLegacy.search(request);
 
-  assert.equal(result.status, EngineContract.statuses.COMPLETED);
+  assert.equal(result.status, EngineContract.statuses.COMPLETED, JSON.stringify(result));
   assert.equal(result.requestId, request.requestId);
   assert.equal(result.generation, request.generation);
   assert.equal(result.protocolVersion, EngineContract.version);
