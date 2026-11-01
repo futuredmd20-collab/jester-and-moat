@@ -81,7 +81,7 @@ const sandbox = {
 vm.createContext(sandbox);
 vm.runInContext(minmax, sandbox);
 vm.runInContext(source.slice(0, boundary) + `
-globalThis.api = { EngineContract, MinMaxLegacy, cancelActiveAIRequest, setActiveAIForTest(worker, request) { aiWorker = worker; pendingAIRequest = request; isAIThinking = true; }, getActiveAIForTest() { return { worker: aiWorker, request: pendingAIRequest, thinking: isAIThinking, id: aiRequestId }; }, allLegalState, getBestMove: MinMaxSearchCore.getBestMove, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout); aiWorkerTimeout = null; if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; gameOver = false; gameOverMessage = ''; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getDefaultEngineForSide() { return defaultEngineForSide; }, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, ENGINE_PHASES };
+globalThis.api = { EngineContract, MinMaxLegacy, cancelActiveAIRequest, setActiveAIForTest(worker, request) { aiWorker = worker; pendingAIRequest = request; isAIThinking = true; }, getActiveAIForTest() { return { worker: aiWorker, request: pendingAIRequest, thinking: isAIThinking, id: aiRequestId }; }, allLegalState, getBestMove: MinMaxSearchCore.getBestMove, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout); aiWorkerTimeout = null; if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; gameOver = false; gameOverMessage = ''; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getDefaultEngineForSide() { return defaultEngineForSide; }, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, applyLoadedGame, ENGINE_PHASES };
 `, sandbox, { filename: 'script.js' });
 vm.runInContext(mcts, sandbox, { filename: 'engines/mcts-engine.js' });
 // The app's HTML loads the MCTS module before script.js; register its plugin here
@@ -946,6 +946,90 @@ test('loading an editor position restores castling rights for a home king and co
   assert.ok(castleEdgeMove(s, 'kingside'), 'kingside castling should be available after loading the position');
 });
 
+
+test('loading a saved game cancels the old engine request and permits a fresh search', () => {
+  const previousCreateObjectURL = sandbox.URL.createObjectURL;
+  const previousRevokeObjectURL = sandbox.URL.revokeObjectURL;
+  const previousWorker = sandbox.Worker;
+  const previousWindowWorker = sandbox.window.Worker;
+  const workers = [];
+
+  class SaveLoadWorker {
+    constructor(url) {
+      this.url = url;
+      this.terminated = false;
+      this.onmessage = null;
+      this.onerror = null;
+      workers.push(this);
+    }
+    postMessage(request) { this.request = request; }
+    terminate() { this.terminated = true; }
+  }
+
+  sandbox.api.resetAIWorker();
+  sandbox.URL.createObjectURL = () => `blob:save-load-test-${workers.length}`;
+  sandbox.URL.revokeObjectURL = () => {};
+  sandbox.Worker = SaveLoadWorker;
+  sandbox.window.Worker = SaveLoadWorker;
+
+  try {
+    mockElement('modeSelect').value = 'human_vs_ai';
+    mockElement('whiteEngineSelect').value = 'minmax_legacy';
+    mockElement('whiteEnginePhaseSelect').value = 'opening';
+    sandbox.api.updateEngineConfigUI();
+
+    const savedPosition = position();
+    savedPosition.board[6][0] = { type: 'r', color: 'w', moved: false };
+    sandbox.api.setHistoryForTest([savedPosition], [[]]);
+    const parsed = sandbox.api.parseGameData(JSON.stringify(sandbox.api.exportGameData()), 0);
+    assert.ok(parsed, 'the saved game fixture should parse');
+
+    sandbox.api.setState(position());
+    sandbox.api.aiMove();
+    const staleWorker = workers[0];
+    const staleRequest = staleWorker.request;
+    assert.ok(staleRequest?.contractRequest, 'an engine request should be active before loading');
+
+    sandbox.api.applyLoadedGame(parsed);
+    assert.equal(staleWorker.terminated, true, 'loading a save should terminate the worker for the old position');
+    assert.equal(sandbox.api.getActiveAIForTest().request, null, 'loading should clear the old request');
+    assert.equal(sandbox.api.getActiveAIForTest().thinking, false, 'loading should release the AI thinking lock');
+    assert.equal(sandbox.api.getState().board[6][0].type, 'r', 'the saved position should become authoritative');
+
+    sandbox.api.aiMove();
+    const resumedWorker = workers[1];
+    assert.ok(resumedWorker, 'a new engine worker should be created for the loaded game');
+    assert.notEqual(resumedWorker, staleWorker);
+    assert.equal(sandbox.api.getActiveAIForTest().request.id, resumedWorker.request.id);
+
+    const rookMove = allLegalState(parsed.state).find(move =>
+      move.from.r === 6 && move.from.c === 0 && move.to.r === 5 && move.to.c === 0
+    );
+    assert.ok(rookMove, 'the loaded position should have a legal rook move');
+
+    staleWorker.onmessage?.({
+      data: {
+        id: staleRequest.id,
+        result: EngineContract.completed(staleRequest.contractRequest, rookMove)
+      }
+    });
+    assert.equal(sandbox.api.getActiveAIForTest().request.id, resumedWorker.request.id,
+      'a stale response must not replace the active request after loading');
+
+    assert.equal(sandbox.api.getState().board[6][0].type, 'r',
+      'the stale result must not alter the loaded position');
+    assert.equal(sandbox.api.getActiveAIForTest().thinking, true,
+      'the fresh search should remain active after the stale reply is ignored');
+  } finally {
+    sandbox.api.resetAIWorker();
+    sandbox.URL.createObjectURL = previousCreateObjectURL;
+    sandbox.URL.revokeObjectURL = previousRevokeObjectURL;
+    sandbox.Worker = previousWorker;
+    sandbox.window.Worker = previousWindowWorker;
+    scheduledCallbacks.length = 0;
+    scheduledTimeouts.length = 0;
+  }
+});
 
 test('cancelled worker contract result releases the active AI request without ending the game', () => {
   const previousCreateObjectURL = sandbox.URL.createObjectURL;
