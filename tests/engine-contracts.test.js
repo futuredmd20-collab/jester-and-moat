@@ -16,6 +16,7 @@ if (boundary < 0) throw new Error('Browser startup boundary not found');
 const elements = new Map();
 const storedValues = new Map();
 const scheduledCallbacks = [];
+const scheduledTimeouts = [];
 let storageThrowsOnRead = false;
 let storageThrowsOnWrite = false;
 function mockElement(id) {
@@ -48,7 +49,12 @@ function mockElement(id) {
 }
 const sandbox = {
   console, URLSearchParams, Blob,
-  setTimeout(callback, delay) { callback.delay = delay; scheduledCallbacks.push(callback); return scheduledCallbacks.length; },
+  setTimeout(callback, delay) {
+    callback.delay = delay;
+    if (delay === 15000) { scheduledTimeouts.push(callback); return -scheduledTimeouts.length; }
+    scheduledCallbacks.push(callback);
+    return scheduledCallbacks.length;
+  },
   clearTimeout() {},
   URL: { createObjectURL() { throw new Error('Blob workers blocked by test'); }, revokeObjectURL() {} },
   window: { location: { search: '' }, innerWidth: 1024, Worker: function Worker() {}, addEventListener() {} },
@@ -1009,7 +1015,7 @@ test('unresponsive worker times out, retries once on the main thread, and ignore
 
     const originalRequest = workerInstance.request;
     assert.ok(originalRequest.contractRequest, 'the hanging worker should receive a structured request');
-    const timeoutCallback = scheduledCallbacks.findLast(callback => callback.delay === 15000);
+    const timeoutCallback = scheduledTimeouts.findLast(callback => callback.delay === 15000);
     assert.ok(timeoutCallback, 'a worker response watchdog should be scheduled');
 
     timeoutCallback();
@@ -1040,6 +1046,7 @@ test('unresponsive worker times out, retries once on the main thread, and ignore
     sandbox.Worker = previousWorker;
     sandbox.window.Worker = previousWindowWorker;
     scheduledCallbacks.length = 0;
+    scheduledTimeouts.length = 0;
   }
 });
 
