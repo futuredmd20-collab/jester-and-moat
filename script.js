@@ -1202,6 +1202,36 @@ function ensureAIWorker() {
   const workerSource = `"use strict";
 const ROWS = 8, COLS = 10;
 const DIRS = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+const ENGINE_PROTOCOL_VERSION = 1;
+const ENGINE_RESULT_STATUS = { COMPLETED: 'completed', NO_MOVE: 'no-move', FAILED: 'failed' };
+const ENGINE_ERROR_CODES = { INVALID_REQUEST: 'INVALID_REQUEST', INVALID_MOVE: 'INVALID_MOVE', SEARCH_FAILED: 'SEARCH_FAILED' };
+function engineCopy(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
+function engineError(code, message) { return { code, message: String(message || code), details: null }; }
+const EngineContract = {
+  statuses: ENGINE_RESULT_STATUS, errorCodes: ENGINE_ERROR_CODES,
+  validateMove(move) {
+    const square = s => Number.isInteger(s.r) && Number.isInteger(s.c) && s.r >= 0 && s.r < 8 && s.c >= 0 && s.c < 10;
+    return !!move && typeof move === 'object' && !!move.from && !!move.to &&
+      square(move.from) && square(move.to);
+  },
+  completed(request, move, metadata = {}) {
+    if (!request || request.protocolVersion !== ENGINE_PROTOCOL_VERSION)
+      return this.failed(request, ENGINE_ERROR_CODES.INVALID_REQUEST, 'Unsupported or missing engine request.');
+    if (move == null) return { protocolVersion: request.protocolVersion, engineId: request.engineId,
+      status: ENGINE_RESULT_STATUS.NO_MOVE, requestId: request.requestId,
+      generation: request.generation, move: null, metadata: engineCopy(metadata) };
+    if (!this.validateMove(move)) return this.failed(request, ENGINE_ERROR_CODES.INVALID_MOVE, 'Engine returned a malformed move.');
+    return { protocolVersion: request.protocolVersion, engineId: request.engineId,
+      status: ENGINE_RESULT_STATUS.COMPLETED, requestId: request.requestId,
+      generation: request.generation, move: engineCopy(move), metadata: engineCopy(metadata) };
+  },
+  failed(request, code, message) {
+    return { protocolVersion: request && request.protocolVersion, engineId: request && request.engineId,
+      status: ENGINE_RESULT_STATUS.FAILED, requestId: request && request.requestId,
+      generation: request && request.generation, error: engineError(code || ENGINE_ERROR_CODES.SEARCH_FAILED, message) };
+  }
+};
+const MinMaxLegacy = { id: 'minmax_legacy', search: ${MinMaxLegacy.search.toString()} };
 // MCTS constants must be defined inside the serialized worker scope too.
 const MCTS_LEVELS = {
   1: { playouts: 200, capDepth: 10, temperature: 0.35, rating: '~800' },
@@ -1221,18 +1251,16 @@ onmessage = function(event) {
       state = clone(request.position);
       if (request.protocolVersion !== 1 || !['minmax_legacy', 'mcts'].includes(request.engineId))
         throw new Error('Unsupported structured engine request.');
-      const move = request.engineId === 'mcts'
-        ? mctsGetMove(state, request.limits.depth)
-        : getBestMove(state, request.limits.depth);
-      postMessage({ id: data.id, result: {
-        protocolVersion: request.protocolVersion,
-        requestId: request.requestId,
-        generation: request.generation,
-        engineId: request.engineId,
-        status: move ? 'completed' : 'no-move',
-        move: move || null,
-        error: null
-      }});
+      const result = request.engineId === 'mcts'
+        ? (() => {
+            const move = mctsGetMove(state, request.limits.depth);
+            return { protocolVersion: request.protocolVersion, requestId: request.requestId,
+              generation: request.generation, engineId: request.engineId,
+              status: move ? ENGINE_RESULT_STATUS.COMPLETED : ENGINE_RESULT_STATUS.NO_MOVE,
+              move: move || null, error: null };
+          })()
+        : MinMaxLegacy.search(request);
+      postMessage({ id: data.id, result });
       return;
     }
     // Compatibility path for engines not yet migrated to structured transport.
