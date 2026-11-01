@@ -927,22 +927,22 @@ test('engine configuration applies MCTS only in the selected phase and keeps Min
   });
 });
 
-test('missing or malformed saved engine configuration falls back to safe defaults', () => {
+test('missing or malformed saved engine configuration falls back to UI-aligned midgame defaults', () => {
   storedValues.delete('engineConfig');
   sandbox.api.loadEngineConfig();
   assert.equal(mockElement('whiteEngineSelect').value, 'minmax_legacy');
-  assert.equal(mockElement('whiteEnginePhaseSelect').value, 'opening');
+  assert.equal(mockElement('whiteEnginePhaseSelect').value, 'midgame');
   assert.equal(mockElement('blackEngineSelect').value, 'minmax_legacy');
-  assert.equal(mockElement('blackEnginePhaseSelect').value, 'opening');
+  assert.equal(mockElement('blackEnginePhaseSelect').value, 'midgame');
 
   storedValues.set('engineConfig', '{broken json');
   mockElement('whiteEngineSelect').value = 'mcts';
   mockElement('blackEngineSelect').value = 'mcts';
   sandbox.api.loadEngineConfig();
   assert.equal(mockElement('whiteEngineSelect').value, 'minmax_legacy');
-  assert.equal(mockElement('whiteEnginePhaseSelect').value, 'opening');
+  assert.equal(mockElement('whiteEnginePhaseSelect').value, 'midgame');
   assert.equal(mockElement('blackEngineSelect').value, 'minmax_legacy');
-  assert.equal(mockElement('blackEnginePhaseSelect').value, 'opening');
+  assert.equal(mockElement('blackEnginePhaseSelect').value, 'midgame');
 });
 
 test('invalid saved engine names and phases are replaced with defaults per field', () => {
@@ -952,7 +952,7 @@ test('invalid saved engine names and phases are replaced with defaults per field
   }));
   sandbox.api.loadEngineConfig();
   assert.equal(mockElement('whiteEngineSelect').value, 'minmax_legacy');
-  assert.equal(mockElement('whiteEnginePhaseSelect').value, 'opening');
+  assert.equal(mockElement('whiteEnginePhaseSelect').value, 'midgame');
   assert.equal(mockElement('blackEngineSelect').value, 'mcts');
   assert.equal(mockElement('blackEnginePhaseSelect').value, 'endgame');
 });
