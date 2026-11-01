@@ -1441,3 +1441,29 @@ test('engine contract result builders preserve complete request identity for eve
     assert.equal(contract.matchesRequest(result, request), true);
   }
 });
+
+
+test('engine contract rejects each individual response identity mismatch', () => {
+  const contract = EngineContract;
+  const request = contract.createRequest({
+    requestId: 'identity-mismatch-base',
+    generation: 23,
+    engineId: 'minmax_legacy',
+    position: position(),
+    limits: { depth: 1 }
+  });
+  const valid = contract.completed(request, null);
+  assert.equal(contract.matchesRequest(valid, request), true);
+
+  const mismatches = [
+    { ...valid, protocolVersion: contract.version + 1 },
+    { ...valid, engineId: 'mcts' },
+    { ...valid, requestId: 'other-request' },
+    { ...valid, generation: request.generation + 1 }
+  ];
+
+  for (const result of mismatches) {
+    assert.equal(contract.matchesRequest(result, request), false,
+      `should reject mismatched identity: ${JSON.stringify(result)}`);
+  }
+});
