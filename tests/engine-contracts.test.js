@@ -925,6 +925,65 @@ test('loading an editor position restores castling rights for a home king and co
 });
 
 
+test('cancelled worker contract result releases the active AI request without ending the game', () => {
+  const previousCreateObjectURL = sandbox.URL.createObjectURL;
+  const previousRevokeObjectURL = sandbox.URL.revokeObjectURL;
+  const previousWorker = sandbox.Worker;
+  const previousWindowWorker = sandbox.window.Worker;
+  let workerInstance;
+
+  class CancelledResultWorker {
+    constructor(url) {
+      this.url = url;
+      this.terminated = false;
+      this.onmessage = null;
+      this.onerror = null;
+      workerInstance = this;
+    }
+    postMessage(request) { this.request = request; }
+    terminate() { this.terminated = true; }
+  }
+
+  sandbox.api.resetAIWorker();
+  sandbox.URL.createObjectURL = () => 'blob:worker-cancelled-result-test';
+  sandbox.URL.revokeObjectURL = () => {};
+  sandbox.Worker = CancelledResultWorker;
+  sandbox.window.Worker = CancelledResultWorker;
+  const s = position();
+  s.board[6][0] = { type: 'r', color: 'w', moved: false };
+  sandbox.api.setState(s);
+  const before = JSON.stringify(s);
+
+  try {
+    mockElement('modeSelect').value = 'human_vs_ai';
+    mockElement('whiteEngineSelect').value = 'minmax_legacy';
+    mockElement('whiteEnginePhaseSelect').value = 'opening';
+    sandbox.api.updateEngineConfigUI();
+    sandbox.api.aiMove();
+
+    const request = workerInstance.request;
+    assert.ok(request.contractRequest, 'worker should receive a structured engine request');
+    workerInstance.onmessage({
+      data: { id: request.id, result: EngineContract.cancelled(request.contractRequest) }
+    });
+
+    const active = sandbox.api.getActiveAIForTest();
+    assert.equal(active.thinking, false, 'cancelled worker result must release the thinking lock');
+    assert.equal(active.request, null, 'cancelled worker result must clear the active request');
+    assert.equal(sandbox.api.getGameOver(), false, 'cancellation must not end the game');
+    assert.equal(JSON.stringify(sandbox.api.getState()), before, 'cancellation must not change the board');
+    assert.match(mockElement('status').textContent, /AI search cancelled/);
+  } finally {
+    sandbox.api.resetAIWorker();
+    sandbox.URL.createObjectURL = previousCreateObjectURL;
+    sandbox.URL.revokeObjectURL = previousRevokeObjectURL;
+    sandbox.Worker = previousWorker;
+    sandbox.window.Worker = previousWindowWorker;
+    scheduledTimeouts.length = 0;
+  }
+});
+
+
 test('cancelled main-thread contract search releases the active AI request', () => {
   const originalEngine = sandbox.api.enginePlugins.get('minmax_legacy');
   const previousWorker = sandbox.Worker;
