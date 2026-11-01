@@ -1082,6 +1082,15 @@ test('unresponsive worker times out, retries once on the main thread, and ignore
     assert.match(mockElement('status').textContent, /retrying on the main thread/i);
     assert.equal(fallbackCalls, 0, 'fallback should wait for its scheduled callback');
 
+    const retryRequest = sandbox.api.getActiveAIForTest().request;
+    assert.notEqual(retryRequest.id, originalRequest.id, 'fallback must receive a fresh request ID');
+    assert.equal(retryRequest.contractRequest.requestId, retryRequest.id,
+      'contract request identity must match the fallback attempt');
+    assert.equal(retryRequest.contractRequest.generation, retryRequest.id,
+      'fallback must use a fresh generation');
+    assert.equal(JSON.stringify(retryRequest.contractRequest.position), JSON.stringify(sandbox.api.getState()),
+      'fallback must use a fresh snapshot of the current position');
+
     workerInstance.onmessage({
       data: {
         id: originalRequest.id,
