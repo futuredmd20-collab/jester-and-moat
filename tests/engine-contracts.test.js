@@ -701,6 +701,26 @@ test('worker dispatches structured MCTS requests and returns a legal move', asyn
   assert.ok(allLegalState(s).some(m => JSON.stringify(m) === JSON.stringify(response.result.move)));
 });
 
+test('structured MCTS worker routes requests through the engine contract', async () => {
+  const worker = ensureAIWorker();
+  const s = position();
+  const invalidRequest = {
+    protocolVersion: 99, requestId: 'mcts-worker-invalid-protocol',
+    generation: 10, engineId: 'mcts', position: s, limits: { depth: 1 }, config: {}
+  };
+  const response = await new Promise(async resolve => {
+    worker.onmessage = event => resolve(event.data);
+    await worker.postMessage({ id: 105, contractRequest: invalidRequest });
+  });
+
+  assert.equal(response.id, 105);
+  assert.equal(response.result.status, EngineContract.statuses.FAILED);
+  assert.equal(response.result.error.code, EngineContract.errorCodes.INVALID_REQUEST);
+  assert.equal(response.result.requestId, invalidRequest.requestId);
+  assert.equal(response.result.generation, invalidRequest.generation);
+  assert.equal(response.result.engineId, invalidRequest.engineId);
+});
+
 test('worker keeps legacy MCTS selector available during migration', async () => {
   const worker = ensureAIWorker();
   const s = position();
