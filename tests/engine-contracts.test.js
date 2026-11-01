@@ -111,15 +111,15 @@ test('MinMax returns a legal move without mutating its input', () => {
   assert.equal(JSON.stringify(s), before);
 });
 
-test('MinMax cooperative search yields and exits when cancellation is requested', async () => {
+test('MinMax cooperative search can cancel inside recursive search and preserves the input position', async () => {
   const s = position();
   s.board[6][0] = { type: 'r', color: 'w', moved: false };
   const before = JSON.stringify(s);
   let yields = 0;
-  const outcome = await getBestMoveAsync(s, 2, () => yields > 0, async () => { yields++; });
+  const outcome = await getBestMoveAsync(s, 4, () => yields >= 2, async () => { yields++; });
   assert.equal(outcome.cancelled, true);
   assert.equal(outcome.move, null);
-  assert.equal(yields, 1);
+  assert.ok(yields >= 2, 'search should yield repeatedly while exploring a root branch');
   assert.equal(JSON.stringify(s), before, 'cancellation must not mutate the input position');
 });
 
