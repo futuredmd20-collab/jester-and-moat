@@ -918,6 +918,24 @@ function allLegalState(st, color = st.turn) {
   st.turn = old; return out;
 }
 
+/* Compare move data independent of object property order, then return the
+ * canonical legal move object so the live game never receives engine extras. */
+function stableMoveValue(value) {
+  if (Array.isArray(value)) return value.map(stableMoveValue);
+  if (value && typeof value === 'object') {
+    const sorted = {};
+    for (const key of Object.keys(value).sort()) sorted[key] = stableMoveValue(value[key]);
+    return sorted;
+  }
+  return value;
+}
+
+function findLegalMoveMatch(st, candidate) {
+  if (!candidate || typeof candidate !== 'object') return null;
+  const signature = JSON.stringify(stableMoveValue(candidate));
+  return allLegalState(st).find(legal => JSON.stringify(stableMoveValue(legal)) === signature) || null;
+}
+
 function allLegal(color = state.turn) { return allLegalState(state, color); }
 
 function getJesterValue(st) {
@@ -1205,7 +1223,7 @@ const MinMaxLegacy = { id: 'minmax_legacy', search: ${MinMaxLegacy.search.toStri
 const MCTS_LEVELS = {
   1: { playouts: 200, capDepth: 10, temperature: 0.35, rating: '~800' },
   2: { playouts: 700, capDepth: 14, temperature: 0.15, rating: '~1200' },
-  3: { playouts: 2000, capDepth: 18, temperature: 0.00, rating: '~1600' }
+  3: { playouts: 2000, capDepth: 18, temperature: 0.00, rating: '~1600', timeBudgetMs: 10000 }
 };
 const MCTS_EXPLORATION = 0.7;
 let state = null;
@@ -1472,9 +1490,14 @@ function runAIOnMainThread(request) {
     if (request.id !== aiRequestId) return;
     isAIThinking = false;
     if (pendingAIRequest === request) pendingAIRequest = null;
-    if (bestMove && !allLegalState(state).some(legal => JSON.stringify(legal) === JSON.stringify(bestMove))) {
-      status('AI error: engine returned an illegal move.');
-      return;
+    if (bestMove) {
+      const legalMove = findLegalMoveMatch(state, bestMove);
+      if (!legalMove) {
+        status('AI error: engine returned an illegal move.');
+        debugLogger.add(`Rejected engine move: ${JSON.stringify(bestMove)}`, 'error');
+        return;
+      }
+      bestMove = legalMove;
     }
     if (bestMove) play(bestMove, 'pending');
     else {
