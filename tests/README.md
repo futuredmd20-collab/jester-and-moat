@@ -26,6 +26,7 @@ The engine contract suite evaluates canonical rule/search functions from `script
 - A moat is destroyed when two opposing pieces occupy its three cells.
 - AI worker setup returns safely to main-thread fallback when Blob workers are blocked; the selected engine is called with a cloned state.
 - Worker runtime errors terminate the failed worker and retry the active request once through the selected engine on the main thread.
+- Loading a valid saved game cancels any in-flight search for the previous position; a fresh search can run and stale worker responses are ignored.
 - Successful worker dispatch returns legal moves for both MinMax and MCTS.
 - Unknown worker engine selectors return an explicit protocol error.
 - White/Black engine and phase settings are saved and restored independently.
