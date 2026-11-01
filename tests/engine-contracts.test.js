@@ -1287,7 +1287,517 @@ test('late worker result after a crash cannot bypass or duplicate the scheduled 
 });
 
 
+test('main-thread fallback rejects unsupported contract result statuses without ending the game', () => {
+  const previousCreateObjectURL = sandbox.URL.createObjectURL;
+  const originalMinMax = sandbox.api.enginePlugins.get('minmax_legacy');
+  sandbox.api.resetAIWorker();
+  sandbox.URL.createObjectURL = () => { throw new Error('Blob workers blocked by test'); };
+  sandbox.api.enginePlugins.set('minmax_legacy', {
+    id: 'minmax_legacy',
+    name: 'MinMax unsupported status probe',
+    phases: ['opening', 'midgame', 'endgame'],
+    search(request) {
+      return {
+        ...EngineContract.completed(request, null),
+        status: 'unknown-status'
+      };
+    }
+  });
+
+  try {
+    const s = position();
+    s.board[6][0] = { type: 'r', color: 'w', moved: false };
+    sandbox.api.setState(s);
+    sandbox.api.aiMove();
+    assert.equal(scheduledCallbacks.length, 1, 'fallback search should be scheduled');
+    scheduledCallbacks.shift()();
+
+    assert.equal(sandbox.api.getGameOver(), false, 'an unsupported status must not be treated as no legal moves');
+    const active = sandbox.api.getActiveAIForTest();
+    assert.equal(active.thinking, false, 'failed result should release the thinking state');
+    assert.equal(active.request, null, 'failed result should clear the active request');
+    assert.match(mockElement('status').textContent, /unsupported result status/i);
+  } finally {
+    sandbox.api.enginePlugins.set('minmax_legacy', originalMinMax);
+    sandbox.api.resetAIWorker();
+    sandbox.URL.createObjectURL = previousCreateObjectURL;
+    scheduledCallbacks.length = 0;
+  }
+});
+
+
 test('main-thread fallback calls the selected engine when Blob workers are blocked', () => {
+  const previousCreateObjectURL = sandbox.URL.createObjectURL;
+  const originalMinMax = sandbox.api.enginePlugins.get('minmax_legacy');
+  let calls = 0;
+  let receivedState;
+  let receivedSide;
+
+  sandbox.api.resetAIWorker();
+  sandbox.URL.createObjectURL = () => { throw new Error('Blob workers blocked by test'); };
+  sandbox.api.enginePlugins.set('minmax_legacy', {
+    name: 'MinMax construction fallback probe',
+    phases: ['opening', 'midgame', 'endgame'],
+    getMove(gameState, side) {
+      calls++;
+      receivedState = gameState;
+      receivedSide = side;
+      return null;
+    }
+  });
+
+  try {
+    const s = position();
+    s.board[6][0] = { type: 'r', color: 'w', moved: false };
+    sandbox.api.setState(s);
+
+    sandbox.api.aiMove();
+    assert.equal(scheduledCallbacks.length, 1, 'AI move should be scheduled on the main thread');
+    scheduledCallbacks.shift()();
+
+    assert.equal(calls, 1, 'selected plugin getMove should be called exactly once');
+    assert.equal(receivedSide, 'w');
+    assert.notEqual(receivedState, s, 'the engine should receive a cloned state');
+    assert.equal(JSON.stringify(receivedState), JSON.stringify(s), 'the cloned state should preserve the position');
+  } finally {
+    sandbox.api.enginePlugins.set('minmax_legacy', originalMinMax);
+    sandbox.api.resetAIWorker();
+    sandbox.URL.createObjectURL = previousCreateObjectURL;
+    scheduledCallbacks.length = 0;
+  }
+});
+
+
+test('undo and redo restore complete move-log snapshots, including extra moat notices', () => {
+  const before = position();
+  const after = position();
+  after.turn = 'b';
+  after.moats.w = { r: 4, c: 2 };
+  after.moatDestroyed.w = true;
+  const expectedLog = ['💥 MOAT DESTROYED: White moat has been destroyed!', '1. White: Rook A2-A3 (05:00)'];
+  setHistoryForTest([before, after], [[], expectedLog]);
+
+  assert.equal(undoHistoryStep(), true);
+  assert.equal(getState().turn, 'w');
+  assert.equal(JSON.stringify(getMoveLog()), JSON.stringify([]));
+  assert.equal(redoHistoryStep(), true);
+  assert.equal(JSON.stringify(getState()), JSON.stringify(after));
+  assert.equal(JSON.stringify(getMoveLog()), JSON.stringify(expectedLog));
+  assert.equal(JSON.stringify(getHistoryMoveLogs()), JSON.stringify([[], expectedLog]));
+});
+
+test('history snapshots preserve the next moat-placement phase and turn', () => {
+  const before = position();
+  const after = position();
+  after.moats.w = { r: 4, c: 2 };
+  after.hasPlacedMoat.w = true;
+  after.phase = 'place_moat_b';
+  after.turn = 'b';
+  setHistoryForTest([before, after], [[], ['1. White: Moat C4-E4 (05:00)']]);
+
+  assert.equal(undoHistoryStep(), true);
+  assert.equal(getState().phase, 'normal');
+  assert.equal(getState().turn, 'w');
+  assert.equal(redoHistoryStep(), true);
+  assert.equal(getState().phase, 'place_moat_b');
+  assert.equal(getState().turn, 'b');
+  assert.equal(JSON.stringify(getState().moats.w), JSON.stringify({ r: 4, c: 2 }));
+});
+
+test('redo restores terminal-game status after undoing a finished game', () => {
+  const before = position();
+  const terminal = position();
+  terminal.turn = 'b';
+  terminal.ply = 13;
+  sandbox.document.getElementById('status').textContent = 'Checkmate! Black wins.';
+  setHistoryForTest([before, terminal], [[], ['1. White: checkmate']], true);
+
+  assert.equal(undoHistoryStep(), true);
+  assert.equal(getGameOver(), false);
+  assert.equal(redoHistoryStep(), true);
+  assert.equal(getGameOver(), true);
+  assert.equal(sandbox.document.getElementById('status').textContent, 'Checkmate! Black wins.');
+  assert.equal(getState().turn, 'b');
+});
+
+test('export/import roundtrip preserves current state, history, logs, and terminal status', () => {
+  const before = position();
+  before.clocks = { w: 275, b: 301 };
+  const current = position();
+  current.turn = 'b';
+  current.phase = 'place_moat_b';
+  current.moats.w = { r: 4, c: 2 };
+  current.hasPlacedMoat.w = true;
+  current.clocks = { w: 260, b: 299 };
+  const logs = [[], ['1. White: Rook A2-A3 (04:35)', '💥 MOAT DESTROYED: Black moat has been destroyed!']];
+  sandbox.document.getElementById('status').textContent = 'Draw by stalemate.';
+  setHistoryForTest([before, current], logs, true);
+  const exported = JSON.parse(JSON.stringify(exportGameData()));
+  const imported = parseGameData(JSON.stringify(exported), 600);
+
+  assert.equal(JSON.stringify(imported.state), JSON.stringify(current));
+  assert.equal(JSON.stringify(imported.history), JSON.stringify([before, current]));
+  assert.equal(JSON.stringify(imported.moveLog), JSON.stringify(logs[1]));
+  assert.equal(JSON.stringify(imported.historyMoveLogs), JSON.stringify(logs));
+  assert.equal(imported.gameOver, true);
+  assert.equal(imported.gameOverMessage, 'Draw by stalemate.');
+  assert.equal(imported.playerColor, 'w');
+});
+
+test('save import rejects malformed boards, invalid pieces, and mismatched history logs', () => {
+  const state = position();
+  const base = { state, history: [state], moveLog: [], historyMoveLogs: [[]] };
+  const badBoard = JSON.parse(JSON.stringify(base));
+  badBoard.state.board.pop();
+  assert.throws(() => parseGameData(badBoard), /board dimensions/i);
+
+  const badPiece = JSON.parse(JSON.stringify(base));
+  badPiece.state.board[4][4] = { type: 'dragon', color: 'w', moved: false };
+  assert.throws(() => parseGameData(badPiece), /invalid piece/i);
+
+  const badLogs = JSON.parse(JSON.stringify(base));
+  badLogs.historyMoveLogs = [];
+  assert.throws(() => parseGameData(badLogs), /history log snapshots/i);
+});
+
+test('save import rejects a current position that differs from the latest history snapshot', () => {
+  const state = position();
+  const latest = position();
+  latest.turn = 'b';
+  const save = { state, history: [latest], moveLog: [], historyMoveLogs: [[]] };
+  assert.throws(() => parseGameData(save), /current state does not match the latest history snapshot/i);
+});
+
+test('save import rejects a current move log that differs from its latest history log snapshot', () => {
+  const state = position();
+  const save = { state, history: [state], moveLog: ['current log'], historyMoveLogs: [['different history log']] };
+  assert.throws(() => parseGameData(save), /current move log does not match/i);
+});
+
+test('save import rejects invalid provided phase, clocks, and coordinates instead of silently defaulting', () => {
+  const base = () => ({ state: position(), history: [position()], moveLog: [], historyMoveLogs: [[]] });
+  const badPhase = base(); badPhase.state.phase = ''; badPhase.history[0].phase = '';
+  assert.throws(() => parseGameData(badPhase), /invalid game phase/i);
+  const badClock = base(); badClock.state.clocks.w = -1; badClock.history[0].clocks.w = -1;
+  assert.throws(() => parseGameData(badClock), /invalid clocks/i);
+  const badMoat = base(); badMoat.state.moats.w = { r: 4, c: 8 }; badMoat.history[0].moats.w = { r: 4, c: 8 };
+  assert.throws(() => parseGameData(badMoat), /invalid moat coordinates/i);
+  const badEp = base(); badEp.state.ep = { r: 8, c: 0 }; badEp.history[0].ep = { r: 8, c: 0 };
+  assert.throws(() => parseGameData(badEp), /invalid en passant target/i);
+});
+
+test('legacy saves may omit optional state fields, but supplied invalid values are rejected', () => {
+  const state = position();
+  for (const field of ['phase','ply','ep','moats','moatDestroyed','hasPlacedMoat','moveCounts','captured','halfmoveClock','positionHistory','clocks']) delete state[field];
+  const legacy = { state, history: [state], moveLog: ['legacy log'] };
+  const imported = parseGameData(legacy, 180);
+  assert.equal(imported.state.phase, 'normal');
+  assert.equal(imported.state.ply, 0);
+  assert.equal(imported.state.clocks.w, 180);
+  assert.equal(JSON.stringify(imported.historyMoveLogs), JSON.stringify([['legacy log']]));
+});
+
+test('save import normalizes the latest history clocks to the current saved clocks', () => {
+  const state = position(); state.clocks = { w: 240, b: 300 };
+  const latest = position(); latest.clocks = { w: 260, b: 300 };
+  const imported = parseGameData({ state, history: [latest], moveLog: [], historyMoveLogs: [[]] });
+  assert.equal(JSON.stringify(imported.history[0].clocks), JSON.stringify(state.clocks));
+});
+
+test('legacy save files without history log snapshots remain importable', () => {
+  const state = position();
+  const legacy = { state, history: [state], moveLog: ['1. White: custom position'] };
+  const imported = parseGameData(legacy);
+  assert.equal(JSON.stringify(imported.moveLog), JSON.stringify(legacy.moveLog));
+  assert.equal(JSON.stringify(imported.historyMoveLogs), JSON.stringify([legacy.moveLog]));
+});
+
+
+test('engine contract creates an isolated immutable request snapshot', () => {
+  const s = position();
+  s.board[6][0] = { type: 'r', color: 'w', moved: false };
+  const request = sandbox.api.EngineContract.createRequest({
+    requestId: 'contract-1', generation: 7, engineId: 'minmax_legacy',
+    position: s, limits: { depth: 1 }, config: { profile: 'test' }
+  });
+  s.board[6][0].type = 'q';
+  assert.equal(request.protocolVersion, 1);
+  assert.equal(request.position.board[6][0].type, 'r');
+  assert.equal(Object.isFrozen(request), true);
+  assert.equal(Object.isFrozen(request.position.board[6][0]), true);
+  assert.equal(Object.isFrozen(request.limits), true);
+});
+
+test('engine contract validates request identity, snapshot shape, and limits', () => {
+  const contract = sandbox.api.EngineContract;
+  assert.throws(() => contract.createRequest({ generation: 1, engineId: 'minmax_legacy', position: position() }),
+    error => error.code === contract.errorCodes.INVALID_REQUEST);
+  assert.throws(() => contract.createRequest({ requestId: 1, generation: 1, engineId: 'minmax_legacy',
+    position: { board: [], turn: 'w' } }), error => error.code === contract.errorCodes.INVALID_POSITION);
+  assert.throws(() => contract.createRequest({ requestId: 1, generation: 1, engineId: 'minmax_legacy',
+    position: position(), limits: { depth: 0 } }), error => error.code === contract.errorCodes.INVALID_CONFIG);
+  assert.throws(() => contract.createRequest({ requestId: 1, generation: 1, engineId: 'minmax_legacy',
+    position: position(), limits: { timeMs: -1 } }), error => error.code === contract.errorCodes.INVALID_CONFIG);
+});
+
+test('engine contract accepts boundary search limits and rejects invalid depth and time budgets', () => {
+  const contract = sandbox.api.EngineContract;
+  const base = { requestId: 'limit-boundary', generation: 1, engineId: 'minmax_legacy', position: position() };
+
+  for (const depth of [1, 10]) {
+    const request = contract.createRequest({ ...base, limits: { depth } });
+    assert.equal(request.limits.depth, depth);
+    assert.equal(request.limits.timeMs, null);
+  }
+
+  const timed = contract.createRequest({ ...base, requestId: 'timed-boundary', limits: { depth: 2, timeMs: 0.1 } });
+  assert.equal(timed.limits.timeMs, 0.1);
+
+  for (const depth of [0, -1, 1.5, 11, NaN, Infinity]) {
+    assert.throws(
+      () => contract.createRequest({ ...base, requestId: `invalid-depth-${String(depth)}`, limits: { depth } }),
+      error => error.code === contract.errorCodes.INVALID_CONFIG,
+      `depth ${String(depth)} should be rejected`
+    );
+  }
+
+  for (const timeMs of [0, -1, NaN, Infinity, -Infinity]) {
+    assert.throws(
+      () => contract.createRequest({ ...base, requestId: `invalid-time-${String(timeMs)}`, limits: { timeMs } }),
+      error => error.code === contract.errorCodes.INVALID_CONFIG,
+      `timeMs ${String(timeMs)} should be rejected`
+    );
+  }
+});
+
+test('engine contract preserves variant move flags and rejects malformed coordinates', () => {
+  const contract = sandbox.api.EngineContract;
+  const swap = { from: { r: 4, c: 4 }, to: { r: 4, c: 5 }, swap: true };
+  const request = contract.createRequest({ requestId: 2, generation: 3, engineId: 'minmax_legacy', position: position() });
+  const result = contract.completed(request, swap);
+  assert.equal(result.status, contract.statuses.COMPLETED);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.move)), swap);
+  assert.equal(contract.validateMove({ from: { r: -1, c: 0 }, to: { r: 0, c: 0 } }), false);
+  assert.equal(contract.validateMove({ from: { r: 0, c: 0 }, to: { r: 8, c: 0 } }), false);
+  assert.equal(contract.completed(request, { from: { r: 0, c: 0 }, to: null }).error.code,
+    contract.errorCodes.INVALID_MOVE);
+});
+
+test('MinMax implements only the structured search entry point without mutating its snapshot', () => {
+  assert.equal(typeof sandbox.api.MinMaxLegacy.getMove, 'undefined', 'MinMax must not expose the legacy UI-coupled entry point');
+  const s = position();
+  s.board[6][0] = { type: 'r', color: 'w', moved: false };
+  const before = JSON.stringify(s);
+  const request = sandbox.api.EngineContract.createRequest({
+    requestId: 'minmax-contract', generation: 1, engineId: 'minmax_legacy',
+    position: s, limits: { depth: 1 }
+  });
+  const result = sandbox.api.MinMaxLegacy.search(request);
+  assert.equal(result.status, sandbox.api.EngineContract.statuses.COMPLETED);
+  assert.equal(sandbox.api.EngineContract.matchesRequest(result, request), true);
+  assert.ok(allLegalState(s).some(m => JSON.stringify(m) === JSON.stringify(result.move)));
+  assert.equal(JSON.stringify(s), before);
+});
+
+test('engine contract distinguishes no-move, cancellation, failure, and stale results', () => {
+  const contract = sandbox.api.EngineContract;
+  const request = contract.createRequest({ requestId: 8, generation: 9, engineId: 'minmax_legacy', position: position() });
+  const result = contract.completed(request, null);
+  assert.equal(result.status, contract.statuses.NO_MOVE);
+  assert.equal(contract.cancelled(request).status, contract.statuses.CANCELLED);
+  assert.equal(contract.failed(request, contract.errorCodes.SEARCH_FAILED, 'test').status, contract.statuses.FAILED);
+  assert.equal(contract.matchesRequest(result, request), true);
+
+  const mismatchedRequestFields = [
+    ['protocolVersion', contract.version + 1],
+    ['engineId', 'mcts'],
+    ['requestId', 99],
+    ['generation', 10]
+  ];
+  for (const [field, value] of mismatchedRequestFields) {
+    assert.equal(contract.matchesRequest(result, { ...request, [field]: value }), false,
+      `request with mismatched ${field} must be rejected`);
+    assert.equal(contract.matchesRequest({ ...result, [field]: value }, request), false,
+      `result with mismatched ${field} must be rejected`);
+  }
+});
+
+
+test('lifecycle cancellation terminates the worker and invalidates the active request', () => {
+  let terminated = 0;
+  const worker = { terminate() { terminated++; } };
+  const request = { id: 123 };
+  sandbox.api.setActiveAIForTest(worker, request);
+  const before = sandbox.api.getActiveAIForTest().id;
+  sandbox.api.cancelActiveAIRequest('test-reset');
+  const after = sandbox.api.getActiveAIForTest();
+  assert.equal(terminated, 1);
+  assert.equal(after.worker, null);
+  assert.equal(after.request, null);
+  assert.equal(after.thinking, false);
+  assert.equal(after.id, before + 1);
+});
+
+test('late worker replies after cancellation cannot affect the current game or replacement search', () => {
+  const previousCreateObjectURL = sandbox.URL.createObjectURL;
+  const previousRevokeObjectURL = sandbox.URL.revokeObjectURL;
+  const previousWorker = sandbox.Worker;
+  const previousWindowWorker = sandbox.window.Worker;
+  const workers = [];
+
+  class DelayedWorker {
+    constructor(url) {
+      this.url = url;
+      this.terminated = false;
+      this.onmessage = null;
+      this.onerror = null;
+      this.request = null;
+      workers.push(this);
+    }
+    postMessage(request) { this.request = request; }
+    terminate() { this.terminated = true; }
+  }
+
+  sandbox.api.resetAIWorker();
+  sandbox.URL.createObjectURL = () => 'blob:delayed-worker-test';
+  sandbox.URL.revokeObjectURL = () => {};
+  sandbox.Worker = DelayedWorker;
+  sandbox.window.Worker = DelayedWorker;
+
+  try {
+    const originalState = position();
+    originalState.board[6][0] = { type: 'r', color: 'w', moved: false };
+    sandbox.api.setState(originalState);
+    sandbox.api.aiMove();
+
+    const cancelledWorker = workers[0];
+    assert.ok(cancelledWorker, 'AI should start a worker search');
+    assert.ok(cancelledWorker.request.contractRequest, 'worker search should use the structured engine contract');
+    const cancelledRequest = cancelledWorker.request.contractRequest;
+    const oldRequestId = cancelledWorker.request.id;
+
+    sandbox.api.cancelActiveAIRequest('test-undo');
+    assert.equal(cancelledWorker.terminated, true, 'cancelling the search should terminate its worker');
+
+    const currentState = position();
+    currentState.board[6][1] = { type: 'r', color: 'w', moved: false };
+    sandbox.api.setState(currentState);
+    const currentStateSnapshot = JSON.stringify(currentState);
+    sandbox.api.aiMove();
+
+    const replacementWorker = workers[1];
+    assert.ok(replacementWorker, 'a new search should create a replacement worker');
+    assert.notEqual(replacementWorker, cancelledWorker);
+    assert.ok(replacementWorker.request.id > oldRequestId);
+
+    const legalMove = allLegalState(originalState)[0];
+    cancelledWorker.onmessage({
+      data: {
+        id: oldRequestId,
+        result: sandbox.api.EngineContract.completed(cancelledRequest, legalMove)
+      }
+    });
+
+    assert.equal(JSON.stringify(sandbox.api.getState()), currentStateSnapshot,
+      'a late reply must not apply a move to the new position');
+    const active = sandbox.api.getActiveAIForTest();
+    assert.equal(active.worker, replacementWorker, 'a stale reply must not replace the active worker');
+    assert.equal(active.request.id, replacementWorker.request.id,
+      'a stale reply must not clear the replacement search');
+    assert.equal(active.thinking, true, 'the replacement search should remain active');
+  } finally {
+    sandbox.api.resetAIWorker();
+    sandbox.URL.createObjectURL = previousCreateObjectURL;
+    sandbox.URL.revokeObjectURL = previousRevokeObjectURL;
+    sandbox.Worker = previousWorker;
+    sandbox.window.Worker = previousWindowWorker;
+  }
+});
+
+test('engine selection resolves the configured engine independently for each side and phase', () => {
+  mockElement('whiteEngineSelect').value = 'mcts';
+  mockElement('whiteEnginePhaseSelect').value = 'midgame';
+  mockElement('blackEngineSelect').value = 'mcts';
+  mockElement('blackEnginePhaseSelect').value = 'endgame';
+  sandbox.api.updateEngineConfigUI();
+
+  const midgame = position();
+  midgame.ply = 10;
+  midgame.board = Array.from({ length: 8 }, () => Array(10).fill(null));
+  for (let i = 0; i < 20; i++) {
+    midgame.board[Math.floor(i / 10)][i % 10] = {
+      type: 'p', color: i % 2 ? 'b' : 'w', moved: true
+    };
+  }
+  setState(midgame);
+  assert.equal(sandbox.api.getEngineForSide('w').id, 'mcts', 'White should use MCTS in its configured midgame phase');
+  assert.equal(sandbox.api.getEngineForSide('b').id, 'minmax_legacy', 'Black should retain MinMax outside its configured endgame phase');
+
+  const endgame = position();
+  endgame.ply = 10;
+  endgame.board = Array.from({ length: 8 }, () => Array(10).fill(null));
+  for (let i = 0; i < 16; i++) {
+    endgame.board[Math.floor(i / 10)][i % 10] = {
+      type: 'p', color: i % 2 ? 'b' : 'w', moved: true
+    };
+  }
+  setState(endgame);
+  assert.equal(sandbox.api.getEngineForSide('w').id, 'minmax_legacy', 'White should retain MinMax outside its configured midgame phase');
+  assert.equal(sandbox.api.getEngineForSide('b').id, 'mcts', 'Black should use MCTS in its configured endgame phase');
+});
+
+
+test('engine contract result builders preserve complete request identity for every status', () => {
+  const contract = EngineContract;
+  const request = contract.createRequest({
+    requestId: 'status-identity',
+    generation: 17,
+    engineId: 'minmax_legacy',
+    position: position(),
+    limits: { depth: 1 }
+  });
+
+  const results = [
+    contract.completed(request, null),
+    contract.cancelled(request),
+    contract.failed(request, contract.errorCodes.SEARCH_FAILED, 'test failure')
+  ];
+
+  for (const result of results) {
+    assert.equal(result.protocolVersion, request.protocolVersion);
+    assert.equal(result.engineId, request.engineId);
+    assert.equal(result.requestId, request.requestId);
+    assert.equal(result.generation, request.generation);
+    assert.equal(contract.matchesRequest(result, request), true);
+  }
+});
+
+
+test('engine contract rejects each individual response identity mismatch', () => {
+  const contract = EngineContract;
+  const request = contract.createRequest({
+    requestId: 'identity-mismatch-base',
+    generation: 23,
+    engineId: 'minmax_legacy',
+    position: position(),
+    limits: { depth: 1 }
+  });
+  const valid = contract.completed(request, null);
+  assert.equal(contract.matchesRequest(valid, request), true);
+
+  const mismatches = [
+    { ...valid, protocolVersion: contract.version + 1 },
+    { ...valid, engineId: 'mcts' },
+    { ...valid, requestId: 'other-request' },
+    { ...valid, generation: request.generation + 1 }
+  ];
+
+  for (const result of mismatches) {
+    assert.equal(contract.matchesRequest(result, request), false,
+      `should reject mismatched identity: ${JSON.stringify(result)}`);
+  }
+});
+
   const previousCreateObjectURL = sandbox.URL.createObjectURL;
   const originalMinMax = sandbox.api.enginePlugins.get('minmax_legacy');
   let calls = 0;
