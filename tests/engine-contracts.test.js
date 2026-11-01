@@ -41,6 +41,7 @@ function mockElement(id) {
       append(...children) { this.children.push(...children); },
       removeChild(child) { this.children = this.children.filter(item => item !== child); },
       setAttribute() {},
+      querySelector() { return null; },
       getAttribute() { return null; },
       focus() {},
       click() {}
