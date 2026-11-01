@@ -69,8 +69,10 @@ async function runBoot({ inline = false, spriteFailure = false, mctsFailure = fa
     console: { error: (...args) => errors.push(args) },
     setImmediate
   }, { filename: 'index.html:GAME-BOOT' });
-  await new Promise(resolve => setImmediate(resolve));
-  await new Promise(resolve => setImmediate(resolve));
+  // Let the sprite-fetch promise chain and each sequential script onload settle.
+  for (let i = 0; i < 10 && !appendedScripts.includes('script.js'); i += 1) {
+    await new Promise(resolve => setImmediate(resolve));
+  }
   return { fetchCalls, appendedScripts, errors, elements };
 }
 
