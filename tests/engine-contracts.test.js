@@ -1415,3 +1415,29 @@ test('engine selection resolves the configured engine independently for each sid
   assert.equal(sandbox.api.getEngineForSide('w').id, 'minmax_legacy', 'White should retain MinMax outside its configured midgame phase');
   assert.equal(sandbox.api.getEngineForSide('b').id, 'mcts', 'Black should use MCTS in its configured endgame phase');
 });
+
+
+test('engine contract result builders preserve complete request identity for every status', () => {
+  const contract = EngineContract;
+  const request = contract.createRequest({
+    requestId: 'status-identity',
+    generation: 17,
+    engineId: 'minmax_legacy',
+    position: position(),
+    limits: { depth: 1 }
+  });
+
+  const results = [
+    contract.completed(request, null),
+    contract.cancelled(request),
+    contract.failed(request, contract.errorCodes.SEARCH_FAILED, 'test failure')
+  ];
+
+  for (const result of results) {
+    assert.equal(result.protocolVersion, request.protocolVersion);
+    assert.equal(result.engineId, request.engineId);
+    assert.equal(result.requestId, request.requestId);
+    assert.equal(result.generation, request.generation);
+    assert.equal(contract.matchesRequest(result, request), true);
+  }
+});
