@@ -929,6 +929,7 @@ test('cancelled main-thread contract search releases the active AI request', () 
     }
   };
   sandbox.api.enginePlugins.set('minmax_legacy', cancelledEngine);
+  mockElement('modeSelect').value = 'ai_easy';
   const s = position();
   s.board[6][0] = { type: 'r', color: 'w', moved: false };
   sandbox.api.setState(s);
