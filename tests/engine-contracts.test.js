@@ -1210,6 +1210,36 @@ test('engine contract validates request identity, snapshot shape, and limits', (
     position: position(), limits: { timeMs: -1 } }), error => error.code === contract.errorCodes.INVALID_CONFIG);
 });
 
+test('engine contract accepts boundary search limits and rejects invalid depth and time budgets', () => {
+  const contract = sandbox.api.EngineContract;
+  const base = { requestId: 'limit-boundary', generation: 1, engineId: 'minmax_legacy', position: position() };
+
+  for (const depth of [1, 10]) {
+    const request = contract.createRequest({ ...base, limits: { depth } });
+    assert.equal(request.limits.depth, depth);
+    assert.equal(request.limits.timeMs, null);
+  }
+
+  const timed = contract.createRequest({ ...base, requestId: 'timed-boundary', limits: { depth: 2, timeMs: 0.1 } });
+  assert.equal(timed.limits.timeMs, 0.1);
+
+  for (const depth of [0, -1, 1.5, 11, NaN, Infinity]) {
+    assert.throws(
+      () => contract.createRequest({ ...base, requestId: `invalid-depth-${String(depth)}`, limits: { depth } }),
+      error => error.code === contract.errorCodes.INVALID_CONFIG,
+      `depth ${String(depth)} should be rejected`
+    );
+  }
+
+  for (const timeMs of [0, -1, NaN, Infinity, -Infinity]) {
+    assert.throws(
+      () => contract.createRequest({ ...base, requestId: `invalid-time-${String(timeMs)}`, limits: { timeMs } }),
+      error => error.code === contract.errorCodes.INVALID_CONFIG,
+      `timeMs ${String(timeMs)} should be rejected`
+    );
+  }
+});
+
 test('engine contract preserves variant move flags and rejects malformed coordinates', () => {
   const contract = sandbox.api.EngineContract;
   const swap = { from: { r: 4, c: 4 }, to: { r: 4, c: 5 }, swap: true };
