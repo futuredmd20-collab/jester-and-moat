@@ -1272,10 +1272,24 @@ test('MinMax implements only the structured search entry point without mutating 
 test('engine contract distinguishes no-move, cancellation, failure, and stale results', () => {
   const contract = sandbox.api.EngineContract;
   const request = contract.createRequest({ requestId: 8, generation: 9, engineId: 'minmax_legacy', position: position() });
-  assert.equal(contract.completed(request, null).status, contract.statuses.NO_MOVE);
+  const result = contract.completed(request, null);
+  assert.equal(result.status, contract.statuses.NO_MOVE);
   assert.equal(contract.cancelled(request).status, contract.statuses.CANCELLED);
   assert.equal(contract.failed(request, contract.errorCodes.SEARCH_FAILED, 'test').status, contract.statuses.FAILED);
-  assert.equal(contract.matchesRequest(contract.completed(request, null), { ...request, requestId: 99 }), false);
+  assert.equal(contract.matchesRequest(result, request), true);
+
+  const mismatchedRequestFields = [
+    ['protocolVersion', contract.version + 1],
+    ['engineId', 'mcts'],
+    ['requestId', 99],
+    ['generation', 10]
+  ];
+  for (const [field, value] of mismatchedRequestFields) {
+    assert.equal(contract.matchesRequest(result, { ...request, [field]: value }), false,
+      `request with mismatched ${field} must be rejected`);
+    assert.equal(contract.matchesRequest({ ...result, [field]: value }, request), false,
+      `result with mismatched ${field} must be rejected`);
+  }
 });
 
 
