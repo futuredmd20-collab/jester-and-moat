@@ -1223,7 +1223,7 @@ const MinMaxLegacy = { id: 'minmax_legacy', search: ${MinMaxLegacy.search.toStri
 const MCTS_LEVELS = {
   1: { playouts: 200, capDepth: 10, temperature: 0.35, rating: '~800' },
   2: { playouts: 700, capDepth: 14, temperature: 0.15, rating: '~1200' },
-  3: { playouts: 2000, capDepth: 18, temperature: 0.00, rating: '~1600' }
+  3: { playouts: 2000, capDepth: 18, temperature: 0.00, rating: '~1600', timeBudgetMs: 10000 }
 };
 const MCTS_EXPLORATION = 0.7;
 let state = null;
