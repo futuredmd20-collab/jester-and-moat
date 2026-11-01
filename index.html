@@ -419,9 +419,17 @@
 <script>
 (function () {
   function boot() {
-    var script = document.createElement("script");
-    script.src = "script.js";
-    document.body.appendChild(script);
+    function startGame() {
+      var script = document.createElement("script");
+      script.src = "script.js";
+      document.body.appendChild(script);
+    }
+    if (typeof MinMaxSearchCoreFactory === "function") { startGame(); return; }
+    var minmaxScript = document.createElement("script");
+    minmaxScript.src = "engines/minmax-engine.js";
+    minmaxScript.onload = startGame;
+    minmaxScript.onerror = function () { console.error("MinMax engine failed to load."); startGame(); };
+    document.body.appendChild(minmaxScript);
   }
   // The single-file build inlines the symbols above, so it boots straight away.
   if (document.getElementById("p-rook") && document.getElementById("flat-p-rook")) { boot(); return; }

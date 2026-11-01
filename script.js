@@ -884,107 +884,6 @@ function getJesterValue(st) {
   return 3.5;
 }
 
-function evaluateBoard(st) {
-  const jesterVal = getJesterValue(st);
-  const pieceValues = { p: 1.0, n: 3.0, b: 3.5, r: 5.0, q: 9.5, k: 200.0, j: jesterVal };
-  let score = 0;
-
-  for (let r = 0; r < ROWS; r++) {
-    for (let c = 0; c < COLS; c++) {
-      const p = st.board[r][c];
-      if (!p) continue;
-
-      let val = pieceValues[p.type] || 0;
-      let centerBonus = 0;
-      if (r >= 2 && r <= 5 && c >= 3 && c <= 6) centerBonus = 0.2;
-      if (p.type === 'j' && st.ply >= 10 && (r >= 2 && r <= 5)) centerBonus += 0.4;
-
-      const total = val + centerBonus;
-      if (p.color === 'w') score += total;
-      else score -= total;
-    }
-  }
-  return score;
-}
-
-function minimax(st, depth, alpha, beta, isMaximizing) {
-  const moves = allLegalState(st, st.turn);
-  const check = inCheck(st.turn, st.board, st.moats);
-
-  if (depth === 0 || moves.length === 0) {
-    if (moves.length === 0) {
-      if (check) return isMaximizing ? -9999 + (3 - depth) : 9999 - (3 - depth);
-      return 0;
-    }
-    return evaluateBoard(st);
-  }
-
-  if (isMaximizing) {
-    let maxEval = -Infinity;
-    for (const m of moves) {
-      const nextState = clone(st);
-      if (m.swap) {
-        const p = nextState.board[m.from.r][m.from.c], q = nextState.board[m.to.r][m.to.c];
-        nextState.board[m.to.r][m.to.c] = p; nextState.board[m.from.r][m.from.c] = q;
-        p.moved = true; q.moved = true; nextState.turn = other(nextState.turn); nextState.ply++;
-      } else {
-        applyRaw(nextState, m);
-      }
-      const ev = minimax(nextState, depth - 1, alpha, beta, false);
-      maxEval = Math.max(maxEval, ev);
-      alpha = Math.max(alpha, ev);
-      if (beta <= alpha) break;
-    }
-    return maxEval;
-  } else {
-    let minEval = Infinity;
-    for (const m of moves) {
-      const nextState = clone(st);
-      if (m.swap) {
-        const p = nextState.board[m.from.r][m.from.c], q = nextState.board[m.to.r][m.to.c];
-        nextState.board[m.to.r][m.to.c] = p; nextState.board[m.from.r][m.from.c] = q;
-        p.moved = true; q.moved = true; nextState.turn = other(nextState.turn); nextState.ply++;
-      } else {
-        applyRaw(nextState, m);
-      }
-      const ev = minimax(nextState, depth - 1, alpha, beta, true);
-      minEval = Math.min(minEval, ev);
-      beta = Math.min(beta, ev);
-      if (beta <= alpha) break;
-    }
-    return minEval;
-  }
-}
-
-function getBestMove(st, depth) {
-  const moves = allLegalState(st, st.turn);
-  if (!moves.length) return null;
-
-  let bestMove = null;
-  const isMax = st.turn === 'w';
-  let bestEval = isMax ? -Infinity : Infinity;
-
-  moves.sort(() => Math.random() - 0.5);
-
-  for (const m of moves) {
-    const nextState = clone(st);
-    if (m.swap) {
-      const p = nextState.board[m.from.r][m.from.c], q = nextState.board[m.to.r][m.to.c];
-      nextState.board[m.to.r][m.to.c] = p; nextState.board[m.from.r][m.from.c] = q;
-      p.moved = true; q.moved = true; nextState.turn = other(nextState.turn); nextState.ply++;
-    } else {
-      applyRaw(nextState, m);
-    }
-
-    const ev = minimax(nextState, depth - 1, -Infinity, Infinity, !isMax);
-    if (isMax) {
-      if (ev > bestEval) { bestEval = ev; bestMove = m; }
-    } else {
-      if (ev < bestEval) { bestEval = ev; bestMove = m; }
-    }
-  }
-  return bestMove;
-}
 
 
 /* Shared internal engine contract, protocol v1.
@@ -1072,6 +971,12 @@ const EngineContract = Object.freeze({
 /* Internal MinMax engine, protocol-v1 entry point.
  * Search receives an immutable contract request and returns a structured result.
  * Search limits are supplied by the caller; engine logic does not read the UI. */
+const MinMaxSearchCore = MinMaxSearchCoreFactory({ clone, other, applyRaw, allLegalState, inCheck, getJesterValue });
+// Compatibility adapters for shared evaluation helpers used by MCTS and diagnostics.
+function evaluateBoard(st) { return MinMaxSearchCore.evaluateBoard(st); }
+function minimax(st, depth, alpha, beta, isMaximizing) { return MinMaxSearchCore.minimax(st, depth, alpha, beta, isMaximizing); }
+function getBestMove(st, depth) { return MinMaxSearchCore.getBestMove(st, depth); }
+
 const MinMaxLegacy = {
   id: 'minmax_legacy',
   name: 'MinMax',
@@ -1082,7 +987,7 @@ const MinMaxLegacy = {
     if (!request || request.protocolVersion !== ENGINE_PROTOCOL_VERSION || request.engineId !== this.id)
       return EngineContract.failed(request, ENGINE_ERROR_CODES.INVALID_REQUEST, 'Invalid MinMax search request.');
     try {
-      return EngineContract.completed(request, getBestMove(engineCopy(request.position), request.limits.depth));
+      return EngineContract.completed(request, MinMaxSearchCore.getBestMove(engineCopy(request.position), request.limits.depth));
     } catch (error) {
       return EngineContract.failed(request, ENGINE_ERROR_CODES.SEARCH_FAILED, error && error.message || error);
     }
@@ -1198,7 +1103,7 @@ loadEngineConfig();
 
 function ensureAIWorker() {
   if (aiWorker || !('Worker' in window)) return aiWorker;
-  const engineFunctions = [clone, inside, other, pieceAt, getMoatCells, isMoatCell, checkMoatDestructionState, attacked, kingPos, inCheck, pseudoMoves, applyRaw, legalMovesFromState, allLegalState, getJesterValue, evaluateBoard, minimax, getBestMove];
+  const engineFunctions = [clone, inside, other, pieceAt, getMoatCells, isMoatCell, checkMoatDestructionState, attacked, kingPos, inCheck, pseudoMoves, applyRaw, legalMovesFromState, allLegalState, getJesterValue, evaluateBoard, minimax, getBestMove, MinMaxSearchCoreFactory];
   // MCTS helpers live in engines/mcts-engine.js. Serialize them only when that module loaded.
   if (typeof mctsGetMove === 'function' && typeof mctsSearch === 'function') {
     engineFunctions.push(mctsLevelFor, mctsApplyMove, mctsPlayout, mctsNode, mctsUctChild, mctsSearch, mctsGetMove, mctsEngine);
@@ -1240,6 +1145,7 @@ const EngineContract = {
       generation: request && request.generation, error: engineError(code || ENGINE_ERROR_CODES.SEARCH_FAILED, message) };
   }
 };
+const MinMaxSearchCore = MinMaxSearchCoreFactory({ clone, other, applyRaw, allLegalState, inCheck, getJesterValue });
 const MinMaxLegacy = { id: 'minmax_legacy', search: ${MinMaxLegacy.search.toString()} };
 // MCTS constants must be defined inside the serialized worker scope too.
 const MCTS_LEVELS = {
