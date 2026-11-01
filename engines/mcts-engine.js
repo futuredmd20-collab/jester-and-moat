@@ -65,7 +65,7 @@
 var MCTS_LEVELS = {
   1: { playouts: 200,  capDepth: 10, temperature: 0.35, rating: '~800'  },
   2: { playouts: 700,  capDepth: 14, temperature: 0.15, rating: '~1200' },
-  3: { playouts: 2000, capDepth: 18, temperature: 0.00, rating: '~1600' }
+  3: { playouts: 2000, capDepth: 18, temperature: 0.00, rating: '~1600', timeBudgetMs: 10000 }
 };
 
 function mctsLevelFor(arg) {
@@ -194,9 +194,14 @@ async function mctsSearchAsync(st, cfg, shouldCancel, yieldControl) {
   var root = mctsNode(rootState, null, null, other(rootState.turn));
   root.untried = allLegalState(rootState, rootState.turn);
   if (root.untried.length === 0) return { move: null, cancelled: false };
+  var startedAt = Date.now();
+  var completedPlayouts = 0;
 
   for (var i = 0; i < cfg.playouts; i++) {
     if (shouldCancel()) return { move: null, cancelled: true };
+    // Level 3 keeps its full simulation target on fast devices, but returns
+    // the best-so-far move before the UI's worker watchdog expires on phones.
+    if (cfg.timeBudgetMs > 0 && completedPlayouts > 0 && Date.now() - startedAt >= cfg.timeBudgetMs) break;
     var node = root;
     while (node.untried !== null && node.untried.length === 0 && node.children.length > 0) {
       node = mctsUctChild(node);
@@ -219,6 +224,7 @@ async function mctsSearchAsync(st, cfg, shouldCancel, yieldControl) {
       n.wins += (n.playerJustMoved === child.playerJustMoved) ? res : 1 - res;
       n = n.parent;
     }
+    completedPlayouts++;
     if (i < cfg.playouts - 1) {
       await yieldControl();
       if (shouldCancel()) return { move: null, cancelled: true };
