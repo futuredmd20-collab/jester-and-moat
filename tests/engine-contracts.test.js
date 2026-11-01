@@ -166,6 +166,27 @@ test('MinMax contract search reports no-move and rejects requests for another en
 });
 
 
+test('MCTS contract search rejects unsupported protocol versions and mismatched engine IDs', () => {
+  const engine = sandbox.mctsEngine(1);
+  const base = {
+    protocolVersion: EngineContract.version,
+    requestId: 'mcts-invalid-contract-request',
+    generation: 6,
+    engineId: 'mcts',
+    position: position(),
+    limits: { depth: 1 },
+    config: {}
+  };
+
+  const wrongVersion = engine.search({ ...base, protocolVersion: EngineContract.version + 1 });
+  assert.equal(wrongVersion.status, EngineContract.statuses.FAILED);
+  assert.equal(wrongVersion.error.code, EngineContract.errorCodes.INVALID_REQUEST);
+
+  const wrongEngine = engine.search({ ...base, engineId: 'minmax_legacy' });
+  assert.equal(wrongEngine.status, EngineContract.statuses.FAILED);
+  assert.equal(wrongEngine.error.code, EngineContract.errorCodes.INVALID_REQUEST);
+});
+
 test('MinMax and MCTS convert thrown search errors into failed contract results', () => {
   const engines = [
     ['minmax_legacy', sandbox.api.MinMaxLegacy],
