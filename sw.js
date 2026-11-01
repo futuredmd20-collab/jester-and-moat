@@ -1,7 +1,7 @@
 
 // sw.js — Jester & Moat service worker (PWA)
 // Cache version: bump the suffix whenever any precached file changes.
-const CACHE = "jm-cache-v0.8.0-compact-ui-14";
+const CACHE = "jm-cache-v0.8.0-compact-ui-15";
 const PRECACHE = [
   "./",
   "./index.html",
@@ -12,6 +12,7 @@ const PRECACHE = [
   "./script.js",
   "./manifest.json",
   "./engines/mcts-engine.js",
+  "./engines/minmax-engine.js",
   "./icon-192.png",
   "./icon-512.png",
   "./icon-maskable-512.png",
