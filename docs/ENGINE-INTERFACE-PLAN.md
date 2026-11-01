@@ -4,7 +4,7 @@ Purpose: capture the proposed shared contract and staged implementation plan for
 
 ## Status and scope
 
-**Status:** Implementation in progress — both MinMax and MCTS now expose structured protocol-v1 search entry points and worker requests/replies carry request identity and result status. Both algorithms still delegate to their existing search cores; the legacy worker transport remains for compatibility.
+**Status (2026-11-01):** Implementation in progress — both MinMax and MCTS expose structured protocol-v1 search entry points and structured worker transport. Recent merged contract tests cover request/result identity, no-move outcomes, invalid protocol/engine identity, worker stale-result rejection, and selected lifecycle paths. The contract-test workflow has passed for the merged changes through PR #81. The user has manually verified the Pages build after the latest changes. Both algorithms still delegate to their existing search cores; manager-owned cancellation acknowledgment and broader cross-engine lifecycle/fallback verification remain outstanding.
 
 The goal is a reliable, easy-to-extend internal interface for the game's own engines, initially MinMax and MCTS. This is not a public third-party plugin SDK and does not call for a dynamic plugin marketplace or general-purpose extension framework.
 
@@ -70,7 +70,7 @@ This plan records the design baseline discussed on 2026-10-31. It distinguishes 
 - [ ] **D. Verify MinMax.** Test successful searches, cancellation, stale responses, invalid output rejection, resets/context changes, configuration validation, and failure reporting.
 - [x] **E. Adapt MCTS.** Added a protocol-v1 `search(request)` entry point, stable `mcts` engine ID, structured worker dispatch, and structured-worker tests. The old `getMove`/`workerFn` path remains for compatibility.
 - [ ] **F. Verify cross-engine behavior.** Run shared contract tests against both engines, then integration/regression tests for worker transport, side/phase selection, special moves, game lifecycle changes, and fallback policy.
-- [ ] **G. Update project documentation.** Record only implementation and verification results actually completed; keep this plan's status and `PLANS.md` aligned with reality.
+- [x] **G. Update project documentation.** Status and index refreshed on 2026-11-01 to reflect merged contract-test coverage and the remaining implementation/verification gaps.
 
 ## Acceptance criteria
 
@@ -106,3 +106,6 @@ This plan records the design baseline discussed on 2026-10-31. It distinguishes 
 - **2026-10-31:** MCTS now exposes `search(request)` under engine ID `mcts`, the worker dispatches structured requests to either engine by ID, and tests cover structured MCTS responses while retaining the legacy selector. CI verification is pending.
 
 - **2026-10-31 — PR #66 merged and verified:** GitHub Actions run 105 passed all 67 tests (0 failures). The user then tested the merged build through GitHub Pages and reported no issues. This confirms the exercised MCTS structured-worker path; broader cross-engine/lifecycle/fallback coverage remains open, so checklist F is not marked complete.
+
+
+- **2026-11-01 — PRs #68–#81 merged and verified:** Added focused engine-contract regression coverage for per-side engine phase selection, late worker replies after cancellation/crash fallback, protocol/engine/request/generation identity mismatches, result identity across statuses, request limit boundaries, MCTS and MinMax no-move results, and invalid structured requests. The engine-contract Actions workflow passed on the merged changes. The user reports manually testing the latest Pages build. This improves contract-level confidence but does not complete the planned manager-owned cancellation acknowledgment, full lifecycle integration, canonical special-move coverage across engines, or explicit fallback verification.
