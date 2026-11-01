@@ -1287,6 +1287,45 @@ test('late worker result after a crash cannot bypass or duplicate the scheduled 
 });
 
 
+test('main-thread fallback rejects unsupported contract result statuses without ending the game', () => {
+  const previousCreateObjectURL = sandbox.URL.createObjectURL;
+  const originalMinMax = sandbox.api.enginePlugins.get('minmax_legacy');
+  sandbox.api.resetAIWorker();
+  sandbox.URL.createObjectURL = () => { throw new Error('Blob workers blocked by test'); };
+  sandbox.api.enginePlugins.set('minmax_legacy', {
+    id: 'minmax_legacy',
+    name: 'MinMax unsupported status probe',
+    phases: ['opening', 'midgame', 'endgame'],
+    search(request) {
+      return {
+        ...EngineContract.completed(request, null),
+        status: 'unknown-status'
+      };
+    }
+  });
+
+  try {
+    const s = position();
+    s.board[6][0] = { type: 'r', color: 'w', moved: false };
+    sandbox.api.setState(s);
+    sandbox.api.aiMove();
+    assert.equal(scheduledCallbacks.length, 1, 'fallback search should be scheduled');
+    scheduledCallbacks.shift()();
+
+    assert.equal(sandbox.api.getGameOver(), false, 'an unsupported status must not be treated as no legal moves');
+    const active = sandbox.api.getActiveAIForTest();
+    assert.equal(active.thinking, false, 'failed result should release the thinking state');
+    assert.equal(active.request, null, 'failed result should clear the active request');
+    assert.match(mockElement('status').textContent, /unsupported result status/i);
+  } finally {
+    sandbox.api.enginePlugins.set('minmax_legacy', originalMinMax);
+    sandbox.api.resetAIWorker();
+    sandbox.URL.createObjectURL = previousCreateObjectURL;
+    scheduledCallbacks.length = 0;
+  }
+});
+
+
 test('main-thread fallback calls the selected engine when Blob workers are blocked', () => {
   const previousCreateObjectURL = sandbox.URL.createObjectURL;
   const originalMinMax = sandbox.api.enginePlugins.get('minmax_legacy');
