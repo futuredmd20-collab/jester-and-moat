@@ -42,9 +42,9 @@ The user considers the current test pass complete and has chosen to move on; do 
 
 1. **Strength calibration:** measure repeatable results before treating ELO-like labels as calibrated ratings.
 2. **Search responsiveness:** PRs #106–#107 bound the level-3 synchronous fallback and add within-playout time checks. Browser/device timing remains unverified.
-2. **Failure recovery:** browser-check MCTS load failure, worker-construction fallback, worker-runtime recovery, and offline/service-worker behavior.
-3. **Additional regressions:** promotions, swaps, moats, no-legal-move/game-over handling, and responsive performance as relevant to future engine changes.
-4. **Cache-cleared persistence:** not tested; ordinary reload restoration was observed while the cache remained intact. Explicitly parked by the user for now.
+3. **Failure recovery:** browser-check MCTS load failure, worker-construction fallback, worker-runtime recovery, and offline/service-worker behavior.
+4. **Additional regressions:** promotions, swaps, moats, no-legal-move/game-over handling, and responsive performance as relevant to future engine changes.
+5. **Cache-cleared persistence:** not tested; ordinary reload restoration was observed while the cache remained intact. Explicitly parked by the user for now.
 
 ## Manual browser verification checklist
 
