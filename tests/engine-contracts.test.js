@@ -2250,6 +2250,7 @@ test('?debug=1 still enables debug logging', () => {
 
 
 test('worker result accepts legal moves with reordered properties and plays the canonical move', () => {
+  sandbox.Math = Math;
   sandbox.api.resetAIWorker();
   const workerBlobs = new Map();
   sandbox.URL.createObjectURL = blob => {
@@ -2296,6 +2297,7 @@ test('worker result accepts legal moves with reordered properties and plays the 
 });
 
 test('illegal worker result retries the selected engine on the main thread', () => {
+  sandbox.Math = Math;
   sandbox.api.resetAIWorker();
   const workerBlobs = new Map();
   sandbox.URL.createObjectURL = blob => {
