@@ -25,6 +25,7 @@ Allow independently configured AI engines for White and Black, optionally limite
 | Side/phase UI | White/Black settings were independent. Runtime logs confirmed phase-specific selection: in the second logged game, White used MCTS in opening, both sides used MinMax in midgame, and Black used MCTS in endgame. | Cache-cleared persistence remains untested. |
 | Loading/build | MCTS script loading, service-worker precache and version alignment (PR #23); loading fix (PR #24); single-file builder embeds MCTS before `script.js`. | Exercise multi-file and built single-file pages. If MCTS fails to load on the multi-file page, startup warns and keeps board/MinMax available; MCTS selection falls back to MinMax. Confirm this recovery path in a browser. |
 | Worker dispatch | The reviewed game log showed matching engine-to-worker dispatch and 108 worker replies, with no obvious worker/engine errors. | Browser verification of MCTS load failure, worker-construction fallback, worker-runtime recovery and offline behavior remains outstanding. |
+| MCTS search budget | Level 3 retains a 10-second worker budget; the structured synchronous fallback uses a 2.5-second budget. PRs #106–#107 added budget enforcement between playouts and stop checks within each playout; the PR #107 engine-contract CI passed. | Real-device/browser timing and responsiveness have not been re-verified as part of this documentation sync. |
 | Phase policy and ratings | Thresholds and provisional MCTS presets/labels are defined. | Validate phase boundaries against representative games; calibrate strength before presenting ELO-like values as measured ratings. |
 
 ## Decisions to preserve
@@ -40,9 +41,10 @@ Allow independently configured AI engines for White and Black, optionally limite
 The user considers the current test pass complete and has chosen to move on; do not continue testing this area unless asked. These are future-work items, not blockers to the completed test pass:
 
 1. **Strength calibration:** measure repeatable results before treating ELO-like labels as calibrated ratings.
-2. **Failure recovery:** browser-check MCTS load failure, worker-construction fallback, worker-runtime recovery, and offline/service-worker behavior.
-3. **Additional regressions:** promotions, swaps, moats, no-legal-move/game-over handling, and responsive performance as relevant to future engine changes.
-4. **Cache-cleared persistence:** not tested; ordinary reload restoration was observed while the cache remained intact. Explicitly parked by the user for now.
+2. **Search responsiveness:** PRs #106–#107 bound the level-3 synchronous fallback and add within-playout time checks. Browser/device timing remains unverified.
+3. **Failure recovery:** browser-check MCTS load failure, worker-construction fallback, worker-runtime recovery, and offline/service-worker behavior.
+4. **Additional regressions:** promotions, swaps, moats, no-legal-move/game-over handling, and responsive performance as relevant to future engine changes.
+5. **Cache-cleared persistence:** not tested; ordinary reload restoration was observed while the cache remained intact. Explicitly parked by the user for now.
 
 ## Manual browser verification checklist
 
