@@ -93,9 +93,12 @@ function mctsApplyMove(s, m) {
  * Terminal states: side to move mated -> that side loses; no legal moves
  * without check -> stalemate, 0.5. Cap reached -> evaluateBoard squashed
  * through a sigmoid so scores map smoothly into [0,1]. */
-function mctsPlayout(s, capDepth) {
+function mctsPlayout(s, capDepth, shouldStop) {
   var d = 0;
   while (d < capDepth) {
+    // Keep long playouts cooperative with the search budget/cancellation.
+    // A partial playout is evaluated at its current position below.
+    if (shouldStop && shouldStop()) break;
     var moves = allLegalState(s, s.turn);
     if (moves.length === 0) {
       if (inCheck(s.turn, s.board, s.moats)) return s.turn === 'w' ? 0 : 1;
@@ -166,7 +169,9 @@ function mctsSearch(st, cfg) {
     }
 
     // 3. Simulation (playout), from the mover's perspective.
-    var white = mctsPlayout(clone(child.state), cfg.capDepth);
+    var white = mctsPlayout(clone(child.state), cfg.capDepth, function () {
+      return cfg.timeBudgetMs > 0 && Date.now() - startedAt >= cfg.timeBudgetMs;
+    });
     var res = child.playerJustMoved === 'w' ? white : 1 - white;
 
     // 4. Backpropagation; perspective alternates up the tree.
@@ -223,7 +228,10 @@ async function mctsSearchAsync(st, cfg, shouldCancel, yieldControl) {
       node.children.push(child);
     } else child = node;
 
-    var white = mctsPlayout(clone(child.state), cfg.capDepth);
+    var white = mctsPlayout(clone(child.state), cfg.capDepth, function () {
+      return shouldCancel() || (cfg.timeBudgetMs > 0 && Date.now() - startedAt >= cfg.timeBudgetMs);
+    });
+    if (shouldCancel()) return { move: null, cancelled: true };
     var res = child.playerJustMoved === 'w' ? white : 1 - white;
     var n = child;
     while (n) {

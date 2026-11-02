@@ -2134,3 +2134,29 @@ test('synchronous MCTS search respects its time budget between playouts', () => 
     sandbox.Math = originalMath;
   }
 });
+
+
+test('synchronous MCTS search checks its time budget during a playout', () => {
+  const originalDate = sandbox.Date;
+  const originalMath = sandbox.Math;
+  let clock = 0;
+  let randomCalls = 0;
+  sandbox.Date = { now() { clock += 1; return clock; } };
+  sandbox.Math = Object.create(Math);
+  sandbox.Math.random = () => { randomCalls++; return 0.5; };
+
+  try {
+    const s = position();
+    s.board[6][0] = { type: 'r', color: 'w', moved: false };
+    const move = sandbox.mctsSearch(s, {
+      playouts: 100, capDepth: 50, temperature: 0, timeBudgetMs: 4
+    });
+    assert.ok(move, 'a best-so-far legal move should be returned');
+    assert.ok(allLegalState(s).some(m => JSON.stringify(m) === JSON.stringify(move)));
+    assert.ok(randomCalls < 10,
+      'a playout should stop early after the time budget expires instead of running to capDepth');
+  } finally {
+    sandbox.Date = originalDate;
+    sandbox.Math = originalMath;
+  }
+});
