@@ -22,8 +22,8 @@ Ensure clear, high-contrast, and aesthetically cohesive visual presentation acro
 4. **PWA / Precache discipline:** Updated sprites and styles must stay lightweight and included in the service worker precache without bloating the app.
 
 ## Checklist & Next Steps
-- [ ] **1. Visual Audit:** Verify current rendering of Classic and Flat sets in light/dark themes across mobile and desktop.
+- [x] **1. Visual Audit:** Verify current rendering of Classic and Flat sets in light/dark themes across mobile and desktop. (Completed for Classic set: King, Queen, and Bishop mobile contrast verified).
 - [ ] **2. Jester & Moat Refinement:** Specify visual requirements for Jester silhouette and Moat barrier states.
 - [ ] **3. Board Layout & Spacing:** Audit 10x8 board aspect ratio, coordinates, and drawer overlays on touch screens.
-- [ ] **4. Asset / CSS Updates:** Implement approved piece or styling adjustments in `pieces.svg` / `pieces-flat.svg` / CSS.
+- [x] **4. Asset / CSS Updates (Classic):** Implement approved piece adjustments for King, Queen, and Bishop in `pieces.svg` and `pieces.css`.
 - [ ] **5. Verification:** Validate offline PWA precaching and visual regression across all surfaces.

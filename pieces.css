@@ -19,6 +19,9 @@
   --p-gold: var(--piece-accent-gold);
   --p-ink: var(--piece-w-ink);
   --p-gem: var(--piece-queen-gem);
+  --p-cross-solid: #111111;
+  --p-cross-stroke: #111111;
+  --p-crown-soft: #383127;
 }
 .piece[data-color="b"] {
   --p-outline: var(--piece-b-outline);
@@ -32,4 +35,7 @@
   --p-gold: var(--piece-accent-gold);
   --p-ink: var(--piece-b-ink);
   --p-gem: var(--piece-queen-gem);
+  --p-cross-solid: #ffffff;
+  --p-cross-stroke: #5b4c60;
+  --p-crown-soft: #e8e1cf;
 }
