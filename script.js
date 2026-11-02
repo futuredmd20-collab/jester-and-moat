@@ -20,6 +20,8 @@ class DebugLogger {
     this.enabled = false;
     this.autoScroll = true;
     this.logs = [];
+    this.lastPhase = null;
+    this.lastEngineBySide = {};
     this.loadState();
     this.checkUrl();
   }
@@ -80,13 +82,14 @@ class DebugLogger {
     if (panel) panel.hidden = true;
   }
 
-  add(message, level = 'info') {
+  add(message, level = 'info', type = null) {
     if (!this.enabled) return;
 
     const timestamp = new Date().toISOString();
-    const entry = { timestamp, level, message };
+    const category = type || (level === 'warn' ? 'warning' : level === 'error' ? 'error' : 'info');
+    const entry = { timestamp, level, type: category, message };
     this.logs.push(entry);
-    
+
     if (this.logs.length > DEBUG_LOG_MAX) {
       this.logs.shift();
     }
@@ -94,6 +97,37 @@ class DebugLogger {
     this.saveState();
     this.render();
     console[level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log'](message);
+  }
+
+  event(type, message, level = 'info') {
+    this.add(message, level, type);
+  }
+
+  phaseChanged(phase, details = '') {
+    if (this.lastPhase === null) {
+      this.lastPhase = phase;
+      return;
+    }
+    if (this.lastPhase === phase) return;
+    const previous = this.lastPhase;
+    this.lastPhase = phase;
+    this.event('phase-change', `Phase changed: ${previous} → ${phase}${details ? ` (${details})` : ''}`);
+  }
+
+  engineSelected(side, engineName, phase) {
+    if (!this.enabled) return;
+    const previous = this.lastEngineBySide[side];
+    if (previous === engineName) return;
+    this.lastEngineBySide[side] = engineName;
+    const change = previous ? `${previous} → ${engineName}` : engineName;
+    this.event('engine-change', `${side} engine ${previous ? 'switched' : 'selected'}: ${change} (phase: ${phase})`);
+  }
+
+  getFilteredEntries() {
+    return this.logs.filter(entry =>
+      entry.level === 'warn' || entry.level === 'error' ||
+      (entry.type && entry.type !== 'info')
+    );
   }
 
   render() {
@@ -119,12 +153,28 @@ class DebugLogger {
     this.add('Log cleared', 'info');
   }
 
+  formatEntries(entries) {
+    return entries.map(e =>
+      `[${e.timestamp}] [${e.level}]${e.type && e.type !== 'info' ? ` [${e.type}]` : ''} ${e.message}`
+    ).join('\n');
+  }
+
   download() {
-    const blob = new Blob([this.logs.map(e => `[${e.timestamp}] [${e.level}] ${e.message}`).join('\n')], { type: 'text/plain' });
+    const blob = new Blob([this.formatEntries(this.logs)], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `jester-moat-debug-${new Date().toISOString().slice(0, 19)}.log`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  downloadFiltered() {
+    const blob = new Blob([this.formatEntries(this.getFilteredEntries())], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `jester-moat-debug-events-${new Date().toISOString().slice(0, 19)}.log`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -182,7 +232,7 @@ function getGamePhase(st) {
   const phase = st.ply < 10 || pieceCount >= 34 ? ENGINE_PHASES.OPENING :
                pieceCount <= 16 ? ENGINE_PHASES.ENDGAME :
                ENGINE_PHASES.MIDGAME;
-  debugLogger.add(`Phase: ${phase} (ply: ${st.ply}, pieces: ${pieceCount})`, 'info');
+  debugLogger.phaseChanged(phase, `ply: ${st.ply}, pieces: ${pieceCount}`);
   return phase;
 }
 
@@ -241,7 +291,7 @@ function cancelActiveAIRequest(reason = 'state-changed') {
   pendingAIRequest = null;
   isAIThinking = false;
   if (typeof clearTimeout === 'function') clearTimeout(aiTimer);
-  if (debugLogger && typeof debugLogger.add === 'function') debugLogger.add(`AI request cancelled: ${reason}`, 'info');
+  // Routine request cancellation is expected during moves, setup, and side changes; keep it out of the event log.
 }
 let gameStarted = false;
 let pendingPromotionMove = null;
@@ -663,7 +713,14 @@ function status(s) {
   const statusEl = document.getElementById("status");
   statusEl.textContent = fullMsg;
   if (gameOver) gameOverMessage = fullMsg;
-  debugLogger.add(fullMsg, 'info');
+  const message = String(fullMsg);
+  const lower = message.toLowerCase();
+  const warning = /\b(warning|retrying|retry|fallback|timed out|timeout|unavailable)\b/.test(lower);
+  const error = /\b(error|failed|failure|invalid)\b/.test(lower);
+  if (error || warning) {
+    const level = error && !warning ? 'error' : 'warn';
+    debugLogger.add(message, level);
+  }
 }
 
 function pieceAt(r, c, b = state.board) { return inside(r, c) ? b[r][c] : null; }
@@ -1196,10 +1253,6 @@ function loadEngineConfig() {
   document.getElementById('blackEngineSelect').value = config.blackEngine;
   document.getElementById('blackEnginePhaseSelect').value = config.blackPhase;
   updateEngineConfigUI();
-  debugLogger.add(
-    `Engine config loaded | source: ${configSource} | White: ${config.whiteEngine} @ ${config.whitePhase} | Black: ${config.blackEngine} @ ${config.blackPhase}`,
-    'info'
-  );
   return config;
 }
 
@@ -1336,7 +1389,6 @@ onmessage = async function(event) {
     return null;
   }
   aiWorker.onmessage = (event) => {
-    debugLogger.add('Worker message received', 'info');
     const data = event.data;
     if (data.cancellationAck) {
       const cancellation = pendingCancellation;
@@ -1571,16 +1623,11 @@ function aiMove(){
     : null;
   const request = { id, engine, depth, state: clone(state), contractRequest };
   pendingAIRequest = request;
-  const sideConfig = defaultEngineForSide[state.turn];
-  debugLogger.add(
-    `AI selection: ${side} | phase: ${phase} | engine: ${engineName} | depth: ${depth} | configured phases: ${JSON.stringify(sideConfig.phaseOverrides || {})}`,
-    'info'
-  );
+  debugLogger.engineSelected(side, engineName, phase);
 
   const worker = ensureAIWorker();
   if (worker) {
     const workerFn = engine.name && engine.name.includes('MCTS') ? 'mctsGetMove' : 'getBestMove';
-    debugLogger.add(`AI dispatch: ${side} | engine: ${engineName} | path: worker (${request.contractRequest ? 'structured protocol v1' : workerFn})`, 'info');
     try {
       aiWorkerTimeout = setTimeout(() => {
         // Only the still-active request may trigger recovery; stale watchdogs are inert.
@@ -1597,7 +1644,6 @@ function aiMove(){
     }
     return;
   }
-  debugLogger.add(`AI dispatch: ${side} | engine: ${engineName} | path: main thread (worker unavailable)`, 'info');
   runAIOnMainThread(request);
 }
 
@@ -2578,6 +2624,8 @@ const debugToggleBtn = document.getElementById('debugToggleBtn');
 if (debugClearBtn) debugClearBtn.addEventListener('click', () => debugLogger.clear());
 if (debugDownloadBtn) debugDownloadBtn.addEventListener('click', () => debugLogger.download());
 if (debugToggleBtn) debugToggleBtn.addEventListener('click', () => { debugLogger.toggleAutoScroll(); debugToggleBtn.textContent = `Auto-scroll: ${debugLogger.autoScroll ? 'On' : 'Off'}`; });
+const debugDownloadEventsBtn = document.getElementById('debugDownloadEventsBtn');
+if (debugDownloadEventsBtn) debugDownloadEventsBtn.addEventListener('click', () => debugLogger.downloadFiltered());
 if (debugToggleBtn) debugToggleBtn.textContent = `Auto-scroll: ${debugLogger.autoScroll ? 'On' : 'Off'}`;
 
 // Debug mode toggle is part of the Debug & Diagnostics section in the markup.

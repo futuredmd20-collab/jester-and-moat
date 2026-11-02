@@ -32,6 +32,7 @@ The engine contract suite evaluates canonical rule/search functions from `script
 - Unknown worker engine selectors return an explicit protocol error.
 - White/Black engine and phase settings are saved and restored independently.
 - MCTS configuration is limited to its selected phase, with MinMax in other phases.
+- Debug logging records engine changes and phase transitions without per-move selection/dispatch noise; routine status messages are omitted while warnings and errors remain. The event export filters the complete stored log without deleting entries, and `?debug=1` remains the opt-in URL parameter.
 - Missing, malformed, or invalid saved settings fall back to safe defaults; storage errors do not throw.
 - Multi-file startup fetches both SVG sprites and loads MCTS before `script.js`.
 - Single-file startup skips sprite fetches when the piece symbols are inline.
