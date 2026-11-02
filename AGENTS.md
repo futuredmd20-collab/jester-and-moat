@@ -47,6 +47,16 @@ Use them to understand current state, game/development rules, architecture, and 
 | PR/merge | Never open a PR unless explicitly permitted; a plan explicitly including a draft PR grants permission. Never merge without explicit authorization. Edit/commit/push permission alone does not permit PR creation or merge. |
 | Cleanup | After merge and verification, remove the task branch only if no longer needed and cleanup is appropriate. |
 
+### Local repository access
+
+- The agent is authorized to clone the canonical GitHub repository locally and use the clone for inspection, editing, testing, and Git operations.
+- Reuse an existing clone when available, after verifying its repository, branch, and working-tree state; otherwise use a stable workspace location.
+- Before editing, verify the current branch, working-tree status, and required repository instructions.
+- Never edit directly on `main`; use one dedicated task branch per task.
+- Local-clone authorization does not authorize unrelated file changes, commits, pushes, PRs, merges, or branch deletion. Existing approval and workflow rules still apply.
+- Prefer local Git operations when GitHub integration cannot safely perform the required operation. Verify remote state before pushing and verify the resulting GitHub state afterward.
+- Never claim a test, Git operation, push, or deployment succeeded without checking its result.
+
 ### Workflow selection
 
 Use the established choice; if unclear, ask. Execute the chosen workflow without silently substituting another.
