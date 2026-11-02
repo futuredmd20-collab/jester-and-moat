@@ -138,7 +138,13 @@ function mctsSearch(st, cfg) {
   root.untried = allLegalState(rootState, rootState.turn);
   if (root.untried.length === 0) return null;
 
+  var startedAt = Date.now();
+  var completedPlayouts = 0;
   for (var i = 0; i < cfg.playouts; i++) {
+    // Synchronous callers (notably the main-thread fallback) must honor the
+    // budget too. Check between playouts so at least one legal root move is
+    // evaluated before returning the best-so-far result.
+    if (cfg.timeBudgetMs > 0 && completedPlayouts > 0 && Date.now() - startedAt >= cfg.timeBudgetMs) break;
     var node = root;
 
     // 1. Selection: descend fully expanded nodes via UCT.
@@ -170,6 +176,7 @@ function mctsSearch(st, cfg) {
       n.wins += (n.playerJustMoved === child.playerJustMoved) ? res : 1 - res;
       n = n.parent;
     }
+    completedPlayouts++;
   }
 
   // Root choice: most-visited child, with deliberate temperature:
@@ -264,7 +271,12 @@ function mctsEngine(level) {
         return EngineContract.failed(request, 'INVALID_REQUEST', 'Invalid MCTS search request.');
       try {
         var searchLevel = mctsLevelFor(request.limits && request.limits.depth);
-        return EngineContract.completed(request, mctsSearch(JSON.parse(JSON.stringify(request.position)), MCTS_LEVELS[searchLevel]));
+        // The worker's cooperative path keeps the 10s level-3 budget. A
+        // synchronous fallback must use a shorter budget to avoid freezing
+        // the UI for the full worker watchdog window.
+        var searchConfig = Object.assign({}, MCTS_LEVELS[searchLevel]);
+        if (searchLevel === 3) searchConfig.timeBudgetMs = 2500;
+        return EngineContract.completed(request, mctsSearch(JSON.parse(JSON.stringify(request.position)), searchConfig));
       } catch (error) {
         return EngineContract.failed(request, 'SEARCH_FAILED', error && error.message || error);
       }
