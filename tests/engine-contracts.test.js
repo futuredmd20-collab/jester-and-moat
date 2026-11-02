@@ -50,7 +50,7 @@ function mockElement(id) {
   return elements.get(id);
 }
 const sandbox = {
-  console, URLSearchParams, Blob,
+  console, URLSearchParams, Blob, Date,
   setTimeout(callback, delay) {
     callback.delay = delay;
     if (delay === 15000 || delay === 250) { scheduledTimeouts.push(callback); return -scheduledTimeouts.length; }
