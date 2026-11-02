@@ -50,7 +50,7 @@ function mockElement(id) {
   return elements.get(id);
 }
 const sandbox = {
-  console, URLSearchParams, Blob,
+  console, URLSearchParams, Blob, Date,
   setTimeout(callback, delay) {
     callback.delay = delay;
     if (delay === 15000 || delay === 250) { scheduledTimeouts.push(callback); return -scheduledTimeouts.length; }
@@ -84,7 +84,7 @@ const sandbox = {
 vm.createContext(sandbox);
 vm.runInContext(minmax, sandbox);
 vm.runInContext(source.slice(0, boundary) + `
-globalThis.api = { EngineContract, MinMaxLegacy, cancelActiveAIRequest, setActiveAIForTest(worker, request) { aiWorker = worker; pendingAIRequest = request; isAIThinking = true; }, getActiveAIForTest() { return { worker: aiWorker, request: pendingAIRequest, thinking: isAIThinking, id: aiRequestId }; }, allLegalState, findLegalMoveMatch, getBestMove: MinMaxSearchCore.getBestMove, getBestMoveAsync: MinMaxSearchCore.getBestMoveAsync, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout); aiWorkerTimeout = null; if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; gameOver = false; gameOverMessage = ''; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getDefaultEngineForSide() { return defaultEngineForSide; }, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, applyLoadedGame, resumeLoadedGamePlayback, getAutoPlayForTest() { return autoPlayInterval; }, stopAutoPlayForTest: stopAutoPlay, ENGINE_PHASES };
+globalThis.api = { EngineContract, MinMaxLegacy, cancelActiveAIRequest, setActiveAIForTest(worker, request) { aiWorker = worker; pendingAIRequest = request; isAIThinking = true; }, getActiveAIForTest() { return { worker: aiWorker, request: pendingAIRequest, thinking: isAIThinking, id: aiRequestId }; }, allLegalState, findLegalMoveMatch, getBestMove: MinMaxSearchCore.getBestMove, getBestMoveAsync: MinMaxSearchCore.getBestMoveAsync, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout); aiWorkerTimeout = null; if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; gameOver = false; gameOverMessage = ''; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getDefaultEngineForSide() { return defaultEngineForSide; }, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, applyLoadedGame, resumeLoadedGamePlayback, getAutoPlayForTest() { return autoPlayInterval; }, stopAutoPlayForTest: stopAutoPlay, ENGINE_PHASES, debugLogger, DebugLogger, status };
 `, sandbox, { filename: 'script.js' });
 vm.runInContext(mcts, sandbox, { filename: 'engines/mcts-engine.js' });
 // The app's HTML loads the MCTS module before script.js; register its plugin here
@@ -2158,5 +2158,92 @@ test('synchronous MCTS search checks its time budget during a playout', () => {
   } finally {
     sandbox.Date = originalDate;
     sandbox.Math = originalMath;
+  }
+});
+
+
+test('debug logging records phase changes only when the phase changes', () => {
+  const logger = sandbox.api.debugLogger;
+  logger.enabled = true;
+  logger.logs = [];
+  logger.lastPhase = null;
+  const positionWith = (ply, pieceCount) => {
+    const board = Array.from({ length: 8 }, () => Array(10).fill(null));
+    for (let i = 0; i < pieceCount; i++) board[Math.floor(i / 10)][i % 10] = { type: 'p', color: 'w' };
+    return { ply, board };
+  };
+  sandbox.api.getGamePhase(positionWith(0, 20));
+  sandbox.api.getGamePhase(positionWith(0, 20));
+  sandbox.api.getGamePhase(positionWith(10, 20));
+  sandbox.api.getGamePhase(positionWith(10, 20));
+  const phaseEvents = logger.logs.filter(entry => entry.type === 'phase-change');
+  assert.equal(phaseEvents.length, 1);
+  assert.match(phaseEvents[0].message, /opening → midgame/);
+  logger.enabled = false;
+});
+
+test('debug logging records engine selection once and subsequent switches', () => {
+  const logger = sandbox.api.debugLogger;
+  logger.enabled = true;
+  logger.logs = [];
+  logger.lastEngineBySide = {};
+  logger.engineSelected('White', 'MinMax', 'opening');
+  logger.engineSelected('White', 'MinMax', 'opening');
+  logger.engineSelected('White', 'MCTS', 'midgame');
+  const events = logger.logs.filter(entry => entry.type === 'engine-change');
+  assert.equal(events.length, 2);
+  assert.match(events[0].message, /White engine selected: MinMax/);
+  assert.match(events[1].message, /MinMax → MCTS/);
+  logger.enabled = false;
+});
+
+test('debug status logging suppresses routine messages but keeps warnings and errors', () => {
+  const logger = sandbox.api.debugLogger;
+  logger.enabled = true;
+  logger.logs = [];
+  logger.lastPhase = null;
+  sandbox.api.status('White to move.');
+  sandbox.api.status('AI worker failed; retrying on the main thread.');
+  sandbox.api.status('AI error: engine returned an invalid move.');
+  assert.equal(logger.logs.length, 2);
+  assert.equal(logger.logs[0].level, 'warn');
+  assert.equal(logger.logs[1].level, 'error');
+  logger.enabled = false;
+});
+
+test('filtered debug export selects events and warnings without deleting the full log', () => {
+  const logger = sandbox.api.debugLogger;
+  logger.enabled = true;
+  logger.logs = [];
+  logger.add('routine message', 'info');
+  logger.event('phase-change', 'Phase changed: opening → midgame');
+  logger.add('worker timed out', 'warn');
+  const filtered = logger.getFilteredEntries();
+  assert.equal(filtered.length, 2);
+  assert.deepEqual(Array.from(filtered, entry => entry.message), [
+    'Phase changed: opening → midgame',
+    'worker timed out'
+  ]);
+  assert.equal(logger.logs.length, 3, 'filtering must not mutate or delete the complete log');
+  logger.enabled = false;
+});
+
+test('?debug=1 still enables debug logging', () => {
+  const originalSearch = sandbox.window.location.search;
+  const previousMode = sandbox.localStorage.getItem('debugMode');
+  const previousLog = sandbox.localStorage.getItem('debugLog');
+  sandbox.localStorage.setItem('debugMode', 'false');
+  sandbox.localStorage.setItem('debugLog', '[]');
+  sandbox.window.location.search = '?debug=1';
+  try {
+    const logger = new sandbox.api.DebugLogger();
+    assert.equal(logger.enabled, true);
+  } finally {
+    sandbox.window.location.search = originalSearch;
+    if (previousMode === null) storedValues.delete('debugMode');
+    else sandbox.localStorage.setItem('debugMode', previousMode);
+    if (previousLog === null) storedValues.delete('debugLog');
+    else sandbox.localStorage.setItem('debugLog', previousLog);
+    sandbox.api.debugLogger.enabled = false;
   }
 });
