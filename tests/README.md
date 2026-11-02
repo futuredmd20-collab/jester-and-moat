@@ -28,6 +28,7 @@ The engine contract suite evaluates canonical rule/search functions from `script
 - Worker runtime errors terminate the failed worker and retry the active request once through the selected engine on the main thread.
 - Loading a valid saved game cancels any in-flight search for the previous position; a fresh search can run and stale worker responses are ignored.
 - Successful worker dispatch returns legal moves for both MinMax and MCTS.
+- MCTS level-3 search respects its time budget between playouts and checks the budget during a playout; the synchronous path returns a legal best-so-far move when a long playout reaches the budget.
 - Unknown worker engine selectors return an explicit protocol error.
 - White/Black engine and phase settings are saved and restored independently.
 - MCTS configuration is limited to its selected phase, with MinMax in other phases.
