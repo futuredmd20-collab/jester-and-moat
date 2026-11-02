@@ -1230,16 +1230,13 @@ function loadEngineConfig() {
   const validEngines = new Set(['minmax_legacy', 'mcts']);
   const validPhases = new Set(Object.values(ENGINE_PHASES));
   let saved = null;
-  let configSource = 'defaults';
   try {
     const raw = localStorage.getItem('engineConfig');
     if (raw) {
       saved = JSON.parse(raw);
-      configSource = 'localStorage';
     }
   } catch (e) {
     // Missing or inaccessible storage and malformed JSON use safe defaults.
-    configSource = 'defaults (storage unavailable or invalid JSON)';
   }
   const config = { ...defaults };
   if (saved && typeof saved === 'object' && !Array.isArray(saved)) {

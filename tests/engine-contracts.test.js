@@ -2220,7 +2220,7 @@ test('filtered debug export selects events and warnings without deleting the ful
   logger.add('worker timed out', 'warn');
   const filtered = logger.getFilteredEntries();
   assert.equal(filtered.length, 2);
-  assert.deepEqual(filtered.map(entry => entry.message), [
+  assert.deepEqual(Array.from(filtered, entry => entry.message), [
     'Phase changed: opening → midgame',
     'worker timed out'
   ]);
@@ -2230,12 +2230,20 @@ test('filtered debug export selects events and warnings without deleting the ful
 
 test('?debug=1 still enables debug logging', () => {
   const originalSearch = sandbox.window.location.search;
+  const previousMode = sandbox.localStorage.getItem('debugMode');
+  const previousLog = sandbox.localStorage.getItem('debugLog');
+  sandbox.localStorage.setItem('debugMode', 'false');
+  sandbox.localStorage.setItem('debugLog', '[]');
   sandbox.window.location.search = '?debug=1';
   try {
     const logger = new sandbox.api.DebugLogger();
     assert.equal(logger.enabled, true);
   } finally {
     sandbox.window.location.search = originalSearch;
+    if (previousMode === null) storedValues.delete('debugMode');
+    else sandbox.localStorage.setItem('debugMode', previousMode);
+    if (previousLog === null) storedValues.delete('debugLog');
+    else sandbox.localStorage.setItem('debugLog', previousLog);
     sandbox.api.debugLogger.enabled = false;
   }
 });
