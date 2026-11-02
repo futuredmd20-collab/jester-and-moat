@@ -2107,3 +2107,30 @@ test('structured main-thread fallback dispatches the selected MinMax and MCTS co
     scheduledCallbacks.length = 0;
   }
 });
+
+
+test('synchronous MCTS search respects its time budget between playouts', () => {
+  const originalDate = sandbox.Date;
+  const originalMath = sandbox.Math;
+  let clock = 0;
+  let randomCalls = 0;
+  sandbox.Date = { now() { clock += 1; return clock; } };
+  sandbox.Math = Object.create(Math);
+  sandbox.Math.random = () => { randomCalls++; return 0.5; };
+
+  try {
+    const s = position();
+    s.board[6][0] = { type: 'r', color: 'w', moved: false };
+    const before = JSON.stringify(s);
+    const move = sandbox.mctsSearch(s, {
+      playouts: 100, capDepth: 1, temperature: 0, timeBudgetMs: 1
+    });
+    assert.ok(move, 'a best-so-far legal move should be returned');
+    assert.ok(allLegalState(s).some(m => JSON.stringify(m) === JSON.stringify(move)));
+    assert.ok(randomCalls < 100, 'search should stop instead of completing every configured playout');
+    assert.equal(JSON.stringify(s), before, 'budgeted search must not mutate the input position');
+  } finally {
+    sandbox.Date = originalDate;
+    sandbox.Math = originalMath;
+  }
+});
