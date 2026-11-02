@@ -1436,10 +1436,24 @@ onmessage = async function(event) {
       }
       move = result.status === ENGINE_RESULT_STATUS.COMPLETED ? result.move : null;
     }
-    // The game core, not the engine, decides whether a returned move is legal.
-    if (move && !allLegalState(state).some(legal => JSON.stringify(legal) === JSON.stringify(move))) {
-      status('AI error: engine returned an illegal move.');
-      return;
+    // Match worker output against legal moves without relying on object property order.
+    // Return the canonical game move so engine-only fields cannot reach live state.
+    if (move) {
+      const legalMove = findLegalMoveMatch(state, move);
+      if (!legalMove) {
+        debugLogger.add(`Rejected worker engine move: ${JSON.stringify(move)}`, 'warn');
+        if (completedRequest) {
+          // Treat an unusable worker result like a worker failure: retry the selected
+          // engine once on the main thread with a fresh request and position snapshot.
+          pendingAIRequest = completedRequest;
+          isAIThinking = true;
+          handleAIWorkerFailure(workerInstance, completedRequest);
+        } else {
+          status('AI error: engine returned an illegal move.');
+        }
+        return;
+      }
+      move = legalMove;
     }
     if (move) play(move, 'pending');
     else {

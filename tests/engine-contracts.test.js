@@ -84,7 +84,7 @@ const sandbox = {
 vm.createContext(sandbox);
 vm.runInContext(minmax, sandbox);
 vm.runInContext(source.slice(0, boundary) + `
-globalThis.api = { EngineContract, MinMaxLegacy, cancelActiveAIRequest, setActiveAIForTest(worker, request) { aiWorker = worker; pendingAIRequest = request; isAIThinking = true; }, getActiveAIForTest() { return { worker: aiWorker, request: pendingAIRequest, thinking: isAIThinking, id: aiRequestId }; }, allLegalState, findLegalMoveMatch, getBestMove: MinMaxSearchCore.getBestMove, getBestMoveAsync: MinMaxSearchCore.getBestMoveAsync, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout); aiWorkerTimeout = null; if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; gameOver = false; gameOverMessage = ''; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getDefaultEngineForSide() { return defaultEngineForSide; }, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, applyLoadedGame, resumeLoadedGamePlayback, getAutoPlayForTest() { return autoPlayInterval; }, stopAutoPlayForTest: stopAutoPlay, ENGINE_PHASES, debugLogger, DebugLogger, status };
+globalThis.api = { EngineContract, MinMaxLegacy, cancelActiveAIRequest, setActiveAIForTest(worker, request) { aiWorker = worker; pendingAIRequest = request; aiRequestId = request.id; isAIThinking = true; }, getActiveAIForTest() { return { worker: aiWorker, request: pendingAIRequest, thinking: isAIThinking, id: aiRequestId }; }, allLegalState, findLegalMoveMatch, getBestMove: MinMaxSearchCore.getBestMove, getBestMoveAsync: MinMaxSearchCore.getBestMoveAsync, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout); aiWorkerTimeout = null; if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; gameOver = false; gameOverMessage = ''; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getDefaultEngineForSide() { return defaultEngineForSide; }, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, applyLoadedGame, resumeLoadedGamePlayback, getAutoPlayForTest() { return autoPlayInterval; }, stopAutoPlayForTest: stopAutoPlay, ENGINE_PHASES, debugLogger, DebugLogger, status };
 `, sandbox, { filename: 'script.js' });
 vm.runInContext(mcts, sandbox, { filename: 'engines/mcts-engine.js' });
 // The app's HTML loads the MCTS module before script.js; register its plugin here
@@ -2246,4 +2246,104 @@ test('?debug=1 still enables debug logging', () => {
     else sandbox.localStorage.setItem('debugLog', previousLog);
     sandbox.api.debugLogger.enabled = false;
   }
+});
+
+
+test('worker result accepts legal moves with reordered properties and plays the canonical move', () => {
+  sandbox.Math = Math;
+  sandbox.api.resetAIWorker();
+  const workerBlobs = new Map();
+  sandbox.URL.createObjectURL = blob => {
+    const url = `blob:worker-canonical-move-${workerBlobs.size}`;
+    workerBlobs.set(url, blob);
+    return url;
+  };
+  sandbox.URL.revokeObjectURL = () => {};
+  sandbox.Worker = class {
+    constructor(url) { this.url = url; this.onmessage = null; this.onerror = null; }
+    postMessage() {}
+    terminate() { this.terminated = true; }
+  };
+
+  const worker = ensureAIWorker();
+  const s = position();
+  setState(s);
+  const legal = allLegalState(s)[0];
+  assert.ok(legal);
+  const reordered = {
+    to: { c: legal.to.c, r: legal.to.r },
+    from: { c: legal.from.c, r: legal.from.r }
+  };
+  for (const key of Object.keys(legal)) {
+    if (key !== 'from' && key !== 'to') reordered[key] = legal[key];
+  }
+  const id = 601;
+  const contractRequest = EngineContract.createRequest({
+    requestId: id, generation: id, engineId: 'minmax_legacy',
+    position: s, limits: { depth: 1 }
+  });
+  const request = { id, engine: sandbox.api.MinMaxLegacy, depth: 1, state: s, contractRequest };
+  sandbox.api.setActiveAIForTest(worker, request);
+
+  worker.onmessage({ data: {
+    id,
+    result: EngineContract.completed(contractRequest, reordered)
+  }});
+
+  assert.equal(sandbox.api.getState().turn, 'b',
+    'a semantically legal worker move must be played despite property-order differences');
+  assert.equal(sandbox.api.getActiveAIForTest().thinking, false);
+  sandbox.api.resetAIWorker();
+});
+
+test('illegal worker result retries the selected engine on the main thread', () => {
+  sandbox.Math = Math;
+  sandbox.api.resetAIWorker();
+  const workerBlobs = new Map();
+  sandbox.URL.createObjectURL = blob => {
+    const url = `blob:worker-illegal-move-${workerBlobs.size}`;
+    workerBlobs.set(url, blob);
+    return url;
+  };
+  sandbox.URL.revokeObjectURL = () => {};
+  sandbox.Worker = class {
+    constructor(url) { this.url = url; this.onmessage = null; this.onerror = null; }
+    postMessage() {}
+    terminate() { this.terminated = true; }
+  };
+
+  const worker = ensureAIWorker();
+  const s = position();
+  setState(s);
+  const legal = allLegalState(s)[0];
+  const illegal = { from: { r: 7, c: 4 }, to: { r: 5, c: 4 } };
+  assert.equal(sandbox.api.findLegalMoveMatch(s, illegal), null);
+  const id = 701;
+  const engine = {
+    id: 'minmax_legacy',
+    name: 'Regression test engine',
+    search(request) { return EngineContract.completed(request, legal); }
+  };
+  const contractRequest = EngineContract.createRequest({
+    requestId: id, generation: id, engineId: engine.id,
+    position: s, limits: { depth: 1 }
+  });
+  const request = { id, engine, depth: 1, state: s, contractRequest };
+  sandbox.api.setActiveAIForTest(worker, request);
+  const callbackCount = scheduledCallbacks.length;
+
+  worker.onmessage({ data: {
+    id,
+    result: EngineContract.completed(contractRequest, illegal)
+  }});
+
+  assert.equal(worker.terminated, true, 'the worker with the rejected result should be terminated');
+  const fallback = scheduledCallbacks.slice(callbackCount).find(callback => callback.delay === 20);
+  assert.ok(fallback, 'the main-thread retry should be scheduled');
+  fallback();
+
+  assert.equal(sandbox.api.getState().turn, 'b',
+    'the fallback engine should make a legal move rather than leave the game waiting');
+  assert.equal(sandbox.api.getActiveAIForTest().thinking, false);
+  sandbox.api.resetAIWorker();
 });
