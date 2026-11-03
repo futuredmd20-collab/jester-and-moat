@@ -6,6 +6,10 @@ Evaluate whether a bitboard representation can improve MinMax and/or MCTS search
 
 This is an engine-internal optimization plan. It does not propose replacing the game's canonical board model.
 
+## Status
+
+**Status: Planned (2026-11-03).** Baseline profiling and representation evaluation have not started.
+
 ## Current architectural constraints
 
 - The game state uses an 8-row × 10-column `state.board` matrix. A square is addressed by row and column; each occupied cell contains a piece object.

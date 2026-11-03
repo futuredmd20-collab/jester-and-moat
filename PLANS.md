@@ -1,6 +1,6 @@
 # PLANS.md — Work Plan Index
 
-Purpose: help agents find the right task plan without reading every plan. This index summarizes each plan's subject and status; detailed steps and decisions belong in the linked plan files.
+Purpose: help agents find the right topic-specific work plan without reading every plan. This is a directory, not an implementation report; detailed progress, decisions, and verification belong in the linked plan files.
 
 ## How to use this index
 
@@ -10,15 +10,27 @@ Purpose: help agents find the right task plan without reading every plan. This i
 - Follow the plan's ordered checklist, update its progress as work is completed, and keep verification claims limited to checks actually performed.
 - Add new entries only for genuine, topic-specific work plans. Update this index when a plan is added, renamed, completed, abandoned, or superseded. Keep detailed tasks in the plan itself rather than duplicating them here.
 
+## Status labels
+
+| Status | Meaning |
+| --- | --- |
+| **Completed** | The plan's defined scope and recorded verification are complete; retain it as a reference where useful. |
+| **In progress** | Work has started, but planned tasks or verification remain. |
+| **Planned** | Work has not started. |
+| **On hold** | Work is intentionally paused. |
+| **Superseded** | Replaced by another plan or an explicit project decision. |
+
+A status summarizes progress recorded in the plan; it does not prove current runtime behavior. Check the implementation and tests before making that claim.
+
 ## Current plans
 
 | Plan | Status | Use this plan for | Do not use it for |
 | --- | --- | --- | --- |
-| [Layout and Piece Design](docs/LAYOUT-AND-PIECE-DESIGN-PLAN.md) | Draft — Classic King/Queen/Bishop visual refinements completed; Jester/Moat design, responsive layout, and broader verification remain | Work on piece artwork (Classic, Flat, new sets), Jester/Moat visual representations, board styling, 10x8 layout responsiveness, and piece markup surfaces (board, trays, modals, editor palette). | Engine/AI algorithms, game rule changes, or save/load state logic. |
-| [Engine Interface Architecture](docs/ENGINE-INTERFACE-PLAN.md) | Implementation in progress — protocol v1 and structured MinMax/MCTS worker transport are present; contract coverage includes cooperative cancellation and MCTS time-budget checks through PR #107; full lifecycle/fallback integration and broader cross-engine verification remain | Shared internal engine contract, immutable search snapshots, canonical moves, lifecycle, cancellation/stale-result handling, capabilities, configuration, registry, and explicit error recovery. | Claims that the interface has been implemented or that planned contract/integration tests have passed. |
-| [Engine Plugins](docs/ENGINE-PLUGINS.md) | Active — core runtime/configuration checks completed; calibration and selected failure/regression checks remain | Work on MinMax/MCTS integration, per-side and per-phase engine selection, worker dispatch/fallback, engine configuration persistence, phase thresholds, strength calibration, and the listed engine regression checks. | General AI improvements unrelated to the plugin contract, overall repository audit priorities, or proof that browser-only checks have passed. |
-| [Bitboard Engine Evaluation and Migration](docs/BITBOARD-ENGINE-PLAN.md) | Planned — baseline profiling and representation evaluation not started | Evaluate 80-square bitboard encodings and, if measurements justify it, add a narrowly scoped engine-internal accelerator while retaining the canonical matrix board. | Replacing the game-state board, changing save/load or UI formats, or assuming bitboards improve performance without measurement. |
-| [Undo/Redo and Save/Load Consistency](docs/UNDO-REDO-SAVE-TESTING.md) | Validation and browser checks completed for the listed scenarios; retain as a reference/checklist for future changes | Work on history/log consistency, save import validation, legacy save compatibility, and browser verification of save/load and undo/redo. | Engine-plugin integration or claims that real-browser checks have passed. |
+| [Layout and Piece Design](docs/LAYOUT-AND-PIECE-DESIGN-PLAN.md) | **In progress** | Work on piece artwork (Classic, Flat, new sets), Jester/Moat visual representations, board styling, 10x8 layout responsiveness, and piece markup surfaces (board, trays, modals, editor palette). | Engine/AI algorithms, game rule changes, or save/load state logic. |
+| [Engine Interface Architecture](docs/ENGINE-INTERFACE-PLAN.md) | **In progress** | Shared internal engine contract, immutable search snapshots, canonical moves, lifecycle, cancellation/stale-result handling, capabilities, configuration, registry, and explicit error recovery. | Claims that the interface has been implemented or that planned contract/integration tests have passed. |
+| [Engine Plugins](docs/ENGINE-PLUGINS.md) | **In progress** | Work on MinMax/MCTS integration, per-side and per-phase engine selection, worker dispatch/fallback, engine configuration persistence, phase thresholds, strength calibration, and the listed engine regression checks. | General AI improvements unrelated to the plugin contract, overall repository audit priorities, or proof that browser-only checks have passed. |
+| [Bitboard Engine Evaluation and Migration](docs/BITBOARD-ENGINE-PLAN.md) | **Planned** | Evaluate 80-square bitboard encodings and, if measurements justify it, add a narrowly scoped engine-internal accelerator while retaining the canonical matrix board. | Replacing the game-state board, changing save/load or UI formats, or assuming bitboards improve performance without measurement. |
+| [Undo/Redo and Save/Load Consistency](docs/UNDO-REDO-SAVE-TESTING.md) | **Completed** | Work on history/log consistency, save import validation, legacy save compatibility, and browser verification of save/load and undo/redo. | Engine-plugin integration or claims that real-browser checks have passed. |
 
 ## Reference documents — not work plans
 
