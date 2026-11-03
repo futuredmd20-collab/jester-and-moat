@@ -38,7 +38,7 @@ async function runBoot({ inline = false, spriteFailure = false, mctsFailure = fa
   }
   const document = {
     getElementById(id) {
-      if (id === 'p-rook' || id === 'flat-p-rook') return inline ? { id } : null;
+      if (id === 'p-rook' || id === 'flat-p-rook' || id === 'min-p-rook') return inline ? { id } : null;
       return element(id);
     },
     createElement(tag) {
@@ -137,10 +137,11 @@ test('development Eruda stays out of the service-worker precache and single-file
 
 test('multi-file startup loads both sprites and MCTS before script.js', async () => {
   const result = await runBoot();
-  assert.deepEqual(result.fetchCalls, ['pieces.svg', 'pieces-flat.svg']);
+  assert.deepEqual(result.fetchCalls, ['pieces.svg', 'pieces-flat.svg', 'pieces-minimal.svg']);
   assert.deepEqual(result.appendedScripts, ['engines/mcts-engine.js', 'engines/minmax-engine.js', 'script.js']);
   assert.match(result.elements.get('pieceSprite').innerHTML, /pieces\.svg/);
   assert.match(result.elements.get('pieceFlatSprite').innerHTML, /pieces-flat\.svg/);
+  assert.match(result.elements.get('pieceMinimalSprite').innerHTML, /pieces-minimal\.svg/);
 });
 
 test('single-file startup skips sprite and MCTS fetches when symbols are inline', async () => {
@@ -151,7 +152,7 @@ test('single-file startup skips sprite and MCTS fetches when symbols are inline'
 
 test('sprite fetch failure logs an error and still starts script.js', async () => {
   const result = await runBoot({ spriteFailure: true });
-  assert.deepEqual(result.fetchCalls, ['pieces.svg', 'pieces-flat.svg']);
+  assert.deepEqual(result.fetchCalls, ['pieces.svg', 'pieces-flat.svg', 'pieces-minimal.svg']);
   assert.deepEqual(result.appendedScripts, ['engines/minmax-engine.js', 'script.js']);
   assert.equal(result.errors.length, 1);
   assert.match(String(result.errors[0][0]), /Piece sprite failed to load/);
