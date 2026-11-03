@@ -39,6 +39,7 @@
 <!-- PIECE-SPRITE:HOST — the seven <symbol>s are generated into pieces.svg by generate-piece-sprite.js and injected here before script.js runs. The single-file build inlines them into this div instead. -->
 <div id="pieceSprite" aria-hidden="true"><!-- PIECE-SPRITE:INLINE --></div>
 <div id="pieceFlatSprite" aria-hidden="true"><!-- PIECE-FLAT-SPRITE:INLINE --></div>
+<div id="pieceMinimalSprite" aria-hidden="true"><!-- PIECE-MINIMAL-SPRITE:INLINE --></div>
 <div class="app-shell">
 
 <header class="top-header">
@@ -307,9 +308,10 @@
    <div class="drawer-row">
     <label for="pieceSetSelect">Piece design:</label>
     <select id="pieceSetSelect">
-     <option value="classic" selected>Classic</option>
-     <option value="flat">Flat</option>
-    </select>
+          <option value="mobile">Mobile (Flat)</option>
+          <option value="desktop">Desktop (Classic)</option>
+          <option value="minimal">Minimal (Newspaper)</option>
+        </select>
    </div>
    <div class="drawer-row">
     <label for="boardStyleSelect">Board style:</label>
@@ -433,14 +435,17 @@
     document.body.appendChild(minmaxScript);
   }
   // The single-file build inlines the symbols above, so it boots straight away.
-  if (document.getElementById("p-rook") && document.getElementById("flat-p-rook")) { boot(); return; }
+  if (document.getElementById("p-rook") && document.getElementById("flat-p-rook") && document.getElementById("min-p-rook")) { boot(); return; }
   Promise.all([
     fetch("pieces.svg").then(function (response) { return response.ok ? response.text() : Promise.reject(response.status); }),
-    fetch("pieces-flat.svg").then(function (response) { return response.ok ? response.text() : Promise.reject(response.status); })
+    fetch("pieces-flat.svg").then(function (response) { return response.ok ? response.text() : Promise.reject(response.status); }),
+    fetch("pieces-minimal.svg").then(function (response) { return response.ok ? response.text() : Promise.reject(response.status); })
   ])
     .then(function (sprites) {
       document.getElementById("pieceSprite").innerHTML = sprites[0];
       document.getElementById("pieceFlatSprite").innerHTML = sprites[1];
+      const minEl = document.getElementById("pieceMinimalSprite");
+      if (minEl) minEl.innerHTML = sprites[2];
       var mctsScript = document.createElement("script");
       mctsScript.src = "engines/mcts-engine.js";
       mctsScript.onload = boot;

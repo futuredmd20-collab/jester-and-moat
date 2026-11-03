@@ -6,6 +6,7 @@ const styleCss = fs.readFileSync(path.join(__dirname, "style.css"), "utf8");
 const piecesCss = fs.readFileSync(path.join(__dirname, "pieces.css"), "utf8");
 const piecesSvg = fs.readFileSync(path.join(__dirname, "pieces.svg"), "utf8");
 const piecesFlatSvg = fs.readFileSync(path.join(__dirname, "pieces-flat.svg"), "utf8");
+const piecesMinimalSvg = fs.readFileSync(path.join(__dirname, "pieces-minimal.svg"), "utf8");
 const scriptJs = fs.readFileSync(path.join(__dirname, "script.js"), "utf8");
 const mctsEngineJs = fs.readFileSync(path.join(__dirname, "engines", "mcts-engine.js"), "utf8");
 const minmaxEngineJs = fs.readFileSync(path.join(__dirname, "engines", "minmax-engine.js"), "utf8");
@@ -32,6 +33,10 @@ combined = combined.replace(
 combined = combined.replace(
   "<!-- PIECE-FLAT-SPRITE:INLINE -->",
   piecesFlatSvg.trimEnd()
+);
+combined = combined.replace(
+  "<!-- PIECE-MINIMAL-SPRITE:INLINE -->",
+  piecesMinimalSvg.trimEnd()
 );
 
 // Inline the MCTS module before script.js: the engine registry is initialized

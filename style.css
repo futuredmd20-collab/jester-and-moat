@@ -1301,3 +1301,13 @@ button.icon-only-btn .control-svg { width: 22px; height: 22px; }
     font-size: 1.2rem;
   }
 }
+
+/* Minimal Piece Set (Official Newspaper Diagram) Proportions */
+#board .piece-set-minimal { --piece-w: 78%; --piece-h: 78%; }
+#board .piece-set-minimal.piece-pawn { --piece-w: 62%; --piece-h: 62%; }
+#board .piece-set-minimal.piece-king { --piece-w: 78%; --piece-h: 78%; }
+#board .piece-set-minimal.piece-queen { --piece-w: 78%; --piece-h: 78%; }
+#board .piece-set-minimal.piece-jester { --piece-w: 80%; --piece-h: 78%; }
+.captured-box .piece-set-minimal { --piece-w: 16px; --piece-h: 16px; }
+.promotion-btn .piece-set-minimal { --piece-w: 36px; --piece-h: 36px; }
+.palette-btn .piece-set-minimal { --piece-w: 28px; --piece-h: 28px; }

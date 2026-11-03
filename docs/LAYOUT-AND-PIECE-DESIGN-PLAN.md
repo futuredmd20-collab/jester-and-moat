@@ -13,7 +13,8 @@ Ensure clear, high-contrast, and aesthetically cohesive visual presentation acro
 
 ## Current Repository State
 - **Classic set:** `pieces.svg` with 7 shared symbols inherited via CSS custom properties in `pieces.css` (`--p-outline`, `--p-body`, etc.).
-- **Flat set:** `pieces-flat.svg` generated from separate SVGs; aspect ratios preserved via `--flat-aspect`.
+- **Flat set (Mobile):** `pieces-flat.svg` generated from separate SVGs; aspect ratios preserved via `--flat-aspect`.
+- **Minimal set:** `pieces-minimal.svg` based on official newspaper/print diagram standard (Cburnett/FIDE) with matching 2D Jester.
 - **Theme support:** Light and dark theme palettes defined in `style.css` and `pieces.css`.
 - **Options integration:** User choice (Classic vs. Flat) persists in `localStorage` and precaches for offline PWA.
 
@@ -27,5 +28,5 @@ Ensure clear, high-contrast, and aesthetically cohesive visual presentation acro
 - [ ] **1. Visual Audit:** Verify current rendering of Classic and Flat sets in light/dark themes across mobile and desktop. (Classic King, Queen, and Bishop mobile contrast verified; the full audit across piece sets and surfaces remains open).
 - [ ] **2. Jester & Moat Refinement:** Specify visual requirements for Jester silhouette and Moat barrier states.
 - [ ] **3. Board Layout & Spacing:** Audit 10x8 board aspect ratio, coordinates, and drawer overlays on touch screens.
-- [x] **4. Asset / CSS Updates (Classic):** Implement approved piece adjustments for King, Queen, and Bishop in `pieces.svg` and `pieces.css`.
+- [x] **4. Asset / CSS Updates:** Implement approved piece adjustments for Classic (`pieces.svg`, `pieces.css`), add `pieces-minimal.svg`, and establish responsive Mobile/Desktop defaults in `script.js` and `index.html`.
 - [ ] **5. Verification:** Validate offline PWA precaching and visual regression across all surfaces.
