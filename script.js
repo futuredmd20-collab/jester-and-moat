@@ -2573,28 +2573,36 @@ function saveOptions(){
   } catch(err) { /* storage unavailable (private mode etc.) — ignore */ }
 }
 function loadOptions(){
+  let o = null;
   try {
-    const o = JSON.parse(localStorage.getItem('jm_opts_v1') || 'null');
-    if (!o) return;
+    o = JSON.parse(localStorage.getItem('jm_opts_v1') || 'null');
+  } catch(err) { /* ignore unavailable or invalid storage; still apply responsive defaults */ }
+
+  try {
     const setVal = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined && el.querySelector(`option[value="${v}"]`)) el.value = v; };
-    setVal('modeSelect', o.mode); setVal('playerSideSelect', o.side); setVal('timeSelect', o.time);
-    setVal('jesterPosSelect', o.jpos); setVal('speedSelect', o.speed); setVal('uiDisplaySelect', o.disp);
-    setVal('themeSelect', o.theme);
-    setVal('boardStyleSelect', o.boardStyle);
-    // Auto-detect mobile device on initial session when no saved preference exists
+    if (o) {
+      setVal('modeSelect', o.mode); setVal('playerSideSelect', o.side); setVal('timeSelect', o.time);
+      setVal('jesterPosSelect', o.jpos); setVal('speedSelect', o.speed); setVal('uiDisplaySelect', o.disp);
+      setVal('themeSelect', o.theme);
+      setVal('boardStyleSelect', o.boardStyle);
+    }
+
+    // Choose a responsive default when no saved piece-set preference exists.
     const isMobileDevice = window.matchMedia('(max-width: 768px)').matches || ('ontouchstart' in window && window.innerWidth <= 1024);
     const defaultSet = isMobileDevice ? 'mobile' : 'desktop';
 
     // Migrate legacy values
-    let storedSet = o.pieceSet;
+    let storedSet = o && o.pieceSet;
     if (storedSet === 'classic') storedSet = 'desktop';
     if (storedSet === 'flat') storedSet = 'mobile';
 
     const chosenSet = (storedSet === 'desktop' || storedSet === 'mobile' || storedSet === 'minimal') ? storedSet : defaultSet;
     setVal('pieceSetSelect', chosenSet);
     activePieceSet = document.getElementById('pieceSetSelect').value || chosenSet;
-    if (o.coords !== undefined) document.getElementById('coordsToggle').checked = (o.coords === '1');
-    document.getElementById('showModeIndicatorToggle').checked = o.showModeIndicator === undefined ? true : o.showModeIndicator === '1';
+    if (o) {
+      if (o.coords !== undefined) document.getElementById('coordsToggle').checked = (o.coords === '1');
+      document.getElementById('showModeIndicatorToggle').checked = o.showModeIndicator === undefined ? true : o.showModeIndicator === '1';
+    }
   } catch(err) { /* ignore */ }
 }
 
