@@ -196,8 +196,8 @@ let activePieceSet = 'classic';
 function pieceMarkup(type, color, extraClass = "") {
   const name = PIECE_NAME[type] || 'pawn';
   const side = color === 'b' ? 'black' : 'white';
-  const symbolPrefix = activePieceSet === 'flat' ? 'flat-p-' : 'p-';
-  const sizingClass = activePieceSet === 'flat' ? 'piece-set-flat' : 'piece-set-classic';
+  const symbolPrefix = activePieceSet === 'minimal' ? 'min-p-' : (activePieceSet === 'desktop' || activePieceSet === 'classic') ? 'p-' : 'flat-p-';
+  const sizingClass = activePieceSet === 'minimal' ? 'piece-set-minimal' : (activePieceSet === 'desktop' || activePieceSet === 'classic') ? 'piece-set-classic' : 'piece-set-flat';
   return `<svg class="piece piece-${name} ${sizingClass} ${extraClass}" preserveAspectRatio="none" data-type="${name}" data-color="${color}" ` +
     `role="img" aria-label="${side} ${name}">` +
     `<use href="#${symbolPrefix}${name}"></use></svg>`;
@@ -2581,8 +2581,18 @@ function loadOptions(){
     setVal('jesterPosSelect', o.jpos); setVal('speedSelect', o.speed); setVal('uiDisplaySelect', o.disp);
     setVal('themeSelect', o.theme);
     setVal('boardStyleSelect', o.boardStyle);
-    setVal('pieceSetSelect', o.pieceSetVersion === 4 && o.pieceSet === 'flat' ? 'flat' : 'classic');
-    activePieceSet = document.getElementById('pieceSetSelect').value;
+    // Auto-detect mobile device on initial session when no saved preference exists
+    const isMobileDevice = window.matchMedia('(max-width: 768px)').matches || ('ontouchstart' in window && window.innerWidth <= 1024);
+    const defaultSet = isMobileDevice ? 'mobile' : 'desktop';
+
+    // Migrate legacy values
+    let storedSet = o.pieceSet;
+    if (storedSet === 'classic') storedSet = 'desktop';
+    if (storedSet === 'flat') storedSet = 'mobile';
+
+    const chosenSet = (storedSet === 'desktop' || storedSet === 'mobile' || storedSet === 'minimal') ? storedSet : defaultSet;
+    setVal('pieceSetSelect', chosenSet);
+    activePieceSet = document.getElementById('pieceSetSelect').value || chosenSet;
     if (o.coords !== undefined) document.getElementById('coordsToggle').checked = (o.coords === '1');
     document.getElementById('showModeIndicatorToggle').checked = o.showModeIndicator === undefined ? true : o.showModeIndicator === '1';
   } catch(err) { /* ignore */ }
@@ -2619,7 +2629,7 @@ function applyBoardStyle() {
 }
 boardStyleSelect.addEventListener('change', () => { applyBoardStyle(); saveOptions(); });
 document.getElementById('pieceSetSelect').addEventListener('change', () => {
-  activePieceSet = document.getElementById('pieceSetSelect').value === 'flat' ? 'flat' : 'classic';
+  activePieceSet = document.getElementById('pieceSetSelect').value;
   renderPalettePieces();
   render();
   saveOptions();
