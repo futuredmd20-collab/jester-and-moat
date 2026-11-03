@@ -32,7 +32,7 @@ async function runBoot({ inline = false, spriteFailure = false, mctsFailure = fa
   const appendedScripts = [];
   const errors = [];
   const elements = new Map();
-  const htmlIds = new Set([...html.matchAll(/\\bid="([^"]+)"/g)].map(match => match[1]));
+  const htmlIds = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]));
   function element(id) {
     if (!htmlIds.has(id)) return null;
     if (!elements.has(id)) elements.set(id, { id, innerHTML: '' });
@@ -138,8 +138,8 @@ test('development Eruda stays out of the service-worker precache and single-file
 });
 
 test('index.html provides a real host and inline marker for the Minimal sprite', () => {
-  assert.match(html, /<div id="pieceMinimalSprite"[^>]*>\\s*<!-- PIECE-MINIMAL-SPRITE:INLINE -->\\s*<\\/div>/);
-  assert.match(buildSource, /"<!-- PIECE-MINIMAL-SPRITE:INLINE -->"[\\s\\S]*?piecesMinimalSvg\\.trimEnd\\(\\)/);
+  assert.match(html, /<div id="pieceMinimalSprite"[^>]*>\s*<!-- PIECE-MINIMAL-SPRITE:INLINE -->\s*<\/div>/);
+  assert.match(buildSource, /"<!-- PIECE-MINIMAL-SPRITE:INLINE -->"[\s\S]*?piecesMinimalSvg\.trimEnd\(\)/);
 });
 
 test('multi-file startup loads both sprites and MCTS before script.js', async () => {
