@@ -2,6 +2,10 @@
 
 Purpose: record design decisions, repository implementation, verification gaps, and remaining work. Source presence or a merged PR is not proof of runtime behavior.
 
+## Status
+
+**Status: In progress (2026-11-03).** The core integration and documented manual test pass are complete. Strength calibration and the explicitly listed failure-recovery, offline, cache-cleared persistence, and special-case checks remain unverified or parked; they are not blockers to the completed test pass.
+
 ## Goal and contract
 
 Allow independently configured AI engines for White and Black, optionally limited to one game phase. MinMax remains the default; MCTS is opt-in.

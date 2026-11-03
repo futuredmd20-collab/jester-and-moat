@@ -1,6 +1,8 @@
 # Layout and Piece Design Plan
 Purpose: track design decisions, asset specifications, visual consistency, and implementation tasks for board layout, piece styling, and UI presentation.
 
+**Status: In progress (2026-11-03).** Classic King/Queen/Bishop asset adjustments are complete; the full visual audit, Jester/Moat refinement, responsive-layout review, and broader verification remain open.
+
 ## Goal and Scope
 Ensure clear, high-contrast, and aesthetically cohesive visual presentation across desktop and mobile PWA, covering:
 - **Piece sets:** Maintain and refine current sets (Classic `pieces.svg` via CSS variables and Staunton-inspired `pieces-flat.svg`), and define guidelines for potential new sets or thematic variants.

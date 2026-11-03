@@ -2,6 +2,8 @@ Purpose: track regression testing and verification for undo/redo history and JSO
 
 # Undo/Redo and Save/Load Consistency
 
+**Status: Completed (2026-11-03).** All checklist items and the four documented browser scenarios are complete. Retain this file as a regression reference; reopen the work if related behavior changes.
+
 ## Scope
 
 Keep the saved current position, history snapshots, move-log snapshots, clocks, moat state, and terminal status coherent across undo/redo and JSON import/export. Preserve compatibility with older saves that omit fields introduced later, while rejecting explicitly malformed data rather than silently repairing it.
