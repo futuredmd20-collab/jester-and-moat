@@ -2382,3 +2382,283 @@ test('illegal worker result retries the selected engine on the main thread', () 
   assert.equal(sandbox.api.getActiveAIForTest().thinking, false);
   sandbox.api.resetAIWorker();
 });
+
+
+test('MinMax and MCTS satisfy the same protocol-v1 search contract', () => {
+  const engines = [
+    ['minmax_legacy', sandbox.api.MinMaxLegacy],
+    ['mcts', sandbox.mctsEngine(1)]
+  ];
+
+  for (const [engineId, engine] of engines) {
+    const s = position();
+    s.board[6][0] = { type: 'r', color: 'w', moved: false };
+    const request = EngineContract.createRequest({
+      requestId: 'shared-contract-' + engineId,
+      generation: 41,
+      engineId,
+      position: s,
+      limits: { depth: 1 }
+    });
+    const before = JSON.stringify(request);
+    const result = engine.search(request);
+
+    assert.equal(result.status, EngineContract.statuses.COMPLETED, engineId + ': ' + JSON.stringify(result));
+    assert.equal(EngineContract.matchesRequest(result, request), true, engineId + ': result identity');
+    assert.ok(EngineContract.validateMove(result.move), engineId + ': move shape');
+    assert.ok(sandbox.api.findLegalMoveMatch(s, result.move), engineId + ': legal move');
+    assert.equal(JSON.stringify(request), before, engineId + ': immutable request');
+
+    const empty = position();
+    empty.board = Array.from({ length: 8 }, () => Array(10).fill(null));
+    const noMoveRequest = EngineContract.createRequest({
+      requestId: 'shared-no-move-' + engineId,
+      generation: 42,
+      engineId,
+      position: empty,
+      limits: { depth: 1 }
+    });
+    const noMove = engine.search(noMoveRequest);
+    assert.equal(noMove.status, EngineContract.statuses.NO_MOVE, engineId + ': no-move status');
+    assert.equal(noMove.move, null);
+    assert.equal(EngineContract.matchesRequest(noMove, noMoveRequest), true);
+
+    const wrongProtocol = engine.search({ ...request, protocolVersion: EngineContract.version + 1 });
+    assert.equal(wrongProtocol.status, EngineContract.statuses.FAILED, engineId + ': protocol mismatch');
+    assert.equal(wrongProtocol.error.code, EngineContract.errorCodes.INVALID_REQUEST);
+
+    const otherEngineId = engineId === 'mcts' ? 'minmax_legacy' : 'mcts';
+    const wrongEngine = engine.search({ ...request, engineId: otherEngineId });
+    assert.equal(wrongEngine.status, EngineContract.statuses.FAILED, engineId + ': engine mismatch');
+    assert.equal(wrongEngine.error.code, EngineContract.errorCodes.INVALID_REQUEST);
+  }
+});
+
+test('variant-specific moves survive the shared contract and are resolved by the game core', () => {
+  const scenarios = [
+    {
+      name: 'Jester swap',
+      create() {
+        const s = position();
+        s.board[4][4] = { type: 'j', color: 'w', moved: false };
+        s.board[4][5] = { type: 'r', color: 'w', moved: true };
+        return {
+          state: s,
+          move: allLegalState(s).find(m => m.swap && m.from.r === 4 && m.from.c === 4 && m.to.r === 4 && m.to.c === 5),
+          verify(next) {
+            assert.equal(next.board[4][5].type, 'j');
+            assert.equal(next.board[4][4].type, 'r');
+          }
+        };
+      }
+    },
+    {
+      name: 'kingside castling',
+      create() {
+        const s = position();
+        s.board = Array.from({ length: 8 }, () => Array(10).fill(null));
+        s.board[7][5] = { type: 'k', color: 'w', moved: false };
+        s.board[0][5] = { type: 'k', color: 'b', moved: false };
+        s.board[7][9] = { type: 'r', color: 'w', moved: false };
+        return {
+          state: s,
+          move: allLegalState(s).find(m => m.castling === 'kingside'),
+          verify(next) {
+            assert.equal(next.board[7][8].type, 'k');
+            assert.equal(next.board[7][7].type, 'r');
+            assert.equal(next.board[7][9], null);
+          }
+        };
+      }
+    },
+    {
+      name: 'double pawn move',
+      create() {
+        const s = position();
+        s.board[6][0] = { type: 'p', color: 'w', moved: false };
+        return {
+          state: s,
+          move: allLegalState(s).find(m => m.doublePawn && m.from.r === 6 && m.from.c === 0 && m.to.r === 4),
+          verify(next) {
+            assert.deepEqual(JSON.parse(JSON.stringify(next.ep)), { r: 5, c: 0 });
+            assert.equal(next.turn, 'b');
+          }
+        };
+      }
+    },
+    {
+      name: 'en passant',
+      create() {
+        const s = position();
+        s.board[3][3] = { type: 'p', color: 'w', moved: true };
+        s.board[1][4] = { type: 'p', color: 'b', moved: false };
+        s.turn = 'b';
+        const doublePawn = allLegalState(s).find(m => m.doublePawn && m.from.r === 1 && m.from.c === 4 && m.to.r === 3);
+        assert.ok(doublePawn, 'fixture must allow the preceding double pawn move');
+        applyRaw(s, doublePawn);
+        return {
+          state: s,
+          move: allLegalState(s).find(m => m.enPassant && m.from.r === 3 && m.from.c === 3),
+          verify(next) {
+            assert.equal(next.board[2][4].type, 'p');
+            assert.equal(next.board[3][4], null);
+            assert.equal(next.captured.w.some(p => p.type === 'p' && p.color === 'b'), true);
+          }
+        };
+      }
+    },
+    {
+      name: 'promotion',
+      create() {
+        const s = position();
+        s.board[1][0] = { type: 'p', color: 'w', moved: true };
+        return {
+          state: s,
+          move: allLegalState(s).find(m => m.from.r === 1 && m.from.c === 0 && m.to.r === 0 && m.to.c === 0),
+          promotion: 'j',
+          verify(next) {
+            assert.equal(next.board[0][0].type, 'j');
+            assert.equal(next.board[1][0], null);
+          }
+        };
+      }
+    }
+  ];
+
+  for (const engineId of ['minmax_legacy', 'mcts']) {
+    for (const scenario of scenarios) {
+      const fixture = scenario.create();
+      assert.ok(fixture.move, engineId + ': ' + scenario.name + ' fixture must have a legal move');
+      const request = EngineContract.createRequest({
+        requestId: 'variant-' + engineId + '-' + scenario.name,
+        generation: 51,
+        engineId,
+        position: fixture.state,
+        limits: { depth: 1 }
+      });
+      const result = EngineContract.completed(request, fixture.move);
+      assert.equal(result.status, EngineContract.statuses.COMPLETED);
+      assert.equal(EngineContract.matchesRequest(result, request), true);
+      assert.equal(JSON.stringify(result.move), JSON.stringify(fixture.move),
+        engineId + ': ' + scenario.name + ' flags must survive serialization');
+      const canonical = sandbox.api.findLegalMoveMatch(fixture.state, result.move);
+      assert.ok(canonical, engineId + ': ' + scenario.name + ' must resolve to a canonical legal move');
+
+      sandbox.api.setState(fixture.state);
+      sandbox.api.play(canonical, fixture.promotion || 'q', true);
+      fixture.verify(sandbox.api.getState());
+    }
+  }
+});
+
+test('worker timeout fallback retries the selected MinMax or MCTS engine once with a fresh request', () => {
+  const previousCreateObjectURL = sandbox.URL.createObjectURL;
+  const previousRevokeObjectURL = sandbox.URL.revokeObjectURL;
+  const previousWorker = sandbox.Worker;
+  const previousWindowWorker = sandbox.window.Worker;
+  const originalEngines = new Map([
+    ['minmax_legacy', sandbox.api.enginePlugins.get('minmax_legacy')],
+    ['mcts', sandbox.api.enginePlugins.get('mcts')]
+  ]);
+  let workerInstance = null;
+
+  class HangingWorker {
+    constructor(url) {
+      this.url = url;
+      this.terminated = false;
+      this.onmessage = null;
+      this.onerror = null;
+      workerInstance = this;
+    }
+    postMessage(request) { this.request = request; }
+    terminate() { this.terminated = true; }
+  }
+
+  sandbox.api.resetAIWorker();
+  sandbox.URL.createObjectURL = () => 'blob:cross-engine-timeout-test';
+  sandbox.URL.revokeObjectURL = () => {};
+  sandbox.Worker = HangingWorker;
+  sandbox.window.Worker = HangingWorker;
+
+  try {
+    for (const engineId of ['minmax_legacy', 'mcts']) {
+      sandbox.api.resetAIWorker();
+      scheduledCallbacks.length = 0;
+      scheduledTimeouts.length = 0;
+      let fallbackCalls = 0;
+      let fallbackRequest = null;
+      const engine = {
+        id: engineId,
+        name: engineId + ' timeout fallback probe',
+        phases: ['opening', 'midgame', 'endgame'],
+        search(request) {
+          fallbackCalls++;
+          fallbackRequest = request;
+          return EngineContract.completed(request, allLegalState(request.position)[0]);
+        }
+      };
+      sandbox.api.enginePlugins.set(engineId, engine);
+
+      mockElement('modeSelect').value = 'human_vs_ai';
+      mockElement('whiteEngineSelect').value = engineId;
+      mockElement('whiteEnginePhaseSelect').value = 'opening';
+      mockElement('blackEngineSelect').value = 'minmax_legacy';
+      mockElement('blackEnginePhaseSelect').value = 'opening';
+      sandbox.api.updateEngineConfigUI();
+      mockElement('whiteEngineSelect').onchange();
+
+      const s = position();
+      s.board[6][0] = { type: 'r', color: 'w', moved: false };
+      mockElement('whiteEnginePhaseSelect').value = sandbox.api.getGamePhase(s);
+      mockElement('whiteEngineSelect').onchange();
+      sandbox.api.setState(s);
+      sandbox.api.aiMove();
+
+      const timedOutWorker = workerInstance;
+      const originalRequest = timedOutWorker.request;
+      assert.equal(originalRequest.contractRequest.engineId, engineId,
+        engineId + ': worker must receive the selected engine');
+      const timeoutCallback = scheduledTimeouts.findLast(callback => callback.delay === 15000);
+      assert.ok(timeoutCallback, engineId + ': worker watchdog should be scheduled');
+
+      timeoutCallback();
+      assert.equal(timedOutWorker.terminated, true, engineId + ': timed-out worker must be terminated');
+      assert.match(mockElement('status').textContent, /retrying on the main thread/i);
+
+      const retryRequest = sandbox.api.getActiveAIForTest().request;
+      assert.notEqual(retryRequest.id, originalRequest.id, engineId + ': fallback must get a new request ID');
+      assert.equal(retryRequest.contractRequest.engineId, engineId);
+      assert.equal(retryRequest.contractRequest.requestId, retryRequest.id);
+      assert.equal(retryRequest.contractRequest.generation, retryRequest.id);
+      assert.notEqual(retryRequest.contractRequest.position, s,
+        engineId + ': fallback must receive an isolated snapshot');
+
+      const lateMove = allLegalState(s)[0];
+      timedOutWorker.onmessage({
+        data: {
+          id: originalRequest.id,
+          result: EngineContract.completed(originalRequest.contractRequest, lateMove)
+        }
+      });
+      assert.equal(fallbackCalls, 0, engineId + ': late worker result must not bypass fallback');
+
+      const fallbackCallback = scheduledCallbacks.findLast(callback => callback.delay === 20);
+      assert.ok(fallbackCallback, engineId + ': main-thread retry should be scheduled');
+      fallbackCallback();
+      assert.equal(fallbackCalls, 1, engineId + ': selected engine must be retried exactly once');
+      assert.equal(fallbackRequest.engineId, engineId);
+      assert.equal(sandbox.api.getState().turn, 'b', engineId + ': legal fallback move should be applied');
+      assert.equal(sandbox.api.getActiveAIForTest().thinking, false);
+      assert.equal(sandbox.api.getActiveAIForTest().request, null);
+    }
+  } finally {
+    for (const [engineId, engine] of originalEngines) sandbox.api.enginePlugins.set(engineId, engine);
+    sandbox.api.resetAIWorker();
+    sandbox.URL.createObjectURL = previousCreateObjectURL;
+    sandbox.URL.revokeObjectURL = previousRevokeObjectURL;
+    sandbox.Worker = previousWorker;
+    sandbox.window.Worker = previousWindowWorker;
+    scheduledCallbacks.length = 0;
+    scheduledTimeouts.length = 0;
+  }
+});
