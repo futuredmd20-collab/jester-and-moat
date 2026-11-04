@@ -2567,6 +2567,7 @@ function saveOptions(){
       showModeIndicator: (document.getElementById('showModeIndicatorToggle').checked ? '1' : '0'),
       theme: document.getElementById('themeSelect').value,
       boardStyle: document.getElementById('boardStyleSelect').value,
+      piecePalette: document.getElementById('piecePaletteSelect').value,
       pieceSet: activePieceSet,
       pieceSetVersion: 4
     }));
@@ -2585,6 +2586,7 @@ function loadOptions(){
       setVal('jesterPosSelect', o.jpos); setVal('speedSelect', o.speed); setVal('uiDisplaySelect', o.disp);
       setVal('themeSelect', o.theme);
       setVal('boardStyleSelect', o.boardStyle);
+      setVal('piecePaletteSelect', o.piecePalette);
     }
 
     // Choose a responsive default when no saved piece-set preference exists.
@@ -2636,6 +2638,11 @@ function applyBoardStyle() {
   document.documentElement.dataset.boardStyle = boardStyleSelect.value;
 }
 boardStyleSelect.addEventListener('change', () => { applyBoardStyle(); saveOptions(); });
+const piecePaletteSelect = document.getElementById('piecePaletteSelect');
+function applyPiecePalette() {
+  document.documentElement.dataset.piecePalette = piecePaletteSelect.value;
+}
+piecePaletteSelect.addEventListener('change', () => { applyPiecePalette(); saveOptions(); });
 document.getElementById('pieceSetSelect').addEventListener('change', () => {
   activePieceSet = document.getElementById('pieceSetSelect').value;
   renderPalettePieces();
@@ -2718,5 +2725,6 @@ window.addEventListener('resize', () => {
 
 applyTheme();
 applyBoardStyle();
+applyPiecePalette();
 renderPalettePieces();
 setup();

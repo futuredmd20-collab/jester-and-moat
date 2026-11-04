@@ -34,6 +34,7 @@ The engine contract suite evaluates canonical rule/search functions from `script
 - MCTS configuration is limited to its selected phase, with MinMax in other phases.
 - Debug logging records engine changes and phase transitions without per-move selection/dispatch noise; routine status messages are omitted while warnings and errors remain. The event export filters the complete stored log without deleting entries, and `?debug=1` remains the opt-in URL parameter.
 - Missing, malformed, or invalid saved settings fall back to safe defaults; storage errors do not throw.
+- Piece design, piece-colour palette, board palette, and light/dark theme remain independent settings; all four piece palettes and all four board palettes have explicit theme coverage.
 - Multi-file startup fetches both SVG sprites and loads MCTS before `script.js`.
 - Single-file startup skips sprite fetches when the piece symbols are inline.
 - Sprite-fetch and MCTS-load failures preserve the MinMax startup fallback.
