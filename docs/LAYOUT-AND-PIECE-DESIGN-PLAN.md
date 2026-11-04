@@ -1,7 +1,7 @@
 # Layout and Piece Design Plan
 Purpose: track design decisions, asset specifications, visual consistency, and implementation tasks for board layout, piece styling, and UI presentation.
 
-**Status: In progress (2026-11-04).** Classic King/Queen/Bishop asset adjustments, responsive Minimal integration, and the unified colour controls/palette definitions are implemented. Full visual audit and cross-combination verification remain open.
+**Status: In progress (2026-11-04).** Classic King/Queen/Bishop asset adjustments, responsive Minimal integration, and the unified colour controls, palette swatches, appearance reset, and combined board/piece accent rules are implemented. Full visual audit and cross-combination verification remain open.
 
 ## Goal and Scope
 Ensure clear, high-contrast, and aesthetically cohesive visual presentation across desktop and mobile PWA, covering:

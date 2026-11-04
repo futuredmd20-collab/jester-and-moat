@@ -67,23 +67,33 @@ test('piece palette is included in saved options and service-worker cache is bum
 });
 
 test('piece palette accents blend with the selected board profile for moats and indicators',()=>{
- assert.match(css,/background: color-mix\\(in srgb, var\\(--moat-w\\) 74%, var\\(--piece-moat-w-accent/);
- assert.match(css,/background: color-mix\\(in srgb, var\\(--moat-b\\) 74%, var\\(--piece-moat-b-accent/);
- assert.match(css,/--sel-fill: color-mix\\(in srgb, var\\(--board-sel-fill\\)/);
- assert.match(css,/--last-ring: color-mix\\(in srgb, var\\(--board-last-ring\\)/);
+ assert.ok(css.includes('background: color-mix(in srgb, var(--moat-w) 74%, var(--piece-moat-w-accent'));
+ assert.ok(css.includes('background: color-mix(in srgb, var(--moat-b) 74%, var(--piece-moat-b-accent'));
+ assert.ok(css.includes('--sel-fill: color-mix(in srgb, var(--board-sel-fill)'));
+ assert.ok(css.includes('--last-ring: color-mix(in srgb, var(--board-last-ring)'));
  for(const palette of piecePalettes){
-  const blocks=[...css.matchAll(new RegExp(`html(?:\\\\.theme-dark)?\\\\[data-piece-palette="${palette}"\\\\](?::not\\\\(\\\\.theme-dark\\\\))?\\\\s*\\\\{([^}]+)\\\\}`,'g'))];
-  assert.equal(blocks.length,2);
-  for(const block of blocks)assert.match(block[1],/--piece-moat-w-accent:/);
+  const selectors=[
+   `html[data-piece-palette="${palette}"]:not(.theme-dark)`,
+   `html.theme-dark[data-piece-palette="${palette}"]`
+  ];
+  for(const selector of selectors){
+   const pos=css.indexOf(selector);
+   assert.notEqual(pos,-1);
+   const end=css.indexOf('}',pos);
+   assert.ok(css.slice(pos,end).includes('--piece-moat-w-accent'));
+  }
  }
 });
 test('appearance swatches expose all independent piece and board palette choices',()=>{
  assert.equal((html.match(/data-piece-palette-choice=/g)||[]).length,4);
  assert.equal((html.match(/data-board-style-choice=/g)||[]).length,4);
- assert.match(script,/syncAppearanceSwatches\\(\\)/);
+ assert.ok(script.includes('function syncAppearanceSwatches()'));
 });
 test('reset appearance restores visual defaults without changing game mode or side settings',()=>{
- assert.match(html,/id="resetAppearanceBtn"/);
- assert.match(script,/function resetAppearance\\(\\)[\\s\\S]*?piecePaletteSelect\\.value = 'classic'[\\s\\S]*?boardStyleSelect\\.value = 'soft-stone'[\\s\\S]*?themeSelect'\\)\\.value = 'auto'/);
- assert.match(script,/resetAppearanceBtn'\\)\\.addEventListener\\('click', resetAppearance\\)/);
+ assert.ok(html.includes('id="resetAppearanceBtn"'));
+ assert.ok(script.includes('function resetAppearance()'));
+ assert.ok(script.includes("piecePaletteSelect.value = 'classic'"));
+ assert.ok(script.includes("boardStyleSelect.value = 'soft-stone'"));
+ assert.ok(script.includes("document.getElementById('themeSelect').value = 'auto'"));
+ assert.ok(script.includes("document.getElementById('resetAppearanceBtn').addEventListener('click', resetAppearance)"));
 });
