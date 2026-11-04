@@ -100,10 +100,10 @@ test('reset appearance restores visual defaults without changing game mode or si
 });
 
 test('theme selector markup is valid and available to startup handlers',()=>{
- assert.match(html,/<label for="themeSelect">Theme:<\\/label>\\s*<select id="themeSelect">/);
+ assert.ok(html.includes('<label for="themeSelect">Theme:</label>\\n    <select id="themeSelect">'));
 });
 test('collapsible sections synchronize JS and CSS state at all viewport sizes',()=>{
  assert.ok(script.includes("section.classList.toggle('expanded', !collapsed);"));
  assert.ok(script.includes("section.classList.add('expanded');"));
- assert.doesNotMatch(css,/@media \\(min-width: 769px\\)\\s*\\{\\s*\\.collapsible-section \\.section-content\\s*\\{\\s*max-height: none;\\s*\\}\\s*\\.collapsible-section\\.collapsed \\.section-content\\s*\\{\\s*max-height: none;/);
+ assert.ok(!css.includes('  .collapsible-section.collapsed .section-content {\\n    max-height: none;'));
 });
