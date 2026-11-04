@@ -45,7 +45,7 @@ Allow independently configured AI engines for White and Black, optionally limite
 The user considers the current integration/test pass complete and has chosen to move on; do not continue testing this area unless asked. These items are intentionally parked future work, not blockers:
 
 1. **Strength calibration:** measure repeatable results before treating ELO-like labels as calibrated ratings.
-2. **Search responsiveness:** PRs #106–#107 bound the level-3 synchronous fallback and add within-playout time checks. Browser/device timing remains unverified.
+2. **Search responsiveness:** PR #120 now supplies finite budgets for all MCTS levels and request-scoped MinMax searches, preserves a legal best-so-far move, and caps main-thread fallback at 2s. Browser/device timing remains unverified; investigate the observed 15s worker watchdog timeouts only if this area is resumed.
 3. **Failure recovery:** browser-check MCTS load failure, worker-construction fallback, worker-runtime recovery, and offline/service-worker behavior.
 4. **Additional regressions:** promotions, swaps, moats, no-legal-move/game-over handling, and responsive performance as relevant to future engine changes.
 5. **Cache-cleared persistence:** not tested; ordinary reload restoration was observed while the cache remained intact. Explicitly parked by the user for now.
