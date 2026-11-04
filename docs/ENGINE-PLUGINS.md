@@ -4,7 +4,7 @@ Purpose: record design decisions, repository implementation, verification gaps, 
 
 ## Status
 
-**Status: In progress (2026-11-03).** The core integration and documented manual test pass are complete. Strength calibration and the explicitly listed failure-recovery, offline, cache-cleared persistence, and special-case checks remain unverified or parked; they are not blockers to the completed test pass.
+**Status: On hold (2026-11-04).** The current integration and test pass are complete, and the user has chosen to park further work in this area. PR #119 (including PR #120) is merged. The remaining items below are future work, not active tasks or blockers; unverified browser/device behavior is not marked as passed.
 
 ## Goal and contract
 
@@ -29,7 +29,7 @@ Allow independently configured AI engines for White and Black, optionally limite
 | Side/phase UI | White/Black settings were independent. Runtime logs confirmed phase-specific selection: in the second logged game, White used MCTS in opening, both sides used MinMax in midgame, and Black used MCTS in endgame. | Cache-cleared persistence remains untested. |
 | Loading/build | MCTS script loading, service-worker precache and version alignment (PR #23); loading fix (PR #24); single-file builder embeds MCTS before `script.js`. | Exercise multi-file and built single-file pages. If MCTS fails to load on the multi-file page, startup warns and keeps board/MinMax available; MCTS selection falls back to MinMax. Confirm this recovery path in a browser. |
 | Worker dispatch | The reviewed game log showed matching engine-to-worker dispatch and 108 worker replies, with no obvious worker/engine errors. | Browser verification of MCTS load failure, worker-construction fallback, worker-runtime recovery and offline behavior remains outstanding. |
-| MCTS search budget | Level 3 retains a 10-second worker budget; the structured synchronous fallback uses a 2.5-second budget. PRs #106–#107 added budget enforcement between playouts and stop checks within each playout; the PR #107 engine-contract CI passed. | Real-device/browser timing and responsiveness have not been re-verified as part of this documentation sync. |
+| Search budgets and responsiveness | PR #120 adds finite MCTS budgets for levels 1–3 (2.5s/5s/10s), request-scoped MinMax budgets (3s/6s/10s), best-so-far legal moves on budget expiry, and a 2s cap for main-thread fallback. Engine-contract workflow #364 passed 128 tests (0 failures). | Real-device/browser timing and responsiveness have not been re-verified. The mobile log's seven 15-second worker watchdog timeouts remain unexplained. |
 | Phase policy and ratings | Thresholds and provisional MCTS presets/labels are defined. | Validate phase boundaries against representative games; calibrate strength before presenting ELO-like values as measured ratings. |
 
 ## Decisions to preserve
@@ -42,7 +42,7 @@ Allow independently configured AI engines for White and Black, optionally limite
 
 ## Remaining plan
 
-The user considers the current test pass complete and has chosen to move on; do not continue testing this area unless asked. These are future-work items, not blockers to the completed test pass:
+The user considers the current integration/test pass complete and has chosen to move on; do not continue testing this area unless asked. These items are intentionally parked future work, not blockers:
 
 1. **Strength calibration:** measure repeatable results before treating ELO-like labels as calibrated ratings.
 2. **Search responsiveness:** PRs #106–#107 bound the level-3 synchronous fallback and add within-playout time checks. Browser/device timing remains unverified.
@@ -70,6 +70,7 @@ Do not mark these checks complete until they have actually been observed in a br
 
 ## Progress log
 
+- **2026-11-04:** Current integration/test pass marked on hold after PR #119 (including PR #120) merged. Workflow #364 passed 128 tests (0 failures). Bounded search budgets are now 2.5s/5s/10s for MCTS levels 1–3, 3s/6s/10s for MinMax request levels, and at most 2s for main-thread fallback. Browser/device responsiveness and the cause of observed mobile worker watchdog timeouts remain unverified.
 - **2026-10-22:** Initial design draft on `engine-plugins-design`.
 - **2026-10-23:** Engine investigation and initial decisions; MCTS merged via PR #16.
 - **2026-10-24:** MinMax adapter and registry groundwork landed.
