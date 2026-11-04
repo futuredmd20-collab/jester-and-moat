@@ -84,7 +84,7 @@ const sandbox = {
 vm.createContext(sandbox);
 vm.runInContext(minmax, sandbox);
 vm.runInContext(source.slice(0, boundary) + `
-globalThis.api = { EngineContract, MinMaxLegacy, cancelActiveAIRequest, setActiveAIForTest(worker, request) { aiWorker = worker; pendingAIRequest = request; aiRequestId = request.id; isAIThinking = true; }, getActiveAIForTest() { return { worker: aiWorker, request: pendingAIRequest, thinking: isAIThinking, id: aiRequestId }; }, allLegalState, findLegalMoveMatch, getBestMove: MinMaxSearchCore.getBestMove, getBestMoveAsync: MinMaxSearchCore.getBestMoveAsync, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout); aiWorkerTimeout = null; if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; gameOver = false; gameOverMessage = ''; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getDefaultEngineForSide() { return defaultEngineForSide; }, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, applyLoadedGame, resumeLoadedGamePlayback, getAutoPlayForTest() { return autoPlayInterval; }, stopAutoPlayForTest: stopAutoPlay, ENGINE_PHASES, debugLogger, DebugLogger, status };
+globalThis.api = { EngineContract, MinMaxLegacy, cancelActiveAIRequest, setActiveAIForTest(worker, request) { aiWorker = worker; pendingAIRequest = request; aiRequestId = request.id; isAIThinking = true; }, getActiveAIForTest() { return { worker: aiWorker, request: pendingAIRequest, thinking: isAIThinking, id: aiRequestId }; }, allLegalState, findLegalMoveMatch, MinMaxSearchCore, getBestMove: MinMaxSearchCore.getBestMove, getBestMoveAsync: MinMaxSearchCore.getBestMoveAsync, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout); aiWorkerTimeout = null; if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; gameOver = false; gameOverMessage = ''; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getDefaultEngineForSide() { return defaultEngineForSide; }, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, applyLoadedGame, resumeLoadedGamePlayback, getAutoPlayForTest() { return autoPlayInterval; }, stopAutoPlayForTest: stopAutoPlay, ENGINE_PHASES, debugLogger, DebugLogger, status };
 `, sandbox, { filename: 'script.js' });
 vm.runInContext(mcts, sandbox, { filename: 'engines/mcts-engine.js' });
 // The app's HTML loads the MCTS module before script.js; register its plugin here
@@ -192,6 +192,41 @@ test('MinMax contract search returns a structured legal move without mutating it
   assert.equal(JSON.stringify(request), before);
 });
 
+
+test('MinMax search core owns protocol-v1 validation and structured outcomes', () => {
+  const s = position();
+  s.board[6][0] = { type: 'r', color: 'w', moved: false };
+  const request = EngineContract.createRequest({
+    requestId: 'minmax-core-search',
+    generation: 12,
+    engineId: 'minmax_legacy',
+    position: s,
+    limits: { depth: 1 }
+  });
+  const before = JSON.stringify(request);
+  const result = sandbox.api.MinMaxSearchCore.search(request);
+
+  assert.equal(result.status, EngineContract.statuses.COMPLETED, JSON.stringify(result));
+  assert.equal(EngineContract.matchesRequest(result, request), true);
+  assert.ok(allLegalState(s).some(move => JSON.stringify(move) === JSON.stringify(result.move)));
+  assert.equal(JSON.stringify(request), before);
+
+  const wrongEngine = sandbox.api.MinMaxSearchCore.search({ ...request, engineId: 'mcts' });
+  assert.equal(wrongEngine.status, EngineContract.statuses.FAILED);
+  assert.equal(wrongEngine.error.code, EngineContract.errorCodes.INVALID_REQUEST);
+
+  const invalidPosition = sandbox.api.MinMaxSearchCore.search({
+    ...request, position: { ...s, board: [] }
+  });
+  assert.equal(invalidPosition.status, EngineContract.statuses.FAILED);
+  assert.equal(invalidPosition.error.code, EngineContract.errorCodes.INVALID_POSITION);
+
+  const invalidDepth = sandbox.api.MinMaxSearchCore.search({
+    ...request, limits: { depth: 11 }
+  });
+  assert.equal(invalidDepth.status, EngineContract.statuses.FAILED);
+  assert.equal(invalidDepth.error.code, EngineContract.errorCodes.INVALID_CONFIG);
+});
 test('MCTS contract search returns a structured legal move without mutating its frozen request', () => {
   const s = position();
   s.board[6][0] = { type: 'r', color: 'w', moved: false };
