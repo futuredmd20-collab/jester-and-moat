@@ -2567,6 +2567,7 @@ function saveOptions(){
       showModeIndicator: (document.getElementById('showModeIndicatorToggle').checked ? '1' : '0'),
       theme: document.getElementById('themeSelect').value,
       boardStyle: document.getElementById('boardStyleSelect').value,
+      piecePalette: document.getElementById('piecePaletteSelect').value,
       pieceSet: activePieceSet,
       pieceSetVersion: 4
     }));
@@ -2585,6 +2586,7 @@ function loadOptions(){
       setVal('jesterPosSelect', o.jpos); setVal('speedSelect', o.speed); setVal('uiDisplaySelect', o.disp);
       setVal('themeSelect', o.theme);
       setVal('boardStyleSelect', o.boardStyle);
+      setVal('piecePaletteSelect', o.piecePalette);
     }
 
     // Choose a responsive default when no saved piece-set preference exists.
@@ -2635,7 +2637,57 @@ const boardStyleSelect = document.getElementById('boardStyleSelect');
 function applyBoardStyle() {
   document.documentElement.dataset.boardStyle = boardStyleSelect.value;
 }
-boardStyleSelect.addEventListener('change', () => { applyBoardStyle(); saveOptions(); });
+boardStyleSelect.addEventListener('change', () => { applyBoardStyle(); saveOptions(); syncAppearanceSwatches(); });
+const piecePaletteSelect = document.getElementById('piecePaletteSelect');
+function applyPiecePalette() {
+  document.documentElement.dataset.piecePalette = piecePaletteSelect.value;
+}
+piecePaletteSelect.addEventListener('change', () => { applyPiecePalette(); saveOptions(); syncAppearanceSwatches(); });
+function syncAppearanceSwatches() {
+  document.querySelectorAll('[data-piece-palette-choice]').forEach(button => {
+    const selected = button.getAttribute('data-piece-palette-choice') === piecePaletteSelect.value;
+    button.classList.toggle('selected', selected);
+    button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+  });
+  document.querySelectorAll('[data-board-style-choice]').forEach(button => {
+    const selected = button.getAttribute('data-board-style-choice') === boardStyleSelect.value;
+    button.classList.toggle('selected', selected);
+    button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+  });
+}
+document.querySelectorAll('[data-piece-palette-choice]').forEach(button => {
+  button.addEventListener('click', () => {
+    piecePaletteSelect.value = button.getAttribute('data-piece-palette-choice');
+    applyPiecePalette();
+    saveOptions();
+    syncAppearanceSwatches();
+  });
+});
+document.querySelectorAll('[data-board-style-choice]').forEach(button => {
+  button.addEventListener('click', () => {
+    boardStyleSelect.value = button.getAttribute('data-board-style-choice');
+    applyBoardStyle();
+    saveOptions();
+    syncAppearanceSwatches();
+  });
+});
+function resetAppearance() {
+  const isMobileDevice = window.matchMedia('(max-width: 768px)').matches || ('ontouchstart' in window && window.innerWidth <= 1024);
+  const defaultPieceSet = isMobileDevice ? 'mobile' : 'desktop';
+  document.getElementById('pieceSetSelect').value = defaultPieceSet;
+  activePieceSet = defaultPieceSet;
+  piecePaletteSelect.value = 'classic';
+  boardStyleSelect.value = 'soft-stone';
+  document.getElementById('themeSelect').value = 'auto';
+  applyTheme();
+  applyBoardStyle();
+  applyPiecePalette();
+  renderPalettePieces();
+  render();
+  saveOptions();
+  syncAppearanceSwatches();
+}
+document.getElementById('resetAppearanceBtn').addEventListener('click', resetAppearance);
 document.getElementById('pieceSetSelect').addEventListener('change', () => {
   activePieceSet = document.getElementById('pieceSetSelect').value;
   renderPalettePieces();
@@ -2674,6 +2726,7 @@ function initCollapsibleSections() {
 
     const setCollapsed = (collapsed) => {
       section.classList.toggle('collapsed', collapsed);
+      section.classList.toggle('expanded', !collapsed);
       header.setAttribute('aria-expanded', String(!collapsed));
       toggle.textContent = collapsed ? '▸' : '▾';
     };
@@ -2708,6 +2761,7 @@ window.addEventListener('resize', () => {
   if (window.innerWidth > 768) {
     document.querySelectorAll('.collapsible-section').forEach(section => {
       section.classList.remove('collapsed');
+      section.classList.add('expanded');
       const header = section.querySelector('.section-header');
       const toggle = section.querySelector('.section-toggle');
       if (header) header.setAttribute('aria-expanded', 'true');
@@ -2718,5 +2772,7 @@ window.addEventListener('resize', () => {
 
 applyTheme();
 applyBoardStyle();
+applyPiecePalette();
+syncAppearanceSwatches();
 renderPalettePieces();
 setup();

@@ -44,10 +44,10 @@
        bronze ring. A single flat fill cannot clear a visible contrast against
        BOTH a pale square and a mid-tone dark one - the usable luminance band is
        about a fiftieth of the range - so the RING carries the contrast. */
-    --sel-fill: #dcc27c;
-    --sel-ring: #6f5224;
-    --last-ring: #7d5f28;
-    --move-dot: #6b4c60;
+    --board-sel-fill: #dcc27c;
+    --board-sel-ring: #6f5224;
+    --board-last-ring: #7d5f28;
+    --board-move-dot: #6b4c60;
     --dot-halo: #f7f1e7;
     --check-ink: #a8403d;
     /* Base dimensions for non-board piece surfaces. */
@@ -130,9 +130,10 @@
     --moat-w-edge: #426c78;
     --moat-b: #d8b8bd;
     --moat-b-edge: #7a4651;
-    --sel-fill: #e0bd67;
-    --sel-ring: #694116;
-    --last-ring: #784c1e;
+    --board-sel-fill: #e0bd67;
+    --board-sel-ring: #694116;
+    --board-last-ring: #784c1e;
+    --board-move-dot: #70513b;
   }
   html[data-board-style="cool-slate"] {
     --square-light: #dce4e9;
@@ -146,9 +147,10 @@
     --moat-w-edge: #426a7a;
     --moat-b: #ddc6d6;
     --moat-b-edge: #765368;
-    --sel-fill: #d4b85e;
-    --sel-ring: #48515a;
-    --last-ring: #4d5f6b;
+    --board-sel-fill: #d4b85e;
+    --board-sel-ring: #48515a;
+    --board-last-ring: #4d5f6b;
+    --board-move-dot: #536d7a;
   }
   body {
     background: radial-gradient(ellipse at top, #fffaf2 0%, var(--paper) 58%, #eee3d1 100%);
@@ -441,6 +443,13 @@
   .drawer-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
   .drawer-row label { font-size: .8rem; font-weight: 600; color: var(--muted-ink); }
   .drawer-row select { background: #fffaf1; color: var(--ink); border-color: var(--line); box-shadow: none; }
+  .appearance-swatch-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; width: 100%; }
+  .appearance-swatch { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 5px 2px; min-height: 44px; min-width: 0; background: var(--paper-panel); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; font-size: .68rem; flex: 1 1 0; }
+  .appearance-swatch.selected { border-color: var(--burgundy); box-shadow: inset 0 0 0 1px var(--burgundy); }
+  .appearance-swatch .swatch-pair { display: flex; gap: 3px; }
+  .appearance-swatch .swatch-pair span { display: block; width: 17px; height: 17px; border: 1px solid #0003; border-radius: 3px; }
+  .appearance-swatch .swatch-label { line-height: 1.1; }
+  .appearance-reset-row { justify-content: flex-end; font-size: .8rem; color: var(--muted-ink); }
   .drawer-section h3 { font-size: 0.85rem; color: var(--burgundy); margin-bottom: 4px; text-transform: uppercase; font-weight: 700; }
   .drawer-section p { font-size: 0.83rem; line-height: 1.4; color: #514b42; }
   .drawer-footer { border-top: 1px solid var(--line); padding-top: 8px; font-size: 0.72rem; color: var(--muted-ink); text-align: center; }
@@ -511,14 +520,14 @@
   /* Moats: a pale fill with a genuinely dark edge. The EDGE is what identifies a
      moat - the fill alone cannot separate from a mid-tone dark square without
      making the moat more saturated than the rest of a soft board. */
-  .square.moat-w { background: var(--moat-w) !important; border: 1px solid var(--moat-w-edge); box-shadow: inset 0 0 0 1px var(--dot-halo); }
-  .square.moat-w::before { content: "W"; position: absolute; top: 1px; right: 2px; font-size: clamp(8px, 2.2vw, 10px); line-height: 1.3; color: var(--moat-w-ink); background: var(--moat-w-edge); border-radius: 3px; padding: 0 3px; font-weight: 800; }
+  .square.moat-w { background: color-mix(in srgb, var(--moat-w) 74%, var(--piece-moat-w-accent, var(--moat-w-edge)) 26%) !important; border: 1px solid color-mix(in srgb, var(--moat-w-edge) 58%, var(--piece-moat-w-accent, var(--moat-w-edge)) 42%); box-shadow: inset 0 0 0 1px var(--dot-halo); }
+  .square.moat-w::before { content: "W"; position: absolute; top: 1px; right: 2px; font-size: clamp(8px, 2.2vw, 10px); line-height: 1.3; color: var(--moat-w-ink); background: color-mix(in srgb, var(--moat-w-edge) 55%, var(--piece-moat-w-accent, var(--moat-w-edge)) 45%); border-radius: 3px; padding: 0 3px; font-weight: 800; }
 
-  .square.moat-b { background: var(--moat-b) !important; border: 1px solid var(--moat-b-edge); box-shadow: inset 0 0 0 1px var(--dot-halo); }
-  .square.moat-b::before { content: "B"; position: absolute; top: 1px; right: 2px; font-size: clamp(8px, 2.2vw, 10px); line-height: 1.3; color: var(--moat-b-ink); background: var(--moat-b-edge); border-radius: 3px; padding: 0 3px; font-weight: 800; }
+  .square.moat-b { background: color-mix(in srgb, var(--moat-b) 74%, var(--piece-moat-b-accent, var(--moat-b-edge)) 26%) !important; border: 1px solid color-mix(in srgb, var(--moat-b-edge) 58%, var(--piece-moat-b-accent, var(--moat-b-edge)) 42%); box-shadow: inset 0 0 0 1px var(--dot-halo); }
+  .square.moat-b::before { content: "B"; position: absolute; top: 1px; right: 2px; font-size: clamp(8px, 2.2vw, 10px); line-height: 1.3; color: var(--moat-b-ink); background: color-mix(in srgb, var(--moat-b-edge) 55%, var(--piece-moat-b-accent, var(--moat-b-edge)) 45%); border-radius: 3px; padding: 0 3px; font-weight: 800; }
 
-  .square.moat-preview-w { background: #b9cbd688 !important; background: color-mix(in srgb, var(--moat-w) 53%, transparent) !important; border: 1px dashed var(--moat-w-edge); }
-  .square.moat-preview-b { background: #d4b7bc88 !important; background: color-mix(in srgb, var(--moat-b) 53%, transparent) !important; border: 1px dashed var(--moat-b-edge); }
+  .square.moat-preview-w { background: color-mix(in srgb, var(--moat-w) 53%, transparent) !important; border: 1px dashed color-mix(in srgb, var(--moat-w-edge) 58%, var(--piece-moat-w-accent, var(--moat-w-edge)) 42%); }
+  .square.moat-preview-b { background: color-mix(in srgb, var(--moat-b) 53%, transparent) !important; border: 1px dashed color-mix(in srgb, var(--moat-b-edge) 58%, var(--piece-moat-b-accent, var(--moat-b-edge)) 42%); }
 
   /* Coordinate colour follows the SQUARE it sits on. One dark ink on both square
      colours left alternate coordinates invisible on the dark squares - found by
@@ -787,10 +796,10 @@
     --moat-b-ink: #3f2026;
     /* On a dark board the two-tone highlight flips: the ring must now be LIGHT,
        because it has to separate from mid-tone squares rather than pale ones. */
-    --sel-fill: #b08a3c;
-    --sel-ring: #f0dcae;
-    --last-ring: #e8cf9a;
-    --move-dot: #f5d8e4;
+    --board-sel-fill: #b08a3c;
+    --board-sel-ring: #f0dcae;
+    --board-last-ring: #e8cf9a;
+    --board-move-dot: #f5d8e4;
     --dot-halo: #2a241e;
     --check-ink: #fbdbd7;
     /* PIECE-COLOURS:dark:BEGIN — piece palette, dark theme. Hand-maintained:
@@ -847,9 +856,10 @@
     --moat-b-edge: #e0c0c5;
     --moat-w-ink: #132c33;
     --moat-b-ink: #382026;
-    --sel-fill: #8a713e;
-    --sel-ring: #f0dcae;
-    --last-ring: #e8cf9a;
+    --board-sel-fill: #8a713e;
+    --board-sel-ring: #f0dcae;
+    --board-last-ring: #e8cf9a;
+    --board-move-dot: #ecd3a7;
   }
   html.theme-dark[data-board-style="cool-slate"] {
     --square-light: #70808a;
@@ -865,9 +875,10 @@
     --moat-b-edge: #e5ccdf;
     --moat-w-ink: #142b33;
     --moat-b-ink: #382335;
-    --sel-fill: #87733f;
-    --sel-ring: #f0dcae;
-    --last-ring: #d8e5ed;
+    --board-sel-fill: #87733f;
+    --board-sel-ring: #f0dcae;
+    --board-last-ring: #d8e5ed;
+    --board-move-dot: #d8e5ed;
   }
   html.theme-dark body { background: radial-gradient(ellipse at top, #2e271e 0%, #221d16 58%, #1a1510 100%); }
   html.theme-dark .app-shell { background: #2a231a; box-shadow: 0 5px 22px #00000066, inset 0 0 0 4px #2e271e; }
@@ -897,6 +908,8 @@
   html.theme-dark .dashboard, html.theme-dark .history-box { background: #2e271e; box-shadow: 0 2px 7px #00000033; }
   html.theme-dark .options-drawer, html.theme-dark .info-drawer, html.theme-dark .editor-panel { background: #2e271e; box-shadow: 0 3px 10px #00000044; }
   html.theme-dark .drawer-row select { background: #3a3125; color: var(--ink); border-color: #6b5a41; }
+  html.theme-dark .appearance-swatch { background: #3a3125; color: var(--ink); border-color: #6b5a41; }
+  html.theme-dark .appearance-swatch.selected { border-color: #d9bd7a; box-shadow: inset 0 0 0 1px #d9bd7a; }
   html.theme-dark .drawer-section p { color: #cdc0a4; }
   html.theme-dark .editor-clocks-row { background: #272017; }
   html.theme-dark .editor-clock-input { background: #3a3125; color: var(--ink); border-color: #6b5a41; }
@@ -1128,17 +1141,6 @@ html.theme-dark .debug-time {
   transform: rotate(-90deg);
 }
 
-/* Desktop: all sections expanded by default */
-@media (min-width: 769px) {
-  .collapsible-section .section-content {
-    max-height: none;
-  }
-  .collapsible-section.collapsed .section-content {
-    max-height: none;
-    padding: 4px 0;
-  }
-}
-
 /* Mobile: sections collapsed by default */
 @media (max-width: 768px) {
   .collapsible-section:not(.expanded) .section-content {
@@ -1311,3 +1313,192 @@ button.icon-only-btn .control-svg { width: 22px; height: 22px; }
 .captured-box .piece-set-minimal { --piece-w: 16px; --piece-h: 16px; }
 .promotion-btn .piece-set-minimal { --piece-w: 36px; --piece-h: 36px; }
 .palette-btn .piece-set-minimal { --piece-w: 28px; --piece-h: 28px; }
+
+/* Newspaper black pieces: use the selected palette's dark body and a lighter
+   internal line colour in Light mode. A subtle dark edge keeps the pale strokes
+   distinct from light squares; board profiles remain independent. */
+html:not(.theme-dark) .piece-set-minimal[data-color="b"] {
+  --p-body: var(--piece-b-body);
+  --p-outline: var(--piece-b-gloss);
+  --p-gold: var(--piece-b-accent);
+  filter: drop-shadow(0 0 0.55px var(--piece-b-outline)) drop-shadow(var(--piece-shadow));
+}
+
+
+  /* Fourth board palette: Graphite. Existing board palettes are unchanged. */
+  html[data-board-style="graphite"] {
+    --square-light:#d9dcdd; --square-dark:#747c81; --board-frame:#454e53;
+    --board-bg:#30383d; --board-edge:#aeb7bb; --coord-light:#3d474c; --coord-dark:#f4f6f6;
+    --moat-w:#d8e1e4; --moat-w-edge:#566b73; --moat-b:#c5cdd0; --moat-b-edge:#46565d;
+    --board-sel-fill:#d8c27d; --board-sel-ring:#41494d; --board-last-ring:#4b5960;
+    --board-move-dot: #58656b;
+  }
+  html.theme-dark[data-board-style="graphite"] {
+    --square-light:#737d83; --square-dark:#444d53; --board-frame:#353e43;
+    --board-bg:#252d32; --board-edge:#68757b; --coord-light:#f0f3f4; --coord-dark:#f7f8f8;
+    --moat-w:#687d86; --moat-w-edge:#c6d8df; --moat-b:#5c6b72; --moat-b-edge:#d0dadd;
+    --moat-w-ink:#172b32; --moat-b-ink:#17262c; --board-sel-fill:#927b43; --board-sel-ring:#f1dfb3; --board-last-ring:#d7e4e9;
+    --board-move-dot: #d4dde1;
+  }
+
+  /* Piece colour identities: paint changes only; geometry remains independent. */
+  html[data-piece-palette="classic"]:not(.theme-dark) {
+    --piece-w-body:#e9dfc9; --piece-w-ink:#2b2923; --piece-w-gloss:#faf5e9;
+    --piece-w-shade-948:color-mix(in srgb,var(--piece-w-body) 94.8%,var(--piece-w-ink));
+    --piece-w-shade-844:color-mix(in srgb,var(--piece-w-body) 84.4%,var(--piece-w-ink));
+    --piece-w-shade-552:color-mix(in srgb,var(--piece-w-body) 55.2%,var(--piece-w-ink));
+    --piece-w-shade-434:color-mix(in srgb,var(--piece-w-body) 43.4%,var(--piece-w-ink));
+    --piece-w-exact-1:#3e392f; --piece-w-exact-2:#726957; --piece-w-tone:#c8beab; --piece-w-outline:#38342c;
+    --piece-b-body:#46545d; --piece-b-ink:#171d21; --piece-b-gloss:#b6c0c6;
+    --piece-b-shade-456:color-mix(in srgb,var(--piece-b-body) 45.6%,var(--piece-b-ink));
+    --piece-b-gloss-546:color-mix(in srgb,var(--piece-b-gloss) 54.6%,var(--piece-b-body));
+    --piece-b-gloss-450:color-mix(in srgb,var(--piece-b-gloss) 45%,var(--piece-b-body));
+    --piece-b-gloss-49:color-mix(in srgb,var(--piece-b-gloss) 4.9%,var(--piece-b-body));
+    --piece-b-exact-1:#c4cdd1; --piece-b-exact-2:#aab6bd; --piece-b-exact-3:#7d8c95; --piece-b-exact-4:#d0d6d8; --piece-b-exact-5:#687780;
+    --piece-b-tone:#3e4a51; --piece-b-outline:#26343c; --piece-accent-gold:#b28b58; --piece-queen-gem:#8d4b4e;
+    --piece-b-accent:#9b8058; --piece-b-slit:#e5e9e8; --piece-j-flat-accent:#b28b58;
+    --piece-moat-w-accent: #b9daed;
+    --piece-moat-b-accent: #f0d3d8;
+  }
+  html.theme-dark[data-piece-palette="classic"] {
+    --piece-w-body:#f3ead8; --piece-w-ink:#292923; --piece-w-gloss:#fffaf0;
+    --piece-w-shade-948:color-mix(in srgb,var(--piece-w-body) 94.8%,var(--piece-w-ink));
+    --piece-w-shade-844:color-mix(in srgb,var(--piece-w-body) 84.4%,var(--piece-w-ink));
+    --piece-w-shade-552:color-mix(in srgb,var(--piece-w-body) 55.2%,var(--piece-w-ink));
+    --piece-w-shade-434:color-mix(in srgb,var(--piece-w-body) 43.4%,var(--piece-w-ink));
+    --piece-w-exact-1:#514b3f; --piece-w-exact-2:#918776; --piece-w-tone:#d7cdb9; --piece-w-outline:#36332c;
+    --piece-b-body:#b5c4ca; --piece-b-ink:#273239; --piece-b-gloss:#e0e7e9;
+    --piece-b-shade-456:color-mix(in srgb,var(--piece-b-body) 45.6%,var(--piece-b-ink));
+    --piece-b-gloss-546:color-mix(in srgb,var(--piece-b-gloss) 54.6%,var(--piece-b-body));
+    --piece-b-gloss-450:color-mix(in srgb,var(--piece-b-gloss) 45%,var(--piece-b-body));
+    --piece-b-gloss-49:color-mix(in srgb,var(--piece-b-gloss) 4.9%,var(--piece-b-body));
+    --piece-b-exact-1:#dce5e8; --piece-b-exact-2:#c5d1d6; --piece-b-exact-3:#91a3ab; --piece-b-exact-4:#edf1f2; --piece-b-exact-5:#83969f;
+    --piece-b-tone:#60727b; --piece-b-outline:#40515a; --piece-accent-gold:#dfb978; --piece-queen-gem:#d28a91;
+    --piece-b-accent:#b2c3ca; --piece-b-slit:#26343b; --piece-j-flat-accent:#dfb978;
+    --piece-moat-w-accent: #b9daed;
+    --piece-moat-b-accent: #f0d3d8;
+  }
+  html[data-piece-palette="ruby"]:not(.theme-dark) {
+    --piece-w-body:#f0ded4; --piece-w-ink:#3c2929; --piece-w-gloss:#fff4ec;
+    --piece-w-shade-948:color-mix(in srgb,var(--piece-w-body) 94.8%,var(--piece-w-ink));
+    --piece-w-shade-844:color-mix(in srgb,var(--piece-w-body) 84.4%,var(--piece-w-ink));
+    --piece-w-shade-552:color-mix(in srgb,var(--piece-w-body) 55.2%,var(--piece-w-ink));
+    --piece-w-shade-434:color-mix(in srgb,var(--piece-w-body) 43.4%,var(--piece-w-ink));
+    --piece-w-exact-1:#533b38; --piece-w-exact-2:#886b66; --piece-w-tone:#d5bfb6; --piece-w-outline:#634541;
+    --piece-b-body:#793843; --piece-b-ink:#2b171d; --piece-b-gloss:#c58b91;
+    --piece-b-shade-456:color-mix(in srgb,var(--piece-b-body) 45.6%,var(--piece-b-ink));
+    --piece-b-gloss-546:color-mix(in srgb,var(--piece-b-gloss) 54.6%,var(--piece-b-body));
+    --piece-b-gloss-450:color-mix(in srgb,var(--piece-b-gloss) 45%,var(--piece-b-body));
+    --piece-b-gloss-49:color-mix(in srgb,var(--piece-b-gloss) 4.9%,var(--piece-b-body));
+    --piece-b-exact-1:#e4c0be; --piece-b-exact-2:#c78f94; --piece-b-exact-3:#9b626b; --piece-b-exact-4:#e8cfca; --piece-b-exact-5:#6d2b37;
+    --piece-b-tone:#502b33; --piece-b-outline:#54232e; --piece-accent-gold:#c68a63; --piece-queen-gem:#a43d4d;
+    --piece-b-accent:#bd795f; --piece-b-slit:#f5ded7; --piece-j-flat-accent:#c68a63;
+    --piece-moat-w-accent: #f0c9ca;
+    --piece-moat-b-accent: #efc1c5;
+  }
+  html.theme-dark[data-piece-palette="ruby"] {
+    --piece-w-body:#f5e6dc; --piece-w-ink:#432c2d; --piece-w-gloss:#fff8f1;
+    --piece-w-shade-948:color-mix(in srgb,var(--piece-w-body) 94.8%,var(--piece-w-ink));
+    --piece-w-shade-844:color-mix(in srgb,var(--piece-w-body) 84.4%,var(--piece-w-ink));
+    --piece-w-shade-552:color-mix(in srgb,var(--piece-w-body) 55.2%,var(--piece-w-ink));
+    --piece-w-shade-434:color-mix(in srgb,var(--piece-w-body) 43.4%,var(--piece-w-ink));
+    --piece-w-exact-1:#684b4a; --piece-w-exact-2:#a17e7d; --piece-w-tone:#dfc8c0; --piece-w-outline:#68494a;
+    --piece-b-body:#c47c87; --piece-b-ink:#30171f; --piece-b-gloss:#edc4c7;
+    --piece-b-shade-456:color-mix(in srgb,var(--piece-b-body) 45.6%,var(--piece-b-ink));
+    --piece-b-gloss-546:color-mix(in srgb,var(--piece-b-gloss) 54.6%,var(--piece-b-body));
+    --piece-b-gloss-450:color-mix(in srgb,var(--piece-b-gloss) 45%,var(--piece-b-body));
+    --piece-b-gloss-49:color-mix(in srgb,var(--piece-b-gloss) 4.9%,var(--piece-b-body));
+    --piece-b-exact-1:#f1d9d7; --piece-b-exact-2:#e0adb3; --piece-b-exact-3:#b96d79; --piece-b-exact-4:#f7e5e1; --piece-b-exact-5:#8b4653;
+    --piece-b-tone:#743b46; --piece-b-outline:#5a2935; --piece-accent-gold:#e2a77d; --piece-queen-gem:#f0a0a8;
+    --piece-b-accent:#e0a17f; --piece-b-slit:#3a2027; --piece-j-flat-accent:#e2a77d;
+    --piece-moat-w-accent: #f0c9ca;
+    --piece-moat-b-accent: #efc1c5;
+  }
+  html[data-piece-palette="forest"]:not(.theme-dark) {
+    --piece-w-body:#eae8d8; --piece-w-ink:#34382d; --piece-w-gloss:#f9f7e9;
+    --piece-w-shade-948:color-mix(in srgb,var(--piece-w-body) 94.8%,var(--piece-w-ink));
+    --piece-w-shade-844:color-mix(in srgb,var(--piece-w-body) 84.4%,var(--piece-w-ink));
+    --piece-w-shade-552:color-mix(in srgb,var(--piece-w-body) 55.2%,var(--piece-w-ink));
+    --piece-w-shade-434:color-mix(in srgb,var(--piece-w-body) 43.4%,var(--piece-w-ink));
+    --piece-w-exact-1:#45483a; --piece-w-exact-2:#7b7c65; --piece-w-tone:#cbc9b5; --piece-w-outline:#414536;
+    --piece-b-body:#355b43; --piece-b-ink:#162b1f; --piece-b-gloss:#b8c7a9;
+    --piece-b-shade-456:color-mix(in srgb,var(--piece-b-body) 45.6%,var(--piece-b-ink));
+    --piece-b-gloss-546:color-mix(in srgb,var(--piece-b-gloss) 54.6%,var(--piece-b-body));
+    --piece-b-gloss-450:color-mix(in srgb,var(--piece-b-gloss) 45%,var(--piece-b-body));
+    --piece-b-gloss-49:color-mix(in srgb,var(--piece-b-gloss) 4.9%,var(--piece-b-body));
+    --piece-b-exact-1:#d5dfc9; --piece-b-exact-2:#a8b99e; --piece-b-exact-3:#708a73; --piece-b-exact-4:#e3e8d9; --piece-b-exact-5:#294b37;
+    --piece-b-tone:#3c5542; --piece-b-outline:#203b2b; --piece-accent-gold:#b9964e; --piece-queen-gem:#8c5a43;
+    --piece-b-accent:#b9964e; --piece-b-slit:#e9e1c5; --piece-j-flat-accent:#b9964e;
+    --piece-moat-w-accent: #e0d39d;
+    --piece-moat-b-accent: #d0e3d0;
+  }
+  html.theme-dark[data-piece-palette="forest"] {
+    --piece-w-body:#f0eedc; --piece-w-ink:#34382d; --piece-w-gloss:#fffdeb;
+    --piece-w-shade-948:color-mix(in srgb,var(--piece-w-body) 94.8%,var(--piece-w-ink));
+    --piece-w-shade-844:color-mix(in srgb,var(--piece-w-body) 84.4%,var(--piece-w-ink));
+    --piece-w-shade-552:color-mix(in srgb,var(--piece-w-body) 55.2%,var(--piece-w-ink));
+    --piece-w-shade-434:color-mix(in srgb,var(--piece-w-body) 43.4%,var(--piece-w-ink));
+    --piece-w-exact-1:#545541; --piece-w-exact-2:#8c8d70; --piece-w-tone:#d4d1ba; --piece-w-outline:#454837;
+    --piece-b-body:#91b69a; --piece-b-ink:#203a2a; --piece-b-gloss:#d6e2c9;
+    --piece-b-shade-456:color-mix(in srgb,var(--piece-b-body) 45.6%,var(--piece-b-ink));
+    --piece-b-gloss-546:color-mix(in srgb,var(--piece-b-gloss) 54.6%,var(--piece-b-body));
+    --piece-b-gloss-450:color-mix(in srgb,var(--piece-b-gloss) 45%,var(--piece-b-body));
+    --piece-b-gloss-49:color-mix(in srgb,var(--piece-b-gloss) 4.9%,var(--piece-b-body));
+    --piece-b-exact-1:#e1ead8; --piece-b-exact-2:#bdd1bc; --piece-b-exact-3:#87a88f; --piece-b-exact-4:#f0f3e7; --piece-b-exact-5:#668c71;
+    --piece-b-tone:#66816c; --piece-b-outline:#365842; --piece-accent-gold:#d0b16b; --piece-queen-gem:#d0a078;
+    --piece-b-accent:#d0b16b; --piece-b-slit:#294331; --piece-j-flat-accent:#d0b16b;
+    --piece-moat-w-accent: #e0d39d;
+    --piece-moat-b-accent: #d0e3d0;
+  }
+  html[data-piece-palette="monochrome"]:not(.theme-dark) {
+    --piece-w-body:#e5e5e2; --piece-w-ink:#303234; --piece-w-gloss:#fafaf8;
+    --piece-w-shade-948:color-mix(in srgb,var(--piece-w-body) 94.8%,var(--piece-w-ink));
+    --piece-w-shade-844:color-mix(in srgb,var(--piece-w-body) 84.4%,var(--piece-w-ink));
+    --piece-w-shade-552:color-mix(in srgb,var(--piece-w-body) 55.2%,var(--piece-w-ink));
+    --piece-w-shade-434:color-mix(in srgb,var(--piece-w-body) 43.4%,var(--piece-w-ink));
+    --piece-w-exact-1:#45484a; --piece-w-exact-2:#777b7d; --piece-w-tone:#c7c9c9; --piece-w-outline:#3b3e40;
+    --piece-b-body:#3a3d40; --piece-b-ink:#17191a; --piece-b-gloss:#c5c7c7;
+    --piece-b-shade-456:color-mix(in srgb,var(--piece-b-body) 45.6%,var(--piece-b-ink));
+    --piece-b-gloss-546:color-mix(in srgb,var(--piece-b-gloss) 54.6%,var(--piece-b-body));
+    --piece-b-gloss-450:color-mix(in srgb,var(--piece-b-gloss) 45%,var(--piece-b-body));
+    --piece-b-gloss-49:color-mix(in srgb,var(--piece-b-gloss) 4.9%,var(--piece-b-body));
+    --piece-b-exact-1:#d7d9d9; --piece-b-exact-2:#aeb2b3; --piece-b-exact-3:#777d80; --piece-b-exact-4:#e1e2e2; --piece-b-exact-5:#303437;
+    --piece-b-tone:#45494b; --piece-b-outline:#24282a; --piece-accent-gold:#8b9093; --piece-queen-gem:#777e82;
+    --piece-b-accent:#777e82; --piece-b-slit:#e7e7e4; --piece-j-flat-accent:#8b9093;
+    --piece-moat-w-accent: #e5e7e8;
+    --piece-moat-b-accent: #d8dcde;
+  }
+  html.theme-dark[data-piece-palette="monochrome"] {
+    --piece-w-body:#f0f0ed; --piece-w-ink:#343739; --piece-w-gloss:#fff;
+    --piece-w-shade-948:color-mix(in srgb,var(--piece-w-body) 94.8%,var(--piece-w-ink));
+    --piece-w-shade-844:color-mix(in srgb,var(--piece-w-body) 84.4%,var(--piece-w-ink));
+    --piece-w-shade-552:color-mix(in srgb,var(--piece-w-body) 55.2%,var(--piece-w-ink));
+    --piece-w-shade-434:color-mix(in srgb,var(--piece-w-body) 43.4%,var(--piece-w-ink));
+    --piece-w-exact-1:#55595b; --piece-w-exact-2:#85898b; --piece-w-tone:#d0d2d2; --piece-w-outline:#424648;
+    --piece-b-body:#b7bbbd; --piece-b-ink:#303538; --piece-b-gloss:#e6e8e8;
+    --piece-b-shade-456:color-mix(in srgb,var(--piece-b-body) 45.6%,var(--piece-b-ink));
+    --piece-b-gloss-546:color-mix(in srgb,var(--piece-b-gloss) 54.6%,var(--piece-b-body));
+    --piece-b-gloss-450:color-mix(in srgb,var(--piece-b-gloss) 45%,var(--piece-b-body));
+    --piece-b-gloss-49:color-mix(in srgb,var(--piece-b-gloss) 4.9%,var(--piece-b-body));
+    --piece-b-exact-1:#eceeee; --piece-b-exact-2:#d2d6d7; --piece-b-exact-3:#a1a7aa; --piece-b-exact-4:#f5f6f6; --piece-b-exact-5:#92999c;
+    --piece-b-tone:#777e81; --piece-b-outline:#555c60; --piece-accent-gold:#b3b8ba; --piece-queen-gem:#c1c5c6;
+    --piece-b-accent:#a5abae; --piece-b-slit:#34393c; --piece-j-flat-accent:#b3b8ba;
+    --piece-moat-w-accent: #e5e7e8;
+    --piece-moat-b-accent: #d8dcde;
+  }
+
+  /* Board profiles provide the base; piece palettes tint moat and move accents. */
+  html[data-piece-palette="classic"]:not(.theme-dark) { --piece-sel-accent:#d9c9a6; --piece-last-accent:#465e68; --piece-move-accent:#536f7b; }
+  html.theme-dark[data-piece-palette="classic"] { --piece-sel-accent:#8f7951; --piece-last-accent:#c5d8df; --piece-move-accent:#c3d6dd; }
+  html[data-piece-palette="ruby"]:not(.theme-dark) { --piece-sel-accent:#e3c2bf; --piece-last-accent:#8a3e4c; --piece-move-accent:#8e3d4b; }
+  html.theme-dark[data-piece-palette="ruby"] { --piece-sel-accent:#87515c; --piece-last-accent:#eab5bb; --piece-move-accent:#e8a4ad; }
+  html[data-piece-palette="forest"]:not(.theme-dark) { --piece-sel-accent:#d6d9bb; --piece-last-accent:#4d714f; --piece-move-accent:#547a54; }
+  html.theme-dark[data-piece-palette="forest"] { --piece-sel-accent:#718260; --piece-last-accent:#d2dcae; --piece-move-accent:#c5d9b9; }
+  html[data-piece-palette="monochrome"]:not(.theme-dark) { --piece-sel-accent:#d1d3d3; --piece-last-accent:#555c60; --piece-move-accent:#5c6468; }
+  html.theme-dark[data-piece-palette="monochrome"] { --piece-sel-accent:#747b7e; --piece-last-accent:#d0d5d7; --piece-move-accent:#d3d8da; }
+  html[data-piece-palette] {
+    --sel-fill: color-mix(in srgb, var(--board-sel-fill) 58%, var(--piece-sel-accent) 42%);
+    --sel-ring: color-mix(in srgb, var(--board-sel-ring) 48%, var(--piece-sel-accent) 52%);
+    --last-ring: color-mix(in srgb, var(--board-last-ring) 48%, var(--piece-last-accent) 52%);
+    --move-dot: color-mix(in srgb, var(--board-move-dot) 48%, var(--piece-move-accent) 52%);
+  }
