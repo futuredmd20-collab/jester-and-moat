@@ -1314,6 +1314,16 @@ button.icon-only-btn .control-svg { width: 22px; height: 22px; }
 .promotion-btn .piece-set-minimal { --piece-w: 36px; --piece-h: 36px; }
 .palette-btn .piece-set-minimal { --piece-w: 28px; --piece-h: 28px; }
 
+/* Newspaper black pieces: use the selected palette's dark body and a lighter
+   internal line colour in Light mode. A subtle dark edge keeps the pale strokes
+   distinct from light squares; board profiles remain independent. */
+html:not(.theme-dark) .piece-set-minimal[data-color="b"] {
+  --p-body: var(--piece-b-body);
+  --p-outline: var(--piece-b-gloss);
+  --p-gold: var(--piece-b-accent);
+  filter: drop-shadow(0 0 0.55px var(--piece-b-outline)) drop-shadow(var(--piece-shadow));
+}
+
 
   /* Fourth board palette: Graphite. Existing board palettes are unchanged. */
   html[data-board-style="graphite"] {

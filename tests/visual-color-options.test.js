@@ -108,3 +108,22 @@ test('collapsible sections synchronize JS and CSS state at all viewport sizes',(
  assert.ok(script.includes("section.classList.add('expanded');"));
  assert.ok(css.includes('.collapsible-section:not(.expanded) .section-content'));
 });
+
+test('Newspaper black pieces use palette-aware body and visible detail strokes in Light mode',()=>{
+ const rule=css.match(/html:not\\(\\.theme-dark\\) \\.piece-set-minimal\\[data-color="b"\\]\\s*\\{[^}]*\\}/);
+ assert.ok(rule,'Light-mode Newspaper black-piece rule is missing');
+ assert.match(rule[0],/--p-body:\\s*var\\(--piece-b-body\\)/);
+ assert.match(rule[0],/--p-outline:\\s*var\\(--piece-b-gloss\\)/);
+ assert.match(rule[0],/--p-gold:\\s*var\\(--piece-b-accent\\)/);
+ assert.match(rule[0],/drop-shadow\\(0 0 0\\.55px var\\(--piece-b-outline\\)\\)/);
+ assert.doesNotMatch(css,/html\\.theme-dark \\.piece-set-minimal\\[data-color="b"\\]/);
+ for(const palette of piecePalettes){
+  const selector=`html[data-piece-palette="${palette}"]:not(.theme-dark)`;
+  const start=css.indexOf(selector);
+  assert.notEqual(start,-1);
+  const block=css.slice(start,css.indexOf('}',start));
+  assert.match(block,/--piece-b-body:/);
+  assert.match(block,/--piece-b-gloss:/);
+  assert.match(block,/--piece-b-accent:/);
+ }
+});
