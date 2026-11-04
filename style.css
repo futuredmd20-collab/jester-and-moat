@@ -133,6 +133,7 @@
     --board-sel-fill: #e0bd67;
     --board-sel-ring: #694116;
     --board-last-ring: #784c1e;
+    --board-move-dot: #70513b;
   }
   html[data-board-style="cool-slate"] {
     --square-light: #dce4e9;
@@ -149,6 +150,7 @@
     --board-sel-fill: #d4b85e;
     --board-sel-ring: #48515a;
     --board-last-ring: #4d5f6b;
+    --board-move-dot: #536d7a;
   }
   body {
     background: radial-gradient(ellipse at top, #fffaf2 0%, var(--paper) 58%, #eee3d1 100%);
@@ -857,6 +859,7 @@
     --board-sel-fill: #8a713e;
     --board-sel-ring: #f0dcae;
     --board-last-ring: #e8cf9a;
+    --board-move-dot: #ecd3a7;
   }
   html.theme-dark[data-board-style="cool-slate"] {
     --square-light: #70808a;
@@ -875,6 +878,7 @@
     --board-sel-fill: #87733f;
     --board-sel-ring: #f0dcae;
     --board-last-ring: #d8e5ed;
+    --board-move-dot: #d8e5ed;
   }
   html.theme-dark body { background: radial-gradient(ellipse at top, #2e271e 0%, #221d16 58%, #1a1510 100%); }
   html.theme-dark .app-shell { background: #2a231a; box-shadow: 0 5px 22px #00000066, inset 0 0 0 4px #2e271e; }
@@ -1328,12 +1332,14 @@ button.icon-only-btn .control-svg { width: 22px; height: 22px; }
     --board-bg:#30383d; --board-edge:#aeb7bb; --coord-light:#3d474c; --coord-dark:#f4f6f6;
     --moat-w:#d8e1e4; --moat-w-edge:#566b73; --moat-b:#c5cdd0; --moat-b-edge:#46565d;
     --board-sel-fill:#d8c27d; --board-sel-ring:#41494d; --board-last-ring:#4b5960;
+    --board-move-dot: #58656b;
   }
   html.theme-dark[data-board-style="graphite"] {
     --square-light:#737d83; --square-dark:#444d53; --board-frame:#353e43;
     --board-bg:#252d32; --board-edge:#68757b; --coord-light:#f0f3f4; --coord-dark:#f7f8f8;
     --moat-w:#687d86; --moat-w-edge:#c6d8df; --moat-b:#5c6b72; --moat-b-edge:#d0dadd;
     --moat-w-ink:#172b32; --moat-b-ink:#17262c; --board-sel-fill:#927b43; --board-sel-ring:#f1dfb3; --board-last-ring:#d7e4e9;
+    --board-move-dot: #d4dde1;
   }
 
   /* Piece colour identities: paint changes only; geometry remains independent. */

@@ -27,8 +27,8 @@ test('each piece palette defines light and dark piece, moat, and accent tokens',
 });
 test('move and selection accents follow each piece palette in both themes',()=>{
  for(const palette of piecePalettes){
-  assert.match(css,new RegExp(`html\\[data-piece-palette="${palette}"\\]:not\\(\\.theme-dark\\)\\s*\\{[^}]*--move-dot:`));
-  assert.match(css,new RegExp(`html\\.theme-dark\\[data-piece-palette="${palette}"\\]\\s*\\{[^}]*--move-dot:`));
+  assert.match(css,new RegExp(`html\\[data-piece-palette="${palette}"\\]:not\\(\\.theme-dark\\)\\s*\\{[^}]*--piece-move-accent:`));
+  assert.match(css,new RegExp(`html\\.theme-dark\\[data-piece-palette="${palette}"\\]\\s*\\{[^}]*--piece-move-accent:`));
  }
  assert.match(css,/--check-ink:\s*#a8403d/);
 });
@@ -41,7 +41,7 @@ test('fourth Graphite board palette has separate light and dark definitions',()=
 test('piece palette and board style are applied independently to the root element',()=>{
  assert.match(script,/function applyBoardStyle\(\)\s*\{\s*document\.documentElement\.dataset\.boardStyle = boardStyleSelect\.value;/);
  assert.match(script,/function applyPiecePalette\(\)\s*\{\s*document\.documentElement\.dataset\.piecePalette = piecePaletteSelect\.value;/);
- assert.match(script,/piecePaletteSelect\.addEventListener\('change', \(\) => \{ applyPiecePalette\(\); saveOptions\(\); \}\)/);
+ assert.ok(script.includes("piecePaletteSelect.addEventListener('change', () => { applyPiecePalette(); saveOptions(); syncAppearanceSwatches(); });"));
 });
 function runLoadOptions(savedOptions=null){
  const options={modeSelect:['pvp'],playerSideSelect:['white'],timeSelect:['0'],jesterPosSelect:['edges'],speedSelect:['500'],uiDisplaySelect:['full'],themeSelect:['auto','light','dark'],boardStyleSelect:boardStyles,piecePaletteSelect:piecePalettes,pieceSetSelect:['mobile','desktop','minimal']};
@@ -71,6 +71,7 @@ test('piece palette accents blend with the selected board profile for moats and 
  assert.ok(css.includes('background: color-mix(in srgb, var(--moat-b) 74%, var(--piece-moat-b-accent'));
  assert.ok(css.includes('--sel-fill: color-mix(in srgb, var(--board-sel-fill)'));
  assert.ok(css.includes('--last-ring: color-mix(in srgb, var(--board-last-ring)'));
+ assert.ok(css.includes('--move-dot: color-mix(in srgb, var(--board-move-dot)'));
  for(const palette of piecePalettes){
   const selectors=[
    `html[data-piece-palette="${palette}"]:not(.theme-dark)`,
