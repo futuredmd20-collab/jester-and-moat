@@ -65,3 +65,25 @@ test('piece palette is included in saved options and service-worker cache is bum
  assert.match(script,/piecePalette:\s*document\.getElementById\('piecePaletteSelect'\)\.value/);
  assert.match(sw,/jm-cache-v0\.8\.2-unified-colors-1/);
 });
+
+test('piece palette accents blend with the selected board profile for moats and indicators',()=>{
+ assert.match(css,/background: color-mix\\(in srgb, var\\(--moat-w\\) 74%, var\\(--piece-moat-w-accent/);
+ assert.match(css,/background: color-mix\\(in srgb, var\\(--moat-b\\) 74%, var\\(--piece-moat-b-accent/);
+ assert.match(css,/--sel-fill: color-mix\\(in srgb, var\\(--board-sel-fill\\)/);
+ assert.match(css,/--last-ring: color-mix\\(in srgb, var\\(--board-last-ring\\)/);
+ for(const palette of piecePalettes){
+  const blocks=[...css.matchAll(new RegExp(`html(?:\\\\.theme-dark)?\\\\[data-piece-palette="${palette}"\\\\](?::not\\\\(\\\\.theme-dark\\\\))?\\\\s*\\\\{([^}]+)\\\\}`,'g'))];
+  assert.equal(blocks.length,2);
+  for(const block of blocks)assert.match(block[1],/--piece-moat-w-accent:/);
+ }
+});
+test('appearance swatches expose all independent piece and board palette choices',()=>{
+ assert.equal((html.match(/data-piece-palette-choice=/g)||[]).length,4);
+ assert.equal((html.match(/data-board-style-choice=/g)||[]).length,4);
+ assert.match(script,/syncAppearanceSwatches\\(\\)/);
+});
+test('reset appearance restores visual defaults without changing game mode or side settings',()=>{
+ assert.match(html,/id="resetAppearanceBtn"/);
+ assert.match(script,/function resetAppearance\\(\\)[\\s\\S]*?piecePaletteSelect\\.value = 'classic'[\\s\\S]*?boardStyleSelect\\.value = 'soft-stone'[\\s\\S]*?themeSelect'\\)\\.value = 'auto'/);
+ assert.match(script,/resetAppearanceBtn'\\)\\.addEventListener\\('click', resetAppearance\\)/);
+});

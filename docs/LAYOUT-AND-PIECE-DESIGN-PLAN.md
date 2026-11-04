@@ -37,5 +37,5 @@ Ensure clear, high-contrast, and aesthetically cohesive visual presentation acro
 - [ ] **2. Jester & Moat Refinement:** Specify visual requirements for Jester silhouette and Moat barrier states.
 - [ ] **3. Board Layout & Spacing:** Audit 10x8 board aspect ratio, coordinates, and drawer overlays on touch screens.
 - [x] **4. Asset / CSS Updates:** Implement approved piece adjustments for Classic (`pieces.svg`, `pieces.css`), add `pieces-minimal.svg`, and establish responsive Mobile/Desktop defaults in `script.js` and `index.html`.
-- [x] **5. Unified Colour System:** Add four piece palettes, the fourth board palette, independent persistence, and theme-specific piece, moat, and indicator colours.
+- [x] **5. Unified Colour System:** Add four piece palettes, the fourth board palette, independent persistence, visual swatches, appearance reset, and theme-aware board/piece colours for moats and indicators.
 - [ ] **6. Verification:** Validate all 96 combinations, indicator legibility, offline PWA precaching, and visual rendering across board, trays, promotion modal, and editor surfaces.

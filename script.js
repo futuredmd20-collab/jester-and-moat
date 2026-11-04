@@ -2637,12 +2637,57 @@ const boardStyleSelect = document.getElementById('boardStyleSelect');
 function applyBoardStyle() {
   document.documentElement.dataset.boardStyle = boardStyleSelect.value;
 }
-boardStyleSelect.addEventListener('change', () => { applyBoardStyle(); saveOptions(); });
+boardStyleSelect.addEventListener('change', () => { applyBoardStyle(); saveOptions(); syncAppearanceSwatches(); });
 const piecePaletteSelect = document.getElementById('piecePaletteSelect');
 function applyPiecePalette() {
   document.documentElement.dataset.piecePalette = piecePaletteSelect.value;
 }
-piecePaletteSelect.addEventListener('change', () => { applyPiecePalette(); saveOptions(); });
+piecePaletteSelect.addEventListener('change', () => { applyPiecePalette(); saveOptions(); syncAppearanceSwatches(); });
+function syncAppearanceSwatches() {
+  document.querySelectorAll('[data-piece-palette-choice]').forEach(button => {
+    const selected = button.getAttribute('data-piece-palette-choice') === piecePaletteSelect.value;
+    button.classList.toggle('selected', selected);
+    button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+  });
+  document.querySelectorAll('[data-board-style-choice]').forEach(button => {
+    const selected = button.getAttribute('data-board-style-choice') === boardStyleSelect.value;
+    button.classList.toggle('selected', selected);
+    button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+  });
+}
+document.querySelectorAll('[data-piece-palette-choice]').forEach(button => {
+  button.addEventListener('click', () => {
+    piecePaletteSelect.value = button.getAttribute('data-piece-palette-choice');
+    applyPiecePalette();
+    saveOptions();
+    syncAppearanceSwatches();
+  });
+});
+document.querySelectorAll('[data-board-style-choice]').forEach(button => {
+  button.addEventListener('click', () => {
+    boardStyleSelect.value = button.getAttribute('data-board-style-choice');
+    applyBoardStyle();
+    saveOptions();
+    syncAppearanceSwatches();
+  });
+});
+function resetAppearance() {
+  const isMobileDevice = window.matchMedia('(max-width: 768px)').matches || ('ontouchstart' in window && window.innerWidth <= 1024);
+  const defaultPieceSet = isMobileDevice ? 'mobile' : 'desktop';
+  document.getElementById('pieceSetSelect').value = defaultPieceSet;
+  activePieceSet = defaultPieceSet;
+  piecePaletteSelect.value = 'classic';
+  boardStyleSelect.value = 'soft-stone';
+  document.getElementById('themeSelect').value = 'auto';
+  applyTheme();
+  applyBoardStyle();
+  applyPiecePalette();
+  renderPalettePieces();
+  render();
+  saveOptions();
+  syncAppearanceSwatches();
+}
+document.getElementById('resetAppearanceBtn').addEventListener('click', resetAppearance);
 document.getElementById('pieceSetSelect').addEventListener('change', () => {
   activePieceSet = document.getElementById('pieceSetSelect').value;
   renderPalettePieces();
@@ -2726,5 +2771,6 @@ window.addEventListener('resize', () => {
 applyTheme();
 applyBoardStyle();
 applyPiecePalette();
+syncAppearanceSwatches();
 renderPalettePieces();
 setup();

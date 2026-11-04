@@ -322,8 +322,14 @@
      <option value="monochrome">D · Porcelain / Charcoal</option>
     </select>
    </div>
+   <div class="appearance-swatch-grid" role="group" aria-label="Piece colour palette swatches">
+    <button type="button" class="appearance-swatch" data-piece-palette-choice="classic" aria-pressed="true" title="A · Ivory / Graphite"><span class="swatch-pair"><span style="background:#e9dfc9"></span><span style="background:#46545d"></span></span><span class="swatch-label">A</span></button>
+    <button type="button" class="appearance-swatch" data-piece-palette-choice="ruby" aria-pressed="false" title="B · Ruby / Wine"><span class="swatch-pair"><span style="background:#f0ded4"></span><span style="background:#793843"></span></span><span class="swatch-label">B</span></button>
+    <button type="button" class="appearance-swatch" data-piece-palette-choice="forest" aria-pressed="false" title="C · Forest / Brass"><span class="swatch-pair"><span style="background:#eae8d8"></span><span style="background:#355b43"></span></span><span class="swatch-label">C</span></button>
+    <button type="button" class="appearance-swatch" data-piece-palette-choice="monochrome" aria-pressed="false" title="D · Porcelain / Charcoal"><span class="swatch-pair"><span style="background:#e5e5e2"></span><span style="background:#3a3d40"></span></span><span class="swatch-label">D</span></button>
+   </div>
    <div class="drawer-row">
-    <label for="boardStyleSelect">Board style:</label>
+    <label for="boardStyleSelect">Board style:</label
     <select id="boardStyleSelect">
      <option value="soft-stone" selected>Soft Stone</option>
      <option value="warm-wood">Warm Wood</option>
@@ -331,13 +337,23 @@
      <option value="graphite">Graphite</option>
     </select>
    </div>
+   <div class="appearance-swatch-grid" role="group" aria-label="Board colour swatches">
+    <button type="button" class="appearance-swatch" data-board-style-choice="soft-stone" aria-pressed="true" title="Soft Stone"><span class="swatch-pair"><span style="background:#eae8e3"></span><span style="background:#a09a90"></span></span><span class="swatch-label">Stone</span></button>
+    <button type="button" class="appearance-swatch" data-board-style-choice="warm-wood" aria-pressed="false" title="Warm Wood"><span class="swatch-pair"><span style="background:#ead8b6"></span><span style="background:#a97748"></span></span><span class="swatch-label">Wood</span></button>
+    <button type="button" class="appearance-swatch" data-board-style-choice="cool-slate" aria-pressed="false" title="Cool Slate"><span class="swatch-pair"><span style="background:#dce4e9"></span><span style="background:#718493"></span></span><span class="swatch-label">Slate</span></button>
+    <button type="button" class="appearance-swatch" data-board-style-choice="graphite" aria-pressed="false" title="Graphite"><span class="swatch-pair"><span style="background:#d9dcdd"></span><span style="background:#747c81"></span></span><span class="swatch-label">Graphite</span></button>
+   </div>
    <div class="drawer-row">
-    <label for="themeSelect">Theme:</label>
+    <label for="themeSelect">Theme:</label
     <select id="themeSelect">
      <option value="auto" selected>Auto (Follow System)</option>
      <option value="light">Light</option>
      <option value="dark">Dark</option>
     </select>
+   </div>
+   <div class="drawer-row appearance-reset-row">
+    <span>Appearance defaults:</span>
+    <button class="options-btn" id="resetAppearanceBtn" type="button">Reset appearance</button>
    </div>
   </div>
  </div>
