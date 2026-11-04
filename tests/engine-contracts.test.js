@@ -2594,7 +2594,8 @@ test('worker timeout fallback retries the selected MinMax or MCTS engine once wi
         search(request) {
           fallbackCalls++;
           fallbackRequest = request;
-          return EngineContract.completed(request, allLegalState(request.position)[0]);
+          const snapshot = JSON.parse(JSON.stringify(request.position));
+          return EngineContract.completed(request, allLegalState(snapshot)[0]);
         }
       };
       sandbox.api.enginePlugins.set(engineId, engine);
