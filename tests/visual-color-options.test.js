@@ -110,20 +110,22 @@ test('collapsible sections synchronize JS and CSS state at all viewport sizes',(
 });
 
 test('Newspaper black pieces use palette-aware body and visible detail strokes in Light mode',()=>{
- const rule=css.match(/html:not\\(\\.theme-dark\\) \\.piece-set-minimal\\[data-color="b"\\]\\s*\\{[^}]*\\}/);
- assert.ok(rule,'Light-mode Newspaper black-piece rule is missing');
- assert.match(rule[0],/--p-body:\\s*var\\(--piece-b-body\\)/);
- assert.match(rule[0],/--p-outline:\\s*var\\(--piece-b-gloss\\)/);
- assert.match(rule[0],/--p-gold:\\s*var\\(--piece-b-accent\\)/);
- assert.match(rule[0],/drop-shadow\\(0 0 0\\.55px var\\(--piece-b-outline\\)\\)/);
- assert.doesNotMatch(css,/html\\.theme-dark \\.piece-set-minimal\\[data-color="b"\\]/);
+ const selector='html:not(.theme-dark) .piece-set-minimal[data-color="b"]';
+ const start=css.indexOf(selector);
+ assert.notEqual(start,-1,'Light-mode Newspaper black-piece rule is missing');
+ const rule=css.slice(start,css.indexOf('}',start));
+ assert.ok(rule.includes('--p-body: var(--piece-b-body);'));
+ assert.ok(rule.includes('--p-outline: var(--piece-b-gloss);'));
+ assert.ok(rule.includes('--p-gold: var(--piece-b-accent);'));
+ assert.ok(rule.includes('drop-shadow(0 0 0.55px var(--piece-b-outline))'));
+ assert.ok(!css.includes('html.theme-dark .piece-set-minimal[data-color="b"]'));
  for(const palette of piecePalettes){
-  const selector=`html[data-piece-palette="${palette}"]:not(.theme-dark)`;
-  const start=css.indexOf(selector);
-  assert.notEqual(start,-1);
-  const block=css.slice(start,css.indexOf('}',start));
-  assert.match(block,/--piece-b-body:/);
-  assert.match(block,/--piece-b-gloss:/);
-  assert.match(block,/--piece-b-accent:/);
+  const paletteSelector=`html[data-piece-palette="${palette}"]:not(.theme-dark)`;
+  const paletteStart=css.indexOf(paletteSelector);
+  assert.notEqual(paletteStart,-1);
+  const paletteBlock=css.slice(paletteStart,css.indexOf('}',paletteStart));
+  assert.ok(paletteBlock.includes('--piece-b-body:'));
+  assert.ok(paletteBlock.includes('--piece-b-gloss:'));
+  assert.ok(paletteBlock.includes('--piece-b-accent:'));
  }
 });
