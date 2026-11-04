@@ -4,7 +4,7 @@ Purpose: capture the proposed shared contract and staged implementation plan for
 
 ## Status and scope
 
-**Status: Completed (2026-11-04).** Both MinMax and MCTS expose structured protocol-v1 search entry points and structured worker transport. The engine-contract workflow #361 passed 125 tests (0 failures) on 2026-11-04. Cross-engine verification covers the same mandatory search outcomes and request identity for both engines, immutable snapshots, worker dispatch, side/phase selection, representative variant moves, lifecycle cancellation/stale-result handling, and timeout fallback. The 2026-11-04 mobile debug log recorded seven 15-second worker timeouts during opening; each invoked main-thread fallback. The tests verify fallback policy for both engine selectors, but do not establish the cause of the observed device timeouts or real-browser performance.
+**Status: Completed (2026-11-04; PR #119 merged).** PR #119, including the bounded-search changes from PR #120, is merged to `main` at `bdc6e3c`. Cross-engine verification covers shared protocol-v1 outcomes and request identity for MinMax and MCTS, immutable snapshots, worker dispatch, side/phase selection, representative variant moves, lifecycle cancellation/stale-result handling, and timeout fallback. The engine-contract workflow #361 passed 125 tests (0 failures); the later PR #120 workflow #364 passed 128 tests (0 failures). Search budgets are enforced for both engines: MCTS levels 1–3 use 2.5s/5s/10s; MinMax requests use 3s/6s/10s by level, while main-thread fallback is capped at 2s. The 2026-11-04 mobile debug log recorded seven 15-second worker timeouts during opening, each invoking main-thread fallback. Tests verify fallback policy, not the cause of those device timeouts or real-browser performance.
 
 The goal is a reliable, easy-to-extend internal interface for the game's own engines, initially MinMax and MCTS. This is not a public third-party plugin SDK and does not call for a dynamic plugin marketplace or general-purpose extension framework.
 
@@ -84,7 +84,9 @@ This plan records the design baseline discussed on 2026-10-31. It distinguishes 
 - Shared contract tests pass for each engine, with integration tests covering the relevant game and worker lifecycle paths.
 - Documentation describes verified behavior accurately and does not imply unrun tests passed.
 
-## Open details to settle during contract specification
+## Historical design details
+
+The following questions were part of the original design baseline. The implemented protocol and current tests supersede the need to settle them as prerequisites for this completed plan; revisit only if a concrete extension requires it.
 
 - Exact lifecycle state names and legal transitions.
 - Exact transport message schema and how cancellation completion is acknowledged.
@@ -94,6 +96,8 @@ This plan records the design baseline discussed on 2026-10-31. It distinguishes 
 - Error taxonomy, timeout ownership, and the explicit fallback configuration surface.
 
 ## Change log
+
+- **2026-11-04 — PR #119 merged (including PR #120):** Final cross-engine contract and bounded-search work merged to `main` at `bdc6e3c`. PR #120's engine-contract workflow #364 passed 128 tests (0 failures). MCTS levels 1–3 use 2.5s/5s/10s budgets; MinMax uses request budgets of 3s/6s/10s; main-thread retries are capped at 2s. Browser/device timing and the cause of the seven observed mobile worker watchdog timeouts remain unverified.
 
 - **2026-11-04 — Cross-engine verification:** Engine-contract workflow #361 passed on commit `a64a10a` (125 tests, 0 failures). Shared protocol-v1 conformance tests pass for MinMax and MCTS; variant move envelopes are resolved to canonical legal moves; timeout fallback is verified for both engine selectors with fresh request identity and stale-result rejection. The user's mobile debug log showed seven 15-second worker timeouts during opening, each followed by a main-thread retry. The automated tests verify fallback behavior, not the root cause or mobile performance.
 
