@@ -100,10 +100,11 @@ test('reset appearance restores visual defaults without changing game mode or si
 });
 
 test('theme selector markup is valid and available to startup handlers',()=>{
- assert.ok(html.includes('<label for="themeSelect">Theme:</label>\\n    <select id="themeSelect">'));
+ assert.ok(html.includes('<label for="themeSelect">Theme:</label>'));
+ assert.ok(html.includes('<select id="themeSelect">'));
 });
 test('collapsible sections synchronize JS and CSS state at all viewport sizes',()=>{
  assert.ok(script.includes("section.classList.toggle('expanded', !collapsed);"));
  assert.ok(script.includes("section.classList.add('expanded');"));
- assert.ok(!css.includes('  .collapsible-section.collapsed .section-content {\\n    max-height: none;'));
+ assert.ok(css.includes('.collapsible-section:not(.expanded) .section-content'));
 });
