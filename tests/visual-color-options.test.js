@@ -78,7 +78,7 @@ test('piece palette accents blend with the selected board profile for moats and 
    `html.theme-dark[data-piece-palette="${palette}"]`
   ];
   for(const selector of selectors){
-   const pos=css.lastIndexOf(selector);
+   const pos=css.indexOf(selector);
    assert.notEqual(pos,-1);
    const end=css.indexOf('}',pos);
    assert.ok(css.slice(pos,end).includes('--piece-moat-w-accent'));
