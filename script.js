@@ -2726,6 +2726,7 @@ function initCollapsibleSections() {
 
     const setCollapsed = (collapsed) => {
       section.classList.toggle('collapsed', collapsed);
+      section.classList.toggle('expanded', !collapsed);
       header.setAttribute('aria-expanded', String(!collapsed));
       toggle.textContent = collapsed ? '▸' : '▾';
     };
@@ -2760,6 +2761,7 @@ window.addEventListener('resize', () => {
   if (window.innerWidth > 768) {
     document.querySelectorAll('.collapsible-section').forEach(section => {
       section.classList.remove('collapsed');
+      section.classList.add('expanded');
       const header = section.querySelector('.section-header');
       const toggle = section.querySelector('.section-toggle');
       if (header) header.setAttribute('aria-expanded', 'true');

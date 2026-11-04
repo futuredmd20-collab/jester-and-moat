@@ -1141,17 +1141,6 @@ html.theme-dark .debug-time {
   transform: rotate(-90deg);
 }
 
-/* Desktop: all sections expanded by default */
-@media (min-width: 769px) {
-  .collapsible-section .section-content {
-    max-height: none;
-  }
-  .collapsible-section.collapsed .section-content {
-    max-height: none;
-    padding: 4px 0;
-  }
-}
-
 /* Mobile: sections collapsed by default */
 @media (max-width: 768px) {
   .collapsible-section:not(.expanded) .section-content {
