@@ -27,7 +27,8 @@
   }
   return score;
 }
-    function minimax(st, depth, alpha, beta, isMaximizing) {
+    function minimax(st, depth, alpha, beta, isMaximizing, shouldStop = () => false) {
+  if (shouldStop()) return null;
   const moves = allLegalState(st, st.turn);
   const check = inCheck(st.turn, st.board, st.moats);
 
@@ -42,6 +43,7 @@
   if (isMaximizing) {
     let maxEval = -Infinity;
     for (const m of moves) {
+      if (shouldStop()) return null;
       const nextState = clone(st);
       if (m.swap) {
         const p = nextState.board[m.from.r][m.from.c], q = nextState.board[m.to.r][m.to.c];
@@ -50,7 +52,8 @@
       } else {
         applyRaw(nextState, m);
       }
-      const ev = minimax(nextState, depth - 1, alpha, beta, false);
+      const ev = minimax(nextState, depth - 1, alpha, beta, false, shouldStop);
+      if (ev === null) return null;
       maxEval = Math.max(maxEval, ev);
       alpha = Math.max(alpha, ev);
       if (beta <= alpha) break;
@@ -59,6 +62,7 @@
   } else {
     let minEval = Infinity;
     for (const m of moves) {
+      if (shouldStop()) return null;
       const nextState = clone(st);
       if (m.swap) {
         const p = nextState.board[m.from.r][m.from.c], q = nextState.board[m.to.r][m.to.c];
@@ -67,7 +71,8 @@
       } else {
         applyRaw(nextState, m);
       }
-      const ev = minimax(nextState, depth - 1, alpha, beta, true);
+      const ev = minimax(nextState, depth - 1, alpha, beta, true, shouldStop);
+      if (ev === null) return null;
       minEval = Math.min(minEval, ev);
       beta = Math.min(beta, ev);
       if (beta <= alpha) break;
@@ -75,17 +80,18 @@
     return minEval;
   }
 }
-    function getBestMove(st, depth) {
+    function getBestMove(st, depth, shouldStop = () => false) {
   const moves = allLegalState(st, st.turn);
   if (!moves.length) return null;
 
-  let bestMove = null;
+  let bestMove = moves[0];
   const isMax = st.turn === 'w';
   let bestEval = isMax ? -Infinity : Infinity;
 
   moves.sort(() => Math.random() - 0.5);
 
   for (const m of moves) {
+    if (shouldStop()) break;
     const nextState = clone(st);
     if (m.swap) {
       const p = nextState.board[m.from.r][m.from.c], q = nextState.board[m.to.r][m.to.c];
@@ -95,7 +101,8 @@
       applyRaw(nextState, m);
     }
 
-    const ev = minimax(nextState, depth - 1, -Infinity, Infinity, !isMax);
+    const ev = minimax(nextState, depth - 1, -Infinity, Infinity, !isMax, shouldStop);
+    if (ev === null) break;
     if (isMax) {
       if (ev > bestEval) { bestEval = ev; bestMove = m; }
     } else {
@@ -104,10 +111,10 @@
   }
   return bestMove;
 }
-    async function getBestMoveAsync(st, depth, shouldCancel = () => false, yieldControl = () => new Promise(resolve => setTimeout(resolve, 0))) {
+    async function getBestMoveAsync(st, depth, shouldCancel = () => false, yieldControl = () => new Promise(resolve => setTimeout(resolve, 0)), shouldStop = () => false) {
   const moves = allLegalState(st, st.turn);
   if (!moves.length) return { move: null, cancelled: false };
-  let bestMove = null;
+  let bestMove = moves[0];
   const isMax = st.turn === 'w';
   let bestEval = isMax ? -Infinity : Infinity;
   const searchControl = { visitedNodes: 0 };
@@ -117,11 +124,11 @@
   // yields to the Worker event loop so cancellation messages can be processed
   // even while exploring a single root branch.
   async function minimaxCooperative(nodeState, remainingDepth, alpha, beta, maximizing) {
-    if (shouldCancel()) return null;
+    if (shouldCancel() || shouldStop()) return null;
     searchControl.visitedNodes++;
     if (searchControl.visitedNodes % 32 === 0) {
       await yieldControl();
-      if (shouldCancel()) return null;
+      if (shouldCancel() || shouldStop()) return null;
     }
 
     const nodeMoves = allLegalState(nodeState, nodeState.turn);
@@ -136,7 +143,7 @@
 
     let best = maximizing ? -Infinity : Infinity;
     for (const move of nodeMoves) {
-      if (shouldCancel()) return null;
+      if (shouldCancel() || shouldStop()) return null;
       const nextState = clone(nodeState);
       if (move.swap) {
         const p = nextState.board[move.from.r][move.from.c], q = nextState.board[move.to.r][move.to.c];
@@ -164,6 +171,7 @@
 
   for (let i = 0; i < moves.length; i++) {
     if (shouldCancel()) return { move: null, cancelled: true };
+    if (shouldStop()) break;
     const move = moves[i];
     const nextState = clone(st);
     if (move.swap) {
@@ -176,7 +184,10 @@
     }
 
     const value = await minimaxCooperative(nextState, depth - 1, -Infinity, Infinity, !isMax);
-    if (value === null) return { move: null, cancelled: true };
+    if (value === null) {
+      if (shouldCancel()) return { move: null, cancelled: true };
+      break;
+    }
     if (isMax ? value > bestEval : value < bestEval) {
       bestEval = value;
       bestMove = move;
@@ -186,7 +197,7 @@
       if (shouldCancel()) return { move: null, cancelled: true };
     }
   }
-  return { move: bestMove, cancelled: false };
+  return { move: bestMove, cancelled: false, timedOut: shouldStop() };
 }
     function search(request) {
       if (!request || request.protocolVersion !== EngineContract.version || request.engineId !== 'minmax_legacy') {
@@ -203,7 +214,11 @@
         return EngineContract.failed(request, EngineContract.errorCodes.INVALID_CONFIG, 'Search depth must be an integer from 1 to 10.');
       }
       try {
-        return EngineContract.completed(request, getBestMove(clone(position), depth));
+        const deadline = request.limits && request.limits.timeMs > 0
+          ? Date.now() + request.limits.timeMs : Infinity;
+        const shouldStop = () => Date.now() >= deadline;
+        const move = getBestMove(clone(position), depth, shouldStop);
+        return EngineContract.completed(request, move, { timedOut: shouldStop() });
       } catch (error) {
         return EngineContract.failed(request, EngineContract.errorCodes.SEARCH_FAILED, error && error.message || error);
       }

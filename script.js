@@ -1272,8 +1272,8 @@ const MinMaxSearchCore = MinMaxSearchCoreFactory({ clone, other, applyRaw, allLe
 const MinMaxLegacy = { id: 'minmax_legacy', search: ${MinMaxLegacy.search.toString()} };
 // MCTS constants must be defined inside the serialized worker scope too.
 const MCTS_LEVELS = {
-  1: { playouts: 200, capDepth: 10, temperature: 0.35, rating: '~800' },
-  2: { playouts: 700, capDepth: 14, temperature: 0.15, rating: '~1200' },
+  1: { playouts: 200, capDepth: 10, temperature: 0.35, rating: '~800', timeBudgetMs: 2500 },
+  2: { playouts: 700, capDepth: 14, temperature: 0.15, rating: '~1200', timeBudgetMs: 5000 },
   3: { playouts: 2000, capDepth: 18, temperature: 0.00, rating: '~1600', timeBudgetMs: 10000 }
 };
 const MCTS_EXPLORATION = 0.7;
@@ -1305,8 +1305,10 @@ onmessage = async function(event) {
       activeSearches.set(key, control);
       let result;
       if (request.engineId === 'mcts') {
+        const mctsConfig = Object.assign({}, MCTS_LEVELS[mctsLevelFor(request.limits && request.limits.depth)]);
+        if (request.limits && request.limits.timeMs > 0) mctsConfig.timeBudgetMs = request.limits.timeMs;
         const outcome = await mctsSearchAsync(
-          clone(request.position), MCTS_LEVELS[mctsLevelFor(request.limits && request.limits.depth)],
+          clone(request.position), mctsConfig,
           () => control.cancelled,
           () => new Promise(resolve => setTimeout(resolve, 0))
         );
@@ -1318,12 +1320,15 @@ onmessage = async function(event) {
               requestId: request.requestId, generation: request.generation, reason: 'cancelled' }, 'cancelled') });
           return;
         }
-        result = EngineContract.completed(request, outcome.move);
+        result = EngineContract.completed(request, outcome.move, { timedOut: outcome.timedOut });
       } else {
+        const deadline = request.limits && request.limits.timeMs > 0
+          ? Date.now() + request.limits.timeMs : Infinity;
         const outcome = await MinMaxSearchCore.getBestMoveAsync(
           clone(request.position), request.limits.depth,
           () => control.cancelled,
-          () => new Promise(resolve => setTimeout(resolve, 0))
+          () => new Promise(resolve => setTimeout(resolve, 0)),
+          () => Date.now() >= deadline
         );
         if (outcome.cancelled) {
           activeSearches.delete(key);
@@ -1333,7 +1338,7 @@ onmessage = async function(event) {
               requestId: request.requestId, generation: request.generation, reason: 'cancelled' }, 'cancelled') });
           return;
         }
-        result = EngineContract.completed(request, outcome.move);
+        result = EngineContract.completed(request, outcome.move, { timedOut: outcome.timedOut });
       }
       activeSearches.delete(key);
       finishedSearches.add(key);
@@ -1427,6 +1432,10 @@ onmessage = async function(event) {
         return;
       }
       move = result.status === ENGINE_RESULT_STATUS.COMPLETED ? result.move : null;
+      const elapsed = completedRequest.startedAt ? Date.now() - completedRequest.startedAt : null;
+      debugLogger.event(result.metadata && result.metadata.timedOut ? 'search-budget' : 'search-complete',
+        `${completedRequest.side} ${completedRequest.engine.name || completedRequest.engine.id} ${completedRequest.phase} search #${completedRequest.id} completed in ${elapsed} ms on worker (budget ${completedRequest.contractRequest.limits.timeMs} ms${result.metadata && result.metadata.timedOut ? '; budget reached' : ''}).`,
+        result.metadata && result.metadata.timedOut ? 'warn' : 'info');
     }
     // Match worker output against legal moves without relying on object property order.
     // Return the canonical game move so engine-only fields cannot reach live state.
@@ -1510,6 +1519,9 @@ function getEngineConfig(side) {
   return { engine, depth: 2 };
 }
 
+const AI_MAIN_THREAD_BUDGET_MS = 2000;
+const AI_SEARCH_BUDGETS_MS = { 1: 3000, 2: 6000, 3: 10000 };
+
 function runAIOnMainThread(request) {
   setTimeout(() => {
     if (gameOver || request.id !== aiRequestId || !isAIThinking) {
@@ -1534,6 +1546,10 @@ function runAIOnMainThread(request) {
         }
         if (result.status === ENGINE_RESULT_STATUS.COMPLETED) {
           bestMove = result.move;
+          const elapsed = request.startedAt ? Date.now() - request.startedAt : null;
+          debugLogger.event(result.metadata && result.metadata.timedOut ? 'search-budget' : 'search-complete',
+            `${request.side} ${request.engine.name || request.engine.id} ${request.phase} search #${request.id} completed in ${elapsed} ms on main thread (budget ${request.contractRequest.limits.timeMs} ms${result.metadata && result.metadata.timedOut ? '; budget reached' : ''}).`,
+            result.metadata && result.metadata.timedOut ? 'warn' : 'info');
         } else if (result.status === ENGINE_RESULT_STATUS.NO_MOVE) {
           bestMove = null;
         } else {
@@ -1594,6 +1610,8 @@ function handleAIWorkerFailure(worker, request) {
   // A fallback is a new search attempt: issue fresh identity and snapshot data.
   if (request.contractRequest) {
     request.state = clone(state);
+    request.startedAt = Date.now();
+    request.fallback = true;
     request.contractRequest = EngineContract.createRequest({
       requestId: request.id,
       generation: request.id,
@@ -1601,7 +1619,7 @@ function handleAIWorkerFailure(worker, request) {
       position: request.state,
       limits: {
         depth: request.depth,
-        timeMs: request.contractRequest.limits.timeMs
+        timeMs: Math.min(request.contractRequest.limits.timeMs || AI_MAIN_THREAD_BUDGET_MS, AI_MAIN_THREAD_BUDGET_MS)
       },
       config: request.contractRequest.config
     });
@@ -1621,10 +1639,13 @@ function aiMove(){
   const side = state.turn === 'w' ? 'White' : 'Black';
   const engineName = engine.name || 'Unknown engine';
   const id = ++aiRequestId;
+  const searchBudgetMs = engine.id === 'mcts'
+    ? MCTS_LEVELS[depth].timeBudgetMs
+    : (AI_SEARCH_BUDGETS_MS[depth] || AI_SEARCH_BUDGETS_MS[2]);
   const contractRequest = typeof engine.search === 'function'
-    ? EngineContract.createRequest({ requestId: id, generation: id, engineId: engine.id, position: clone(state), limits: { depth } })
+    ? EngineContract.createRequest({ requestId: id, generation: id, engineId: engine.id, position: clone(state), limits: { depth, timeMs: searchBudgetMs } })
     : null;
-  const request = { id, engine, depth, state: clone(state), contractRequest };
+  const request = { id, engine, depth, state: clone(state), contractRequest, startedAt: Date.now(), phase, side, fallback: false };
   pendingAIRequest = request;
   debugLogger.engineSelected(side, engineName, phase);
 
@@ -1635,7 +1656,7 @@ function aiMove(){
       aiWorkerTimeout = setTimeout(() => {
         // Only the still-active request may trigger recovery; stale watchdogs are inert.
         if (aiWorker === worker && pendingAIRequest === request && request.id === aiRequestId) {
-          debugLogger.add(`AI worker timed out after ${AI_WORKER_TIMEOUT_MS} ms; retrying on the main thread.`, 'warn');
+          debugLogger.add(`AI worker timed out after ${AI_WORKER_TIMEOUT_MS} ms for ${request.side} ${request.engine.name || request.engine.id} in ${request.phase} (request #${request.id}); retrying on the main thread.`, 'warn');
           handleAIWorkerFailure(worker, request);
         }
       }, AI_WORKER_TIMEOUT_MS);

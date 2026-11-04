@@ -141,6 +141,18 @@ test('MinMax returns a legal move without mutating its input', () => {
   assert.equal(JSON.stringify(s), before);
 });
 
+test('MinMax bounded synchronous search returns a legal best-so-far move when its budget expires', () => {
+  const s = position();
+  s.board[6][0] = { type: 'r', color: 'w', moved: false };
+  const before = JSON.stringify(s);
+  let checks = 0;
+  const move = sandbox.api.MinMaxSearchCore.getBestMove(s, 5, () => ++checks > 3);
+  assert.ok(move, 'bounded search should retain a legal fallback move');
+  assert.ok(allLegalState(s).some(candidate => JSON.stringify(candidate) === JSON.stringify(move)));
+  assert.ok(checks > 3, 'search should consult the stop condition during recursion');
+  assert.equal(JSON.stringify(s), before);
+});
+
 test('MinMax cooperative search can cancel inside recursive search and preserves the input position', async () => {
   const s = position();
   s.board[6][0] = { type: 'r', color: 'w', moved: false };
@@ -151,6 +163,27 @@ test('MinMax cooperative search can cancel inside recursive search and preserves
   assert.equal(outcome.move, null);
   assert.ok(yields >= 2, 'search should yield repeatedly while exploring a root branch');
   assert.equal(JSON.stringify(s), before, 'cancellation must not mutate the input position');
+});
+
+test('MinMax cooperative search returns a legal best-so-far move when its deadline expires', async () => {
+  const s = position();
+  s.board[6][0] = { type: 'r', color: 'w', moved: false };
+  const before = JSON.stringify(s);
+  let checks = 0;
+  const outcome = await sandbox.api.MinMaxSearchCore.getBestMoveAsync(s, 5, () => false, async () => {}, () => ++checks > 2);
+  assert.equal(outcome.cancelled, false);
+  assert.equal(outcome.timedOut, true);
+  assert.ok(outcome.move);
+  assert.ok(allLegalState(s).some(candidate => JSON.stringify(candidate) === JSON.stringify(outcome.move)));
+  assert.equal(JSON.stringify(s), before);
+});
+
+test('MCTS levels all declare finite worker and fallback search budgets', () => {
+  for (const level of [1, 2, 3]) {
+    assert.ok(Number.isFinite(sandbox.MCTS_LEVELS[level].timeBudgetMs));
+    assert.ok(sandbox.MCTS_LEVELS[level].timeBudgetMs > 0);
+  }
+  assert.deepEqual([1, 2, 3].map(level => sandbox.MCTS_LEVELS[level].timeBudgetMs), [2500, 5000, 10000]);
 });
 
 test('MCTS cooperative search yields and exits when cancellation is requested', async () => {
@@ -2619,6 +2652,7 @@ test('worker timeout fallback retries the selected MinMax or MCTS engine once wi
       const originalRequest = timedOutWorker.request;
       assert.equal(originalRequest.contractRequest.engineId, engineId,
         engineId + ': worker must receive the selected engine');
+      assert.ok(originalRequest.contractRequest.limits.timeMs > 0, engineId + ': worker request must carry a finite search budget');
       const timeoutCallback = scheduledTimeouts.findLast(callback => callback.delay === 15000);
       assert.ok(timeoutCallback, engineId + ': worker watchdog should be scheduled');
 
@@ -2631,6 +2665,8 @@ test('worker timeout fallback retries the selected MinMax or MCTS engine once wi
       assert.equal(retryRequest.contractRequest.engineId, engineId);
       assert.equal(retryRequest.contractRequest.requestId, retryRequest.id);
       assert.equal(retryRequest.contractRequest.generation, retryRequest.id);
+      assert.ok(retryRequest.contractRequest.limits.timeMs <= 2000,
+        engineId + ': main-thread fallback budget must be capped at 2 seconds');
       assert.notEqual(retryRequest.contractRequest.position, s,
         engineId + ': fallback must receive an isolated snapshot');
 
