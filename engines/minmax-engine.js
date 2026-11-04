@@ -4,7 +4,7 @@
 (function (root) {
   function MinMaxSearchCoreFactory(dependencies) {
     const ROWS = 8, COLS = 10;
-    const { clone, other, applyRaw, allLegalState, inCheck, getJesterValue } = dependencies;
+    const { clone, other, applyRaw, allLegalState, inCheck, getJesterValue, EngineContract } = dependencies;
     function evaluateBoard(st) {
   const jesterVal = getJesterValue(st);
   const pieceValues = { p: 1.0, n: 3.0, b: 3.5, r: 5.0, q: 9.5, k: 200.0, j: jesterVal };
@@ -188,7 +188,28 @@
   }
   return { move: bestMove, cancelled: false };
 }
-    return Object.freeze({ evaluateBoard, minimax, getBestMove, getBestMoveAsync });
+    function search(request) {
+      if (!request || request.protocolVersion !== EngineContract.version || request.engineId !== 'minmax_legacy') {
+        return EngineContract.failed(request, EngineContract.errorCodes.INVALID_REQUEST, 'Invalid MinMax search request.');
+      }
+      const position = request.position;
+      if (!position || !Array.isArray(position.board) || position.board.length !== ROWS ||
+          position.board.some(row => !Array.isArray(row) || row.length !== COLS) ||
+          !['w', 'b'].includes(position.turn)) {
+        return EngineContract.failed(request, EngineContract.errorCodes.INVALID_POSITION, 'MinMax search position is invalid.');
+      }
+      const depth = request.limits && request.limits.depth != null ? request.limits.depth : 2;
+      if (!Number.isInteger(depth) || depth < 1 || depth > 10) {
+        return EngineContract.failed(request, EngineContract.errorCodes.INVALID_CONFIG, 'Search depth must be an integer from 1 to 10.');
+      }
+      try {
+        return EngineContract.completed(request, getBestMove(clone(position), depth));
+      } catch (error) {
+        return EngineContract.failed(request, EngineContract.errorCodes.SEARCH_FAILED, error && error.message || error);
+      }
+    }
+
+    return Object.freeze({ evaluateBoard, minimax, getBestMove, getBestMoveAsync, search });
   }
   root.MinMaxSearchCoreFactory = MinMaxSearchCoreFactory;
 })(globalThis);

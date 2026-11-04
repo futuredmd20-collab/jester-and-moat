@@ -1128,7 +1128,7 @@ const ENGINE_ERROR_CODES = EngineContract.errorCodes;
 /* Internal MinMax engine, protocol-v1 entry point.
  * Search receives an immutable contract request and returns a structured result.
  * Search limits are supplied by the caller; engine logic does not read the UI. */
-const MinMaxSearchCore = MinMaxSearchCoreFactory({ clone, other, applyRaw, allLegalState, inCheck, getJesterValue });
+const MinMaxSearchCore = MinMaxSearchCoreFactory({ clone, other, applyRaw, allLegalState, inCheck, getJesterValue, EngineContract });
 // Compatibility adapters for shared evaluation helpers used by MCTS and diagnostics.
 function evaluateBoard(st) { return MinMaxSearchCore.evaluateBoard(st); }
 function minimax(st, depth, alpha, beta, isMaximizing) { return MinMaxSearchCore.minimax(st, depth, alpha, beta, isMaximizing); }
@@ -1140,15 +1140,7 @@ const MinMaxLegacy = {
   phases: [ENGINE_PHASES.OPENING, ENGINE_PHASES.MIDGAME, ENGINE_PHASES.ENDGAME],
   capabilities: [],
   strength: 'default',
-  search: function(request) {
-    if (!request || request.protocolVersion !== ENGINE_PROTOCOL_VERSION || request.engineId !== this.id)
-      return EngineContract.failed(request, ENGINE_ERROR_CODES.INVALID_REQUEST, 'Invalid MinMax search request.');
-    try {
-      return EngineContract.completed(request, MinMaxSearchCore.getBestMove(engineCopy(request.position), request.limits.depth));
-    } catch (error) {
-      return EngineContract.failed(request, ENGINE_ERROR_CODES.SEARCH_FAILED, error && error.message || error);
-    }
-  },
+  search: function(request) { return MinMaxSearchCore.search(request); },
 };
 
 /* Plugin System: Engine Registry */
@@ -1276,7 +1268,7 @@ const EngineContract = createEngineContract();
 const ENGINE_PROTOCOL_VERSION = EngineContract.version;
 const ENGINE_RESULT_STATUS = EngineContract.statuses;
 const ENGINE_ERROR_CODES = EngineContract.errorCodes;
-const MinMaxSearchCore = MinMaxSearchCoreFactory({ clone, other, applyRaw, allLegalState, inCheck, getJesterValue });
+const MinMaxSearchCore = MinMaxSearchCoreFactory({ clone, other, applyRaw, allLegalState, inCheck, getJesterValue, EngineContract });
 const MinMaxLegacy = { id: 'minmax_legacy', search: ${MinMaxLegacy.search.toString()} };
 // MCTS constants must be defined inside the serialized worker scope too.
 const MCTS_LEVELS = {
