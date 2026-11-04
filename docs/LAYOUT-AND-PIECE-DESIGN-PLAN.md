@@ -23,7 +23,7 @@ Ensure clear, high-contrast, and aesthetically cohesive visual presentation acro
 - **Piece colours:** Four independent identities: A (Ivory / Graphite), B (Ruby / Wine), C (Forest / Brass), and D (Porcelain / Charcoal).
 - **Board colours:** Preserve Soft Stone, Warm Wood, and Cool Slate; add Graphite as a fourth option.
 - **Theme:** Light, Dark, and Auto remain separate from both colour selections. Each palette needs a light- and dark-mode treatment.
-- **Moats and indicators:** Moat ownership colours follow the selected piece palette; move, selection, check, and last-move indicators retain distinct functional meanings and must remain legible across combinations.
+- **Moats and indicators:** Moat ownership, selected-square, last-move, and legal-move accents follow the selected piece palette. Check retains its warning meaning; all indicators must remain legible across combinations.
 - **Combinations:** 3 piece designs × 4 piece palettes × 4 board palettes × 2 display modes = 96 supported combinations.
 
 ## Decisions to Preserve

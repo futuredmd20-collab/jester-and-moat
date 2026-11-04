@@ -1473,3 +1473,14 @@ button.icon-only-btn .control-svg { width: 22px; height: 22px; }
     --moat-b:#737a7e; --moat-b-edge:#d8dcde; --moat-b-ink:#22282a;
   }
 
+
+  /* Palette-aware move and selection accents. Check remains a stable danger cue. */
+  html[data-piece-palette="classic"]:not(.theme-dark) { --sel-fill:#d9c9a6; --sel-ring:#3d5965; --last-ring:#465e68; --move-dot:#536f7b; }
+  html.theme-dark[data-piece-palette="classic"] { --sel-fill:#8f7951; --sel-ring:#d2e0e5; --last-ring:#c5d8df; --move-dot:#c3d6dd; }
+  html[data-piece-palette="ruby"]:not(.theme-dark) { --sel-fill:#e3c2bf; --sel-ring:#6d2e3a; --last-ring:#8a3e4c; --move-dot:#8e3d4b; }
+  html.theme-dark[data-piece-palette="ruby"] { --sel-fill:#87515c; --sel-ring:#f0c5c8; --last-ring:#eab5bb; --move-dot:#e8a4ad; }
+  html[data-piece-palette="forest"]:not(.theme-dark) { --sel-fill:#d6d9bb; --sel-ring:#365b43; --last-ring:#4d714f; --move-dot:#547a54; }
+  html.theme-dark[data-piece-palette="forest"] { --sel-fill:#718260; --sel-ring:#d8e4c5; --last-ring:#d2dcae; --move-dot:#c5d9b9; }
+  html[data-piece-palette="monochrome"]:not(.theme-dark) { --sel-fill:#d1d3d3; --sel-ring:#454b4e; --last-ring:#555c60; --move-dot:#5c6468; }
+  html.theme-dark[data-piece-palette="monochrome"] { --sel-fill:#747b7e; --sel-ring:#e2e5e6; --last-ring:#d0d5d7; --move-dot:#d3d8da; }
+

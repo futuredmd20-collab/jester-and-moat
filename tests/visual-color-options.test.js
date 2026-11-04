@@ -25,6 +25,13 @@ test('each piece palette defines light and dark piece, moat, and accent tokens',
  }
  for(const token of ['--piece-w-body:','--piece-b-body:','--piece-w-outline:','--piece-b-outline:','--piece-accent-gold:','--piece-b-accent:','--moat-w:','--moat-b:','--moat-w-edge:','--moat-b-edge:'])assert.ok(css.includes(token));
 });
+test('move and selection accents follow each piece palette in both themes',()=>{
+ for(const palette of piecePalettes){
+  assert.match(css,new RegExp(`html\\[data-piece-palette="${palette}"\\]:not\\(\\.theme-dark\\)\\s*\\{[^}]*--move-dot:`));
+  assert.match(css,new RegExp(`html\\.theme-dark\\[data-piece-palette="${palette}"\\]\\s*\\{[^}]*--move-dot:`));
+ }
+ assert.match(css,/--check-ink:\s*#a8403d/);
+});
 test('fourth Graphite board palette has separate light and dark definitions',()=>{
  assert.match(css,/html\[data-board-style="graphite"\]\s*\{/);
  assert.match(css,/html\.theme-dark\[data-board-style="graphite"\]\s*\{/);
