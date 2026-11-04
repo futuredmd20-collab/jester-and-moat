@@ -28,7 +28,11 @@ The engine contract suite evaluates canonical rule/search functions from `script
 - Worker runtime errors terminate the failed worker and retry the active request once through the selected engine on the main thread.
 - Loading a valid saved game cancels any in-flight search for the previous position; a fresh search can run and stale worker responses are ignored.
 - Successful worker dispatch returns legal moves for both MinMax and MCTS.
-- MCTS level-3 search respects its time budget between playouts and checks the budget during a playout; the synchronous path returns a legal best-so-far move when a long playout reaches the budget.
+- MinMax and MCTS pass the same protocol-v1 conformance checks for completed legal results, no-move outcomes, request identity, immutable snapshots, and invalid protocol/engine requests.
+- Jester swap, castling, double-pawn, en-passant, and promotion moves survive the contract envelope and resolve to canonical legal moves before application.
+- Worker timeout fallback is verified for both MinMax and MCTS: the selected engine is retried once with a fresh request/generation, and late worker results are ignored.
+- MCTS levels 1–3 have finite budgets; worker and synchronous search paths stop at their configured limits and return a legal best-so-far move. MinMax synchronous and cooperative searches also stop at their request deadline while preserving a legal best-so-far move.
+- Worker requests carry engine-specific search budgets; worker results and main-thread fallback log engine, side, phase, request identity, elapsed time, and whether the search reached its budget. Main-thread retries are capped at 2 seconds.
 - Unknown worker engine selectors return an explicit protocol error.
 - White/Black engine and phase settings are saved and restored independently.
 - MCTS configuration is limited to its selected phase, with MinMax in other phases.
@@ -46,4 +50,4 @@ The engine contract suite evaluates canonical rule/search functions from `script
 
 ## Remaining verification
 
-This is a focused regression suite, not a complete rules suite or strength benchmark. Automated tests cover engine-setting persistence and validation, but browser rendering and real-browser/offline behavior still need browser verification. The worker and startup tests validate source-level contracts with mocks, not a live browser or deployed PWA. Runtime-error recovery is simulated; browser behavior remains unverified.
+This is a focused regression suite, not a complete rules suite or strength benchmark. Automated tests cover engine-setting persistence and validation, but browser rendering and real-browser/offline behavior still need browser verification. The worker and startup tests validate source-level contracts with mocks, not a live browser or deployed PWA. The 2026-11-04 mobile debug log recorded seven 15-second worker timeouts during opening, each followed by a main-thread retry; automated tests verify this fallback policy for both engine selectors but do not identify the cause of those device timeouts or establish mobile performance.

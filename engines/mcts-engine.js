@@ -63,8 +63,8 @@
  * picking among near-best root moves instead of the most-visited one
  * (deliberate weakness, per the strength = depth + temperature idea). */
 var MCTS_LEVELS = {
-  1: { playouts: 200,  capDepth: 10, temperature: 0.35, rating: '~800'  },
-  2: { playouts: 700,  capDepth: 14, temperature: 0.15, rating: '~1200' },
+  1: { playouts: 200,  capDepth: 10, temperature: 0.35, rating: '~800',  timeBudgetMs: 2500 },
+  2: { playouts: 700,  capDepth: 14, temperature: 0.15, rating: '~1200', timeBudgetMs: 5000 },
   3: { playouts: 2000, capDepth: 18, temperature: 0.00, rating: '~1600', timeBudgetMs: 10000 }
 };
 
@@ -248,13 +248,15 @@ async function mctsSearchAsync(st, cfg, shouldCancel, yieldControl) {
 
   if (cfg.temperature > 0 && root.children.length > 1 && Math.random() < cfg.temperature) {
     var top = root.children.slice().sort(function (a, b) { return b.visits - a.visits; }).slice(0, 3);
-    return { move: top[Math.floor(Math.random() * top.length)].move, cancelled: false };
+    return { move: top[Math.floor(Math.random() * top.length)].move, cancelled: false,
+      timedOut: cfg.timeBudgetMs > 0 && Date.now() - startedAt >= cfg.timeBudgetMs };
   }
   var best = null;
   for (var j = 0; j < root.children.length; j++) {
     if (!best || root.children[j].visits > best.visits) best = root.children[j];
   }
-  return { move: best ? best.move : null, cancelled: false };
+  return { move: best ? best.move : null, cancelled: false,
+    timedOut: cfg.timeBudgetMs > 0 && Date.now() - startedAt >= cfg.timeBudgetMs };
 }
 
 /* Drop-in for the current worker protocol: same signature and return
@@ -279,12 +281,12 @@ function mctsEngine(level) {
         return EngineContract.failed(request, 'INVALID_REQUEST', 'Invalid MCTS search request.');
       try {
         var searchLevel = mctsLevelFor(request.limits && request.limits.depth);
-        // The worker's cooperative path keeps the 10s level-3 budget. A
-        // synchronous fallback must use a shorter budget to avoid freezing
-        // the UI for the full worker watchdog window.
         var searchConfig = Object.assign({}, MCTS_LEVELS[searchLevel]);
-        if (searchLevel === 3) searchConfig.timeBudgetMs = 2500;
-        return EngineContract.completed(request, mctsSearch(JSON.parse(JSON.stringify(request.position)), searchConfig));
+        if (request.limits && request.limits.timeMs > 0) searchConfig.timeBudgetMs = request.limits.timeMs;
+        var startedAt = Date.now();
+        var move = mctsSearch(JSON.parse(JSON.stringify(request.position)), searchConfig);
+        var timedOut = searchConfig.timeBudgetMs > 0 && Date.now() - startedAt >= searchConfig.timeBudgetMs;
+        return EngineContract.completed(request, move, { timedOut });
       } catch (error) {
         return EngineContract.failed(request, 'SEARCH_FAILED', error && error.message || error);
       }

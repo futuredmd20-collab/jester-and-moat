@@ -4,7 +4,7 @@ Purpose: capture the proposed shared contract and staged implementation plan for
 
 ## Status and scope
 
-**Status: In progress (2026-11-03).** Both MinMax and MCTS expose structured protocol-v1 search entry points and structured worker transport. The main-thread contract is the single source serialized into workers, reducing protocol drift. Contract tests cover request/result identity, no-move outcomes, invalid protocol/engine identity, stale worker results, selected lifecycle paths, cooperative cancellation, and MCTS time-budget enforcement during playouts. PR #97 added periodic yielding and cancellation checks inside recursive MinMax alpha-beta search. PRs #106–#107 bounded the synchronous MCTS fallback and added time-budget checks inside individual playouts; the worker path also checks cancellation/budget during playouts and yields between playouts. PR #107's engine-contract CI passed. MinMax evaluation and alpha-beta search live in `engines/minmax-engine.js`, while shared rule helpers remain in `script.js`; broader cross-engine lifecycle/fallback verification remains outstanding.
+**Status: Completed (2026-11-04).** Both MinMax and MCTS expose structured protocol-v1 search entry points and structured worker transport. The engine-contract workflow #361 passed 125 tests (0 failures) on 2026-11-04. Cross-engine verification covers the same mandatory search outcomes and request identity for both engines, immutable snapshots, worker dispatch, side/phase selection, representative variant moves, lifecycle cancellation/stale-result handling, and timeout fallback. The 2026-11-04 mobile debug log recorded seven 15-second worker timeouts during opening; each invoked main-thread fallback. The tests verify fallback policy for both engine selectors, but do not establish the cause of the observed device timeouts or real-browser performance.
 
 The goal is a reliable, easy-to-extend internal interface for the game's own engines, initially MinMax and MCTS. This is not a public third-party plugin SDK and does not call for a dynamic plugin marketplace or general-purpose extension framework.
 
@@ -69,8 +69,8 @@ This plan records the design baseline discussed on 2026-10-31. It distinguishes 
 - [x] **C. Refactor MinMax.** MinMax's search core now owns protocol-v1 request validation and structured result/error construction through `search(request)`. The registry adapter delegates directly to that core entry point; the cooperative Worker path continues to use the core's asynchronous search method. The UI-coupled `getMove(gameState, side)` entry point remains removed, and structured worker transport is retained. Direct core tests cover successful identity-bound results, invalid engine identity, invalid positions, and invalid depth.
 - [x] **D. Verify MinMax.** Verified by the engine-contract workflow on 2026-11-04: successful structured searches, cancellation, stale-result rejection, invalid output handling, lifecycle resets/context changes, configuration boundaries, and explicit failure reporting are covered by the contract/regression suite.
 - [x] **E. Adapt MCTS.** Added a protocol-v1 `search(request)` entry point, stable `mcts` engine ID, structured worker dispatch, and structured-worker tests. The old `getMove`/`workerFn` path remains for compatibility.
-- [ ] **F. Verify cross-engine behavior.** Run shared contract tests against both engines, then integration/regression tests for worker transport, side/phase selection, special moves, game lifecycle changes, and fallback policy.
-- [x] **G. Update project documentation.** Status and index refreshed on 2026-11-01 to reflect merged contract-test coverage and the remaining implementation/verification gaps.
+- [x] **F. Verify cross-engine behavior.** Verified on 2026-11-04. Shared protocol-v1 conformance tests pass for MinMax and MCTS (completed legal result, no-move result, request identity, immutable snapshot, and invalid protocol/engine rejection). Integration regressions cover structured worker dispatch for both engines, independent side/phase selection, Jester swap, castling, double-pawn, en-passant and promotion moves crossing the contract and resolving to canonical legal moves, saved-game/lifecycle cancellation and stale-result rejection, and timeout fallback for both engine selectors with fresh request identity and late-result rejection. Engine-contract workflow #361 passed 125 tests (0 failures).
+- [x] **G. Update project documentation.** Status and plan index refreshed on 2026-11-04 after cross-engine verification; browser/mobile runtime limitations remain explicit.
 
 ## Acceptance criteria
 
@@ -94,6 +94,8 @@ This plan records the design baseline discussed on 2026-10-31. It distinguishes 
 - Error taxonomy, timeout ownership, and the explicit fallback configuration surface.
 
 ## Change log
+
+- **2026-11-04 — Cross-engine verification:** Engine-contract workflow #361 passed on commit `a64a10a` (125 tests, 0 failures). Shared protocol-v1 conformance tests pass for MinMax and MCTS; variant move envelopes are resolved to canonical legal moves; timeout fallback is verified for both engine selectors with fresh request identity and stale-result rejection. The user's mobile debug log showed seven 15-second worker timeouts during opening, each followed by a main-thread retry. The automated tests verify fallback behavior, not the root cause or mobile performance.
 
 - **2026-11-04 — MinMax verification:** GitHub Actions engine-contract workflow #357 passed on commit `8f1b095` (122 tests, 0 failures). Marked checklist D complete; cross-engine integration verification in F remains open.
 
