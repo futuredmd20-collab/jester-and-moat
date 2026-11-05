@@ -130,4 +130,13 @@ test('Newspaper black pieces use palette-aware body and visible detail strokes i
  }
 });
 
-\ntest('mobile visual polish keeps bottom coordinates clear and strengthens moat/editor indicators',()=>{\n assert.ok(css.includes('.square.bottom-coordinate-row { padding-bottom: 4px; }'));\n assert.ok(script.includes("if (r === ROWS - 1) sq.classList.add('bottom-coordinate-row');"));\n assert.match(css,/\.palette-btn\.black-piece \.piece \{[^}]*drop-shadow\(0 0 1\.25px #f0e5d2\)/);\n for(const owner of ['w','b']){\n  assert.match(css,new RegExp('\\\\.square\\\\.moat-'+owner+'::before \\\\{[^}]*font-size: clamp\\\\(10px, 2.6vw, 12px\\\\)'));\n  assert.match(css,new RegExp('\\\\.square\\\\.moat-preview-'+owner+' \\\\{[^}]*border: 2px dashed'));\n }\n});\n
+\ntest('mobile visual polish keeps bottom coordinates clear and strengthens moat/editor indicators',()=>{
+ assert.ok(css.includes('.square.bottom-coordinate-row { padding-bottom: 4px; }'));
+ assert.ok(script.includes("if (r === ROWS - 1) sq.classList.add('bottom-coordinate-row');"));
+ assert.match(css,/\.palette-btn\.black-piece \.piece \{[^}]*drop-shadow\(0 0 1\.25px #f0e5d2\)/);
+ for(const owner of ['w','b']){
+  assert.ok(css.includes(`.square.moat-${owner}::before { content: "${owner.toUpperCase()}";`));
+  assert.ok(css.includes(`.square.moat-preview-${owner} { background:`));
+  assert.ok(css.includes(`.square.moat-preview-${owner} { background: color-mix(in srgb, var(--moat-${owner}) 35%, transparent) !important; border: 2px dashed`));
+ }
+});
