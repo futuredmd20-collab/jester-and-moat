@@ -2206,7 +2206,9 @@ function render(){
   const coordsChk = document.getElementById('coordsToggle');
   el.classList.toggle('hide-coords', !(coordsChk ? coordsChk.checked : true));
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++){
-    const sq = document.createElement('div'); sq.className = 'square ' + ((r + c) % 2 === 0 ? 'light' : 'dark'); sq.setAttribute('role', 'gridcell');
+    const sq = document.createElement('div'); sq.className = 'square ' + ((r + c) % 2 === 0 ? 'light' : 'dark');
+    if (r === ROWS - 1) sq.classList.add('bottom-coordinate-row');
+    sq.setAttribute('role', 'gridcell');
     sq.dataset.r = r; sq.dataset.c = c;
     
     const moatOwner = isMoatCell(r, c);

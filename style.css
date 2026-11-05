@@ -464,7 +464,7 @@
     display: inline-flex; align-items: center; justify-content: center; min-width: 36px; min-height: 36px;
   }
   .palette-btn.white-piece { background: #fffaf1; font-size: 1.4rem; color: #f7f2e5; -webkit-text-stroke: 1px #2a241e; }
-  .palette-btn.black-piece { background: #35312d; color: #24211d; font-size: 1.4rem; -webkit-text-stroke: 0.6px #f0e5d2; }
+  .palette-btn.black-piece { background: #35312d; color: #24211d; font-size: 1.4rem; -webkit-text-stroke: 0.6px #f0e5d2; }\n  /* Keep the SVG silhouettes distinct from the dark editor swatch. */\n  .palette-btn.black-piece .piece { filter: drop-shadow(0 0 1.25px #f0e5d2) drop-shadow(0 0 1px #171411); }
   .palette-btn.tool-btn { background: #eee4d4; color: var(--ink); font-size: 0.82rem; font-weight: 600; }
   .palette-btn.selected { border-color: var(--burgundy); box-shadow: 0 0 0 2px #792f3b20; }
 
@@ -526,13 +526,13 @@
   .square.moat-b { background: color-mix(in srgb, var(--moat-b) 74%, var(--piece-moat-b-accent, var(--moat-b-edge)) 26%) !important; border: 1px solid color-mix(in srgb, var(--moat-b-edge) 58%, var(--piece-moat-b-accent, var(--moat-b-edge)) 42%); box-shadow: inset 0 0 0 1px var(--dot-halo); }
   .square.moat-b::before { content: "B"; position: absolute; top: 1px; right: 2px; font-size: clamp(8px, 2.2vw, 10px); line-height: 1.3; color: var(--moat-b-ink); background: color-mix(in srgb, var(--moat-b-edge) 55%, var(--piece-moat-b-accent, var(--moat-b-edge)) 45%); border-radius: 3px; padding: 0 3px; font-weight: 800; }
 
-  .square.moat-preview-w { background: color-mix(in srgb, var(--moat-w) 53%, transparent) !important; border: 1px dashed color-mix(in srgb, var(--moat-w-edge) 58%, var(--piece-moat-w-accent, var(--moat-w-edge)) 42%); }
-  .square.moat-preview-b { background: color-mix(in srgb, var(--moat-b) 53%, transparent) !important; border: 1px dashed color-mix(in srgb, var(--moat-b-edge) 58%, var(--piece-moat-b-accent, var(--moat-b-edge)) 42%); }
+  .square.moat-preview-w { background: color-mix(in srgb, var(--moat-w) 35%, transparent) !important; border: 2px dashed color-mix(in srgb, var(--moat-w-edge) 58%, var(--piece-moat-w-accent, var(--moat-w-edge)) 42%); }
+  .square.moat-preview-b { background: color-mix(in srgb, var(--moat-b) 35%, transparent) !important; border: 2px dashed color-mix(in srgb, var(--moat-b-edge) 58%, var(--piece-moat-b-accent, var(--moat-b-edge)) 42%); }
 
   /* Coordinate colour follows the SQUARE it sits on. One dark ink on both square
      colours left alternate coordinates invisible on the dark squares - found by
      rendering the palette rather than by reading the CSS. */
-  .square .coord { position: absolute; font-size: 9px; font-weight: 700; opacity: 0.85; pointer-events: none; }
+  .square .coord { position: absolute; font-size: 9px; font-weight: 700; opacity: 0.85; pointer-events: none; }\n  /* Reserve a little extra breathing room between bottom-row pieces and A–J. */\n  .square.bottom-coordinate-row { padding-bottom: 4px; }
   .square.light .coord { color: var(--coord-light); }
   .square.dark .coord { color: var(--coord-dark); }
   .coord.col { right: 2px; bottom: 0; }
