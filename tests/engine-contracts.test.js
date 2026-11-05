@@ -2763,8 +2763,10 @@ test('AI NO_MOVE distinguishes checkmate and stalemate on worker and main-thread
           scheduledCallbacks.length = 0;
           scheduledTimeouts.length = 0;
           mockElement('modeSelect').value = 'human_vs_ai';
-          mockElement('whiteEngineSelect').value = 'minmax_legacy';
-          mockElement('whiteEnginePhaseSelect').value = 'opening';
+          // The unexpected-NO_MOVE fixture has White to move; configure both
+          // sides so the selected test engine is used regardless of turn.
+          mockElement('whiteEngineSelect').value = engineId;
+          mockElement('whiteEnginePhaseSelect').value = 'endgame';
           mockElement('blackEngineSelect').value = engineId;
           mockElement('blackEnginePhaseSelect').value = 'endgame';
           sandbox.api.updateEngineConfigUI();
