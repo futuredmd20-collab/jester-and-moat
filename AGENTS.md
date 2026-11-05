@@ -47,6 +47,15 @@ Use them to understand current state, game/development rules, architecture, and 
 | PR/merge | Never open a PR unless explicitly permitted; a plan explicitly including a draft PR grants permission. Never merge without explicit authorization. Edit/commit/push permission alone does not permit PR creation or merge. |
 | Cleanup | After merge and verification, remove the task branch only if no longer needed and cleanup is appropriate. |
 
+### Remote GitHub workflow
+
+- For remote repository work, prefer the dedicated GitHub integration actions for branch creation, file reads/writes, comparisons, and PR creation. Do not default to a local clone or generic REST calls.
+- Inspect the current `main` and check whether the intended task branch already exists before writing. Create a new task branch from current `main` with the GitHub branch action.
+- Use the native file update/create actions on that task branch, then verify the resulting commit(s), branch contents, and diff against `main`.
+- An approved workflow C or D explicitly authorizes creating the named task branch and all branch/commit operations required by that workflow. Do not ask for a second confirmation for those in-scope operations.
+- Workflow D also authorizes showing the reviewed diff and opening the specified draft PR. It does not authorize merging.
+- Use Git Database Objects only if the relevant native GitHub action is unavailable or actually fails. Diagnose the specific failure; do not infer that other GitHub actions are blocked.
+
 ### Local repository access
 
 - The agent is authorized to clone the canonical GitHub repository locally and use the clone for inspection, editing, testing, and Git operations.

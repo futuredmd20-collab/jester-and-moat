@@ -23,8 +23,9 @@ Shared agent capability boundaries—not game facts, architecture, or change his
 - Buffy may temporarily publish only the requested artifact for download with the user's explicit approval, then unpublish it after the user confirms the download.
 
 ## 4. GitHub & Release Operations
-- If sandbox Git credentials prevent `git push`, use available GitHub integration actions where possible.
-- If GitHub branch-creation or Contents API writes are blocked by tool security controls, don't repeatedly retry the same action. Use the Git Database Objects workflow where available: create blobs, create a tree based on the current branch tree, create a commit with the intended parent, then create or update the branch ref. Verify the resulting branch and commit. This workflow does not bypass permissions or branch protection. If ref creation is also unavailable, stop and report the specific missing capability; never write directly to `main` as a workaround.
+- Prefer the dedicated GitHub integration actions for remote branch, file, commit, comparison, and PR operations. Check the actions available in the current session and verify repository access before concluding a capability is unavailable.
+- Do not assume branch creation or file writes are blocked based on prior sessions, unrelated tool failures, or a failed call to a different action. Diagnose the actual error from the specific operation.
+- If a native GitHub action is unavailable or actually fails, use another supported GitHub workflow where appropriate (including Git Database Objects); never bypass permissions or branch protection.
 - Large inline payloads may be rejected even when valid; explain the issue and use an approved alternative.
 - Integrations can be account-scoped. Verify with a live API call before concluding access is unavailable.
 - Some integrations can read tags/releases but not create them. In this project, the user may need to create annotated tags and GitHub Releases from a local clone using `docs/VERSIONING.md`.
@@ -33,7 +34,7 @@ Shared agent capability boundaries—not game facts, architecture, or change his
 ## 5. Agent-Specific Profiles
 | Agent | Profile / constraints |
 | --- | --- |
-| **ChatGPT (GPT-6)** | See `.agents/chatgpt.md` for Git Database Objects fallback, branch/ref workflow, CI verification, and repository-specific operating practices. |
+| **ChatGPT (GPT-6)** | See `.agents/chatgpt.md` for the native GitHub workflow, Git Database Objects fallback, CI verification, and repository-specific operating practices. |
 | **Freebuff / Buffy** | See `.agents/freebuff.md` for mobile preview/download and Markdown MIME-type limits. Drive reads/searches may work when uploads require unavailable staging. Documentation copies are one-off exports and can drift; ZIP backups may need user-managed download/upload. |
 | **Vibe / Mistral** | See `.agents/vibe.md` for binary-upload placeholders, image-editing limits, workspace resets, SVG text workflows, and release-tag limits. A placeholder-only upload prevents binary text extraction and pixel-level image edits in that session. |
 | **Gemini** | See `.agents/gemini.md` for Drive read/search restrictions, file-operation limits, and user-applied code updates. |
