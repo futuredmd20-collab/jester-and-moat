@@ -53,7 +53,9 @@ The user considers the current integration/test pass complete and has chosen to 
 
 **Completed on 2026-11-05:** cache-only and site-data persistence checks. With White set to MCTS/Opening and Black set to MCTS/Endgame, clearing cached images/files while retaining cookies and site data preserved all four settings after reopening the game. Clearing the game's site data separately and reopening restored the defaults: White MinMax/Midgame and Black MinMax/Midgame. This verifies the distinction between clearing browser cache files and clearing the site's stored data; it does not verify persistence after site data is deleted.
 
-**Completed on 2026-11-05:** offline behavior was checked on the user's Android. After loading the app online, the user enabled airplane mode, closed and reopened the app, and confirmed that the app worked offline. The user also confirmed that MCTS could be selected and successfully make a move. This verifies the app shell and MCTS runtime path under the tested offline conditions; it does not cover induced service-worker/cache failures or other failure-recovery paths.\n\n**Completed on 2026-10-31:** normal engine dispatch, side/configuration independence, phase-specific engine selection, and ordinary reload persistence were checked through browser play and the game log. In the second logged game, the opening began with 40 pieces; midgame began at ply 21 with 33 pieces; endgame began at ply 54 with 16 pieces; checkmate occurred at ply 79. The user considers this test pass complete.
+**Completed on 2026-11-05:** offline behavior was checked on the user's Android. After loading the app online, the user enabled airplane mode, closed and reopened the app, and confirmed that the app worked offline. The user also confirmed that MCTS could be selected and successfully make a move. This verifies the app shell and MCTS runtime path under the tested offline conditions; it does not cover induced service-worker/cache failures or other failure-recovery paths.
+
+**Completed on 2026-10-31:** normal engine dispatch, side/configuration independence, phase-specific engine selection, and ordinary reload persistence were checked through browser play and the game log. In the second logged game, the opening began with 40 pieces; midgame began at ply 21 with 33 pieces; endgame began at ply 54 with 16 pieces; checkmate occurred at ply 79. The user considers this test pass complete.
 
 **Not covered:** MCTS module-load failure, worker-construction fallback, induced worker-runtime recovery, strength calibration, and the full special-case regression list. Do not describe these as passed. The optional single-file build remains outside this checklist unless requested.
 
@@ -65,12 +67,12 @@ Historical checklist items below remain candidates for future work, not requirem
 4. **MCTS load failure:** block `engines/mcts-engine.js` in DevTools Network request blocking, reload, and confirm startup warns while the board and MinMax remain usable. Confirm MCTS cannot run while its module is absent.
 5. **Worker-construction fallback:** use a test server policy that blocks Blob workers, then confirm the chosen engine still makes a legal move via the main thread. Test MinMax and MCTS separately.
 6. **Worker runtime error:** induce a worker runtime failure if practical and confirm the selected engine retries once on the main thread, the failed worker is terminated, and no stale worker response is applied.
-7. **Offline/service worker:** after a successful online load, reload offline and confirm the app shell and MCTS asset are available from cache.
 
 Do not mark these checks complete until they have actually been observed in a browser. The optional single-file build is outside this checklist unless a built artifact is already available or the user explicitly requests building it.
 
 ## Progress log
 
+- **2026-11-05:** User-confirmed Android offline check: after an online load, the app reopened in airplane mode and MCTS was selectable and made a move.
 - **2026-11-05:** User-confirmed browser checks: clearing cached images/files while retaining site data preserved White MCTS/Opening and Black MCTS/Endgame; clearing site data restored MinMax/Midgame defaults for both sides.
 - **2026-11-04:** Current integration/test pass marked on hold after PR #119 (including PR #120) merged. Workflow #364 passed 128 tests (0 failures). Bounded search budgets are now 2.5s/5s/10s for MCTS levels 1–3, 3s/6s/10s for MinMax request levels, and at most 2s for main-thread fallback. Browser/device responsiveness and the cause of observed mobile worker watchdog timeouts remain unverified.
 - **2026-10-22:** Initial design draft on `engine-plugins-design`.
