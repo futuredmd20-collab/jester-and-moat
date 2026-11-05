@@ -149,8 +149,10 @@ test('board surroundings keep the strength indicator in the frame and compact in
  assert.ok(html.indexOf('id="gameModeRow"') > html.indexOf('id="evalBarContainer"'));
  assert.ok(html.indexOf('id="gameModeRow"') < html.indexOf('<!-- Board Editor Toolbar -->'));
  assert.match(css,/#board\s*\{[\s\S]*?border: 2px solid var\(--board-bg\);[\s\S]*?border-radius: 0;/);
- assert.match(css,/\.board-layout\s*\{[\s\S]*?position: relative;/);
- assert.match(css,/\.board-layout::before\s*\{[\s\S]*?top: -4px;[\s\S]*?left: 0;[\s\S]*?width: calc\(100% - 112px\);[\s\S]*?height: 4px;[\s\S]*?linear-gradient\(to right, var\(--piece-w-body\) 0 var\(--white-strength, 50%\), var\(--piece-b-body\) var\(--white-strength, 50%\) 100%\)/);
+ assert.match(html,/<div class="board-frame-wrap">\s*<div id="board" role="grid"/);
+ assert.match(css,/\.board-frame-wrap\s*\{[\s\S]*?grid-column: 1;[\s\S]*?grid-row: 1;[\s\S]*?position: relative;/);
+ assert.match(css,/\.board-frame-wrap::before\s*\{[\s\S]*?top: -4px;[\s\S]*?left: 0;[\s\S]*?right: 0;[\s\S]*?height: 4px;[\s\S]*?linear-gradient\(to right, var\(--piece-w-body\) 0 var\(--white-strength, 50%\), var\(--piece-b-body\) var\(--white-strength, 50%\) 100%\)/);
+ assert.doesNotMatch(css,/\.board-layout::before\s*\{/);
  assert.doesNotMatch(css,/#board(?:\.flipped)?::after\s*\{/);
  assert.match(script,/setProperty\('--white-strength', `\$\{whitePercent\}%`\)/);
  assert.match(css,/\.status\s*\{[\s\S]*?font-size: \.72rem/);
