@@ -145,7 +145,9 @@ test('mobile visual polish keeps bottom coordinates clear and strengthens moat/e
 
 test('board surroundings keep the strength indicator in the frame and compact information together',()=>{
  assert.match(html,/<div class="eval-bar-container" id="evalBarContainer">[\s\S]*?id="moveCounter"[\s\S]*?id="gameModeRow"/);
- assert.doesNotMatch(html,/<div class="game-mode-row" id="gameModeRow">[\s\S]*?<\/div>\s*<!-- Board Editor Toolbar -->/);
+ assert.equal((html.match(/id="gameModeRow"/g)||[]).length,1);
+ assert.ok(html.indexOf('id="gameModeRow"') > html.indexOf('id="evalBarContainer"'));
+ assert.ok(html.indexOf('id="gameModeRow"') < html.indexOf('<!-- Board Editor Toolbar -->'));
  assert.match(css,/linear-gradient\(to right, var\(--piece-w-body\) 0 var\(--white-strength, 50%\), var\(--piece-b-body\) var\(--white-strength, 50%\) 100%\)/);
  assert.match(css,/#board\s*\{[\s\S]*?border: 2px solid transparent;[\s\S]*?border-radius: 0;/);
  assert.match(script,/setProperty\('--white-strength', `\$\{whitePercent\}%`\)/);
