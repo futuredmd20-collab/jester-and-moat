@@ -344,7 +344,7 @@
     width: min(100%, 820px);
     position: relative;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 104px;
+    grid-template-columns: minmax(0, 1fr) 5px 104px;
     align-items: stretch;
     gap: 8px;
   }
@@ -393,6 +393,8 @@
   }
 
   .clock-container {
+    grid-column: 3;
+    grid-row: 1;
     width: 104px;
     display: flex;
     flex-direction: column;
@@ -739,7 +741,8 @@
   @media (max-width: 860px) {
     main { width: min(100%, 700px); }
     .board-layout { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; gap: 6px; width: 100%; align-items: stretch; }
-    .board-layout #board { grid-column: 1; grid-row: 2; width: 100%; }
+    .board-layout .board-frame-wrap { grid-column: 1; grid-row: 2; }
+    .board-layout #board { width: 100%; }
     .board-layout .board-eval-track { display: none !important; }
     .clock-container { grid-column: 1; grid-row: 1; width: 100%; flex-direction: row; order: 0; }
     .clock-box { flex: 1; flex-direction: row; justify-content: space-between; padding: 3px 7px; min-height: 32px; }

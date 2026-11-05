@@ -188,3 +188,10 @@ test('board-side eval track can be shown by display preferences on desktop',()=>
  assert.match(baseRule[1],/display: none;/);
  assert.doesNotMatch(baseRule[1],/display: none !important;/);
 });
+
+test('desktop board grid reserves separate columns for the eval track and clock panels',()=>{
+ assert.match(css,/\.board-layout\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+5px\s+104px/);
+ assert.match(css,/\.board-eval-track\s*\{[^}]*grid-column:\s*2;[^}]*grid-row:\s*1;/);
+ assert.match(css,/\.clock-container\s*\{[^}]*grid-column:\s*3;[^}]*grid-row:\s*1;/);
+ assert.match(css,/@media\s*\(max-width:\s*860px\)[\s\S]*?\.board-layout\s*\.board-frame-wrap\s*\{\s*grid-column:\s*1;\s*grid-row:\s*2;\s*\}/);
+});
