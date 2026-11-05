@@ -106,6 +106,7 @@ function position() {
 
 function terminalPosition(kind) {
   const s = position();
+  if (kind === 'unexpected-no-move') return s;
   s.board = Array.from({ length: 8 }, () => Array(10).fill(null));
   s.board[2][2] = { type: 'k', color: 'w', moved: true };
   s.board[0][0] = { type: 'k', color: 'b', moved: true };
@@ -2747,12 +2748,14 @@ test('AI NO_MOVE distinguishes checkmate and stalemate on worker and main-thread
         search(request) { return EngineContract.completed(request, null); }
       });
 
-      for (const kind of ['checkmate', 'stalemate']) {
+      for (const kind of ['checkmate', 'stalemate', 'unexpected-no-move']) {
         const s = terminalPosition(kind);
-        assert.equal(sandbox.api.inCheck('b', s.board, s.moats), kind === 'checkmate',
+        const sideToMove = s.turn;
+        const hasLegalMoves = allLegalState(s, sideToMove).length > 0;
+        assert.equal(hasLegalMoves, kind === 'unexpected-no-move',
+          kind + ': fixture must have the expected legal-move state');
+        assert.equal(sandbox.api.inCheck(sideToMove, s.board, s.moats), kind === 'checkmate',
           kind + ': fixture must have the expected check state');
-        assert.equal(allLegalState(s, 'b').length, 0,
-          kind + ': fixture must have no legal moves');
 
         for (const transport of ['worker', 'main-thread']) {
           sandbox.api.resetAIWorker();
@@ -2793,11 +2796,14 @@ test('AI NO_MOVE distinguishes checkmate and stalemate on worker and main-thread
             callback();
           }
 
-          assert.equal(sandbox.api.getGameOver(), true,
-            engineId + ' ' + transport + ' ' + kind + ': terminal position must end the game');
-          assert.equal(mockElement('status').textContent,
-            kind === 'checkmate' ? 'Checkmate! White wins.' : 'Stalemate — Draw.',
-            engineId + ' ' + transport + ': terminal message must be classified correctly');
+          const expectedGameOver = kind !== 'unexpected-no-move';
+          const expectedStatus = kind === 'checkmate' ? 'Checkmate! White wins.'
+            : kind === 'stalemate' ? 'Stalemate — Draw.'
+            : 'AI error: engine reported no legal moves.';
+          assert.equal(sandbox.api.getGameOver(), expectedGameOver,
+            engineId + ' ' + transport + ' ' + kind + ': game-over state must match the actual position');
+          assert.equal(mockElement('status').textContent, expectedStatus,
+            engineId + ' ' + transport + ': no-move response must be classified correctly');
           assert.equal(sandbox.api.getActiveAIForTest().thinking, false);
         }
       }
