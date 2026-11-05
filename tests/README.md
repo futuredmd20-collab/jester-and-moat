@@ -16,6 +16,7 @@ The engine contract suite evaluates canonical rule/search functions from `script
 
 - MinMax returns a legal move in a simple position and does not mutate the input state.
 - MinMax and MCTS return `null` when no legal moves exist.
+- Worker and main-thread `NO_MOVE` responses classify checkmate and stalemate correctly for both engines; inconsistent no-move results and failed searches remain AI errors and do not end the game.
 - Jester swap requires an adjacent friendly piece that has already moved; negative cases cover unmoved friends, enemies, non-adjacent pieces, and leaving the king in check.
 - Unresolved/invalid AI promotion choices default to a queen.
 - Queen, jester, rook, bishop, and knight promotion choices are applied correctly.

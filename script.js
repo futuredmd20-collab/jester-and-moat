@@ -1439,12 +1439,7 @@ onmessage = async function(event) {
       move = legalMove;
     }
     if (move) play(move, 'pending');
-    else {
-      gameOver = true;
-      stopAutoPlay();
-      stopClock();
-      status('No legal moves available.');
-    }
+    else finishAINoMove();
 };
   const workerInstance = aiWorker;
   workerInstance.onerror = () => {
@@ -1504,6 +1499,22 @@ function getEngineConfig(side) {
 const AI_MAIN_THREAD_BUDGET_MS = 2000;
 const AI_SEARCH_BUDGETS_MS = { 1: 3000, 2: 6000, 3: 10000 };
 
+function finishAINoMove() {
+  const sideToMove = state.turn;
+  if (allLegal(sideToMove).length > 0) {
+    status('AI error: engine reported no legal moves.');
+    return;
+  }
+
+  const check = inCheck(sideToMove, state.board, state.moats);
+  gameOver = true;
+  stopAutoPlay();
+  stopClock();
+  status(check
+    ? `Checkmate! ${other(sideToMove) === 'w' ? 'White' : 'Black'} wins.`
+    : 'Stalemate — Draw.');
+}
+
 function runAIOnMainThread(request) {
   setTimeout(() => {
     if (gameOver || request.id !== aiRequestId || !isAIThinking) {
@@ -1562,12 +1573,7 @@ function runAIOnMainThread(request) {
       bestMove = legalMove;
     }
     if (bestMove) play(bestMove, 'pending');
-    else {
-      gameOver = true;
-      stopAutoPlay();
-      stopClock();
-      status('No legal moves available.');
-    }
+    else finishAINoMove();
   }, 20);
 }
 
