@@ -28,7 +28,7 @@ Allow independently configured AI engines for White and Black, optionally limite
 | Plugin setup | Registry, MinMax adapter, MCTS module and dispatch were exercised in manual browser play; both engines ran without visible errors. | These checks do not establish exhaustive engine correctness. |
 | Side/phase UI | White/Black settings were independent. Runtime logs confirmed phase-specific selection: in the second logged game, White used MCTS in opening, both sides used MinMax in midgame, and Black used MCTS in endgame. | None for the cache/site-data persistence distinction; broader phase-policy validation remains outstanding. |
 | Loading/build | MCTS script loading, service-worker precache and version alignment (PR #23); loading fix (PR #24); single-file builder embeds MCTS before `script.js`. | Exercise multi-file and built single-file pages. If MCTS fails to load on the multi-file page, startup warns and keeps board/MinMax available; MCTS selection falls back to MinMax. Confirm this recovery path in a browser. |
-| Worker dispatch | The reviewed game log showed matching engine-to-worker dispatch and 108 worker replies, with no obvious worker/engine errors. | Browser verification of MCTS load failure, worker-construction fallback, worker-runtime recovery and offline behavior remains outstanding. |
+| Worker dispatch | The reviewed game log showed matching engine-to-worker dispatch and 108 worker replies, with no obvious worker/engine errors. Offline behavior was also verified on the user's Android: after an online load, the app reopened in airplane mode and MCTS was selectable and made a move. | Browser verification of MCTS load failure, worker-construction fallback and induced worker-runtime recovery remains outstanding. |
 | Search budgets and responsiveness | PR #120 adds finite MCTS budgets for levels 1–3 (2.5s/5s/10s), request-scoped MinMax budgets (3s/6s/10s), best-so-far legal moves on budget expiry, and a 2s cap for main-thread fallback. Engine-contract workflow #364 passed 128 tests (0 failures). | Real-device/browser timing and responsiveness have not been re-verified. The mobile log's seven 15-second worker watchdog timeouts remain unexplained. |
 | Phase policy and ratings | Thresholds and provisional MCTS presets/labels are defined. | Validate phase boundaries against representative games; calibrate strength before presenting ELO-like values as measured ratings. |
 
@@ -46,16 +46,18 @@ The user considers the current integration/test pass complete and has chosen to 
 
 1. **Strength calibration:** measure repeatable results before treating ELO-like labels as calibrated ratings.
 2. **Search responsiveness:** PR #120 now supplies finite budgets for all MCTS levels and request-scoped MinMax searches, preserves a legal best-so-far move, and caps main-thread fallback at 2s. Browser/device timing remains unverified; investigate the observed 15s worker watchdog timeouts only if this area is resumed.
-3. **Failure recovery:** browser-check MCTS load failure, worker-construction fallback, worker-runtime recovery, and offline/service-worker behavior.
+3. **Failure recovery:** browser-check MCTS load failure, worker-construction fallback, and induced worker-runtime recovery.
 4. **Additional regressions:** promotions, swaps, moats, no-legal-move/game-over handling, and responsive performance as relevant to future engine changes.
 
 ## Manual browser verification checklist
 
 **Completed on 2026-11-05:** cache-only and site-data persistence checks. With White set to MCTS/Opening and Black set to MCTS/Endgame, clearing cached images/files while retaining cookies and site data preserved all four settings after reopening the game. Clearing the game's site data separately and reopening restored the defaults: White MinMax/Midgame and Black MinMax/Midgame. This verifies the distinction between clearing browser cache files and clearing the site's stored data; it does not verify persistence after site data is deleted.
 
+**Completed on 2026-11-05:** offline behavior was checked on the user's Android. After loading the app online, the user enabled airplane mode, closed and reopened the app, and confirmed that the app worked offline. The user also confirmed that MCTS could be selected and successfully make a move. This verifies the app shell and MCTS runtime path under the tested offline conditions; it does not cover induced service-worker/cache failures or other failure-recovery paths.
+
 **Completed on 2026-10-31:** normal engine dispatch, side/configuration independence, phase-specific engine selection, and ordinary reload persistence were checked through browser play and the game log. In the second logged game, the opening began with 40 pieces; midgame began at ply 21 with 33 pieces; endgame began at ply 54 with 16 pieces; checkmate occurred at ply 79. The user considers this test pass complete.
 
-**Not covered:** MCTS module-load failure, worker-construction fallback, induced worker-runtime recovery, offline behavior, strength calibration, and the full special-case regression list. Do not describe these as passed. The optional single-file build remains outside this checklist unless requested.
+**Not covered:** MCTS module-load failure, worker-construction fallback, induced worker-runtime recovery, strength calibration, and the full special-case regression list. Do not describe these as passed. The optional single-file build remains outside this checklist unless requested.
 
 Historical checklist items below remain candidates for future work, not requirements to continue this test pass.
 
@@ -65,12 +67,12 @@ Historical checklist items below remain candidates for future work, not requirem
 4. **MCTS load failure:** block `engines/mcts-engine.js` in DevTools Network request blocking, reload, and confirm startup warns while the board and MinMax remain usable. Confirm MCTS cannot run while its module is absent.
 5. **Worker-construction fallback:** use a test server policy that blocks Blob workers, then confirm the chosen engine still makes a legal move via the main thread. Test MinMax and MCTS separately.
 6. **Worker runtime error:** induce a worker runtime failure if practical and confirm the selected engine retries once on the main thread, the failed worker is terminated, and no stale worker response is applied.
-7. **Offline/service worker:** after a successful online load, reload offline and confirm the app shell and MCTS asset are available from cache.
 
 Do not mark these checks complete until they have actually been observed in a browser. The optional single-file build is outside this checklist unless a built artifact is already available or the user explicitly requests building it.
 
 ## Progress log
 
+- **2026-11-05:** User-confirmed Android offline check: after an online load, the app reopened in airplane mode and MCTS was selectable and made a move.
 - **2026-11-05:** User-confirmed browser checks: clearing cached images/files while retaining site data preserved White MCTS/Opening and Black MCTS/Endgame; clearing site data restored MinMax/Midgame defaults for both sides.
 - **2026-11-04:** Current integration/test pass marked on hold after PR #119 (including PR #120) merged. Workflow #364 passed 128 tests (0 failures). Bounded search budgets are now 2.5s/5s/10s for MCTS levels 1–3, 3s/6s/10s for MinMax request levels, and at most 2s for main-thread fallback. Browser/device responsiveness and the cause of observed mobile worker watchdog timeouts remain unverified.
 - **2026-10-22:** Initial design draft on `engine-plugins-design`.
