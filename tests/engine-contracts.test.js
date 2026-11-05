@@ -33,7 +33,7 @@ function mockElement(id) {
       innerHTML: '',
       dataset: {},
       children: [],
-      style: {},
+      style: { setProperty(name, value) { this[name] = value; } },
       classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
       addEventListener() {},
       removeEventListener() {},
