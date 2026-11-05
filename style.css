@@ -342,11 +342,24 @@
   /* --- Clock UI --- */
   .board-layout {
     width: min(100%, 820px);
+    position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr) 104px;
     align-items: stretch;
     gap: 8px;
   }
+  .board-layout::before {
+    content: "";
+    position: absolute;
+    top: -4px;
+    left: 0;
+    width: calc(100% - 112px);
+    height: 4px;
+    background: linear-gradient(to right, var(--piece-w-body) 0 var(--white-strength, 50%), var(--piece-b-body) var(--white-strength, 50%) 100%);
+    pointer-events: none;
+    z-index: 2;
+  }
+
   .board-layout #board { grid-column: 1; grid-row: 1; min-width: 0; }
   .board-eval-track {
     display: none !important;
@@ -495,23 +508,7 @@
     overflow: hidden;
   }
 
-  #board::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(to right, var(--piece-w-body) 0 var(--white-strength, 50%), var(--piece-b-body) var(--white-strength, 50%) 100%);
-    pointer-events: none;
-    z-index: 1;
-  }
 
-  #board.flipped::after {
-    top: auto;
-    bottom: 0;
-    background: linear-gradient(to left, var(--piece-w-body) 0 var(--white-strength, 50%), var(--piece-b-body) var(--white-strength, 50%) 100%);
-  }
 
   #board.flipped { transform: rotate(180deg); }
   #board.flipped .square > *, #board.flipped .square .coord { transform: rotate(180deg); }
