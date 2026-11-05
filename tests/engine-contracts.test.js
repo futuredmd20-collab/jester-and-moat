@@ -85,7 +85,7 @@ const sandbox = {
 vm.createContext(sandbox);
 vm.runInContext(minmax, sandbox);
 vm.runInContext(source.slice(0, boundary) + `
-globalThis.api = { EngineContract, MinMaxLegacy, cancelActiveAIRequest, setActiveAIForTest(worker, request) { aiWorker = worker; pendingAIRequest = request; aiRequestId = request.id; isAIThinking = true; }, getActiveAIForTest() { return { worker: aiWorker, request: pendingAIRequest, thinking: isAIThinking, id: aiRequestId }; }, allLegalState, findLegalMoveMatch, MinMaxSearchCore, getBestMove: MinMaxSearchCore.getBestMove, getBestMoveAsync: MinMaxSearchCore.getBestMoveAsync, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout); aiWorkerTimeout = null; if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; gameOver = false; gameOverMessage = ''; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getDefaultEngineForSide() { return defaultEngineForSide; }, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, applyLoadedGame, resumeLoadedGamePlayback, getAutoPlayForTest() { return autoPlayInterval; }, stopAutoPlayForTest: stopAutoPlay, ENGINE_PHASES, debugLogger, DebugLogger, status };
+globalThis.api = { EngineContract, MinMaxLegacy, cancelActiveAIRequest, setActiveAIForTest(worker, request) { aiWorker = worker; pendingAIRequest = request; aiRequestId = request.id; isAIThinking = true; }, getActiveAIForTest() { return { worker: aiWorker, request: pendingAIRequest, thinking: isAIThinking, id: aiRequestId }; }, allLegalState, inCheck, findLegalMoveMatch, MinMaxSearchCore, getBestMove: MinMaxSearchCore.getBestMove, getBestMoveAsync: MinMaxSearchCore.getBestMoveAsync, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout); aiWorkerTimeout = null; if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; gameOver = false; gameOverMessage = ''; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getDefaultEngineForSide() { return defaultEngineForSide; }, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, applyLoadedGame, resumeLoadedGamePlayback, getAutoPlayForTest() { return autoPlayInterval; }, stopAutoPlayForTest: stopAutoPlay, ENGINE_PHASES, debugLogger, DebugLogger, status };
 `, sandbox, { filename: 'script.js' });
 vm.runInContext(mcts, sandbox, { filename: 'engines/mcts-engine.js' });
 // The app's HTML loads the MCTS module before script.js; register its plugin here
@@ -102,6 +102,17 @@ function position() {
     moveCounts: { w: 0, b: 0 }, phase: 'normal', captured: { w: [], b: [] },
     halfmoveClock: 0, positionHistory: {}, clocks: { w: 0, b: 0 }
   };
+}
+
+function terminalPosition(kind) {
+  const s = position();
+  s.board = Array.from({ length: 8 }, () => Array(10).fill(null));
+  s.board[2][2] = { type: 'k', color: 'w', moved: true };
+  s.board[0][0] = { type: 'k', color: 'b', moved: true };
+  s.board[kind === 'checkmate' ? 1 : 2][1] = { type: 'q', color: 'w', moved: true };
+  s.turn = 'b';
+  s.ply = 40;
+  return s;
 }
 const { EngineContract, allLegalState, getBestMove, getBestMoveAsync, applyRaw, getGamePhase, ensureAIWorker, play, aiPlaceMoatForColor, confirmMoatPlacement, setPendingMoat, setState, getState, setHistoryForTest, getHistory, getHistoryMoveLogs, getMoveLog, getGameOver, undoHistoryStep, redoHistoryStep, replaceLatestHistorySnapshot, exportGameData, parseGameData, ENGINE_PHASES } = sandbox.api;
 
@@ -2699,5 +2710,150 @@ test('worker timeout fallback retries the selected MinMax or MCTS engine once wi
     sandbox.window.Worker = previousWindowWorker;
     scheduledCallbacks.length = 0;
     scheduledTimeouts.length = 0;
+  }
+});
+
+
+test('AI NO_MOVE distinguishes checkmate and stalemate on worker and main-thread paths for both engines', () => {
+  const previousCreateObjectURL = sandbox.URL.createObjectURL;
+  const previousRevokeObjectURL = sandbox.URL.revokeObjectURL;
+  const previousWorker = sandbox.Worker;
+  const previousWindowWorker = sandbox.window.Worker;
+  const originalEngines = new Map([
+    ['minmax_legacy', sandbox.api.enginePlugins.get('minmax_legacy')],
+    ['mcts', sandbox.api.enginePlugins.get('mcts')]
+  ]);
+  const workers = [];
+
+  class NoMoveWorker {
+    constructor(url) {
+      this.url = url;
+      this.onmessage = null;
+      this.onerror = null;
+      this.request = null;
+      this.terminated = false;
+      workers.push(this);
+    }
+    postMessage(request) { this.request = request; }
+    terminate() { this.terminated = true; }
+  }
+
+  try {
+    for (const engineId of ['minmax_legacy', 'mcts']) {
+      sandbox.api.enginePlugins.set(engineId, {
+        id: engineId,
+        name: engineId + ' NO_MOVE test engine',
+        phases: ['opening', 'midgame', 'endgame'],
+        search(request) { return EngineContract.completed(request, null); }
+      });
+
+      for (const kind of ['checkmate', 'stalemate']) {
+        const s = terminalPosition(kind);
+        assert.equal(sandbox.api.inCheck('b', s.board, s.moats), kind === 'checkmate',
+          kind + ': fixture must have the expected check state');
+        assert.equal(allLegalState(s, 'b').length, 0,
+          kind + ': fixture must have no legal moves');
+
+        for (const transport of ['worker', 'main-thread']) {
+          sandbox.api.resetAIWorker();
+          sandbox.api.stopAutoPlayForTest();
+          scheduledCallbacks.length = 0;
+          scheduledTimeouts.length = 0;
+          mockElement('modeSelect').value = 'human_vs_ai';
+          mockElement('whiteEngineSelect').value = engineId;
+          mockElement('whiteEnginePhaseSelect').value = 'endgame';
+          mockElement('blackEngineSelect').value = 'minmax_legacy';
+          mockElement('blackEnginePhaseSelect').value = 'opening';
+          sandbox.api.updateEngineConfigUI();
+          sandbox.api.setState(s);
+
+          if (transport === 'worker') {
+            sandbox.URL.createObjectURL = () => 'blob:no-move-terminal-test';
+            sandbox.Worker = NoMoveWorker;
+            sandbox.window.Worker = NoMoveWorker;
+          } else {
+            sandbox.URL.createObjectURL = () => { throw new Error('Use main-thread path'); };
+          }
+
+          sandbox.api.aiMove();
+
+          if (transport === 'worker') {
+            const worker = workers[workers.length - 1];
+            const contractRequest = worker.request.contractRequest;
+            assert.equal(contractRequest.engineId, engineId);
+            worker.onmessage({
+              data: {
+                id: worker.request.id,
+                result: EngineContract.completed(contractRequest, null)
+              }
+            });
+          } else {
+            const callback = scheduledCallbacks.findLast(item => item.delay === 20);
+            assert.ok(callback, engineId + ': main-thread search should be scheduled');
+            callback();
+          }
+
+          assert.equal(sandbox.api.getGameOver(), true,
+            engineId + ' ' + transport + ' ' + kind + ': terminal position must end the game');
+          assert.equal(mockElement('status').textContent,
+            kind === 'checkmate' ? 'Checkmate! White wins.' : 'Stalemate — Draw.',
+            engineId + ' ' + transport + ': terminal message must be classified correctly');
+          assert.equal(sandbox.api.getActiveAIForTest().thinking, false);
+        }
+      }
+    }
+  } finally {
+    for (const [engineId, engine] of originalEngines) sandbox.api.enginePlugins.set(engineId, engine);
+    sandbox.api.resetAIWorker();
+    sandbox.URL.createObjectURL = previousCreateObjectURL;
+    sandbox.URL.revokeObjectURL = previousRevokeObjectURL;
+    sandbox.Worker = previousWorker;
+    sandbox.window.Worker = previousWindowWorker;
+    scheduledCallbacks.length = 0;
+    scheduledTimeouts.length = 0;
+  }
+});
+
+test('main-thread engine failures do not end the game for MinMax or MCTS', () => {
+  const previousCreateObjectURL = sandbox.URL.createObjectURL;
+  const originalEngines = new Map([
+    ['minmax_legacy', sandbox.api.enginePlugins.get('minmax_legacy')],
+    ['mcts', sandbox.api.enginePlugins.get('mcts')]
+  ]);
+
+  try {
+    sandbox.URL.createObjectURL = () => { throw new Error('Use main-thread path'); };
+    for (const engineId of ['minmax_legacy', 'mcts']) {
+      sandbox.api.resetAIWorker();
+      scheduledCallbacks.length = 0;
+      mockElement('modeSelect').value = 'human_vs_ai';
+      mockElement('whiteEngineSelect').value = engineId;
+      mockElement('whiteEnginePhaseSelect').value = 'endgame';
+      mockElement('blackEngineSelect').value = 'minmax_legacy';
+      mockElement('blackEnginePhaseSelect').value = 'opening';
+      sandbox.api.enginePlugins.set(engineId, {
+        id: engineId,
+        name: engineId + ' failing test engine',
+        phases: ['opening', 'midgame', 'endgame'],
+        search(request) {
+          return EngineContract.failed(request, EngineContract.errorCodes.SEARCH_FAILED, 'simulated main-thread failure');
+        }
+      });
+      sandbox.api.updateEngineConfigUI();
+      sandbox.api.setState(position());
+      sandbox.api.aiMove();
+
+      const callback = scheduledCallbacks.findLast(item => item.delay === 20);
+      assert.ok(callback, engineId + ': main-thread search should be scheduled');
+      callback();
+
+      assert.match(mockElement('status').textContent, /AI error: simulated main-thread failure/);
+      assert.equal(sandbox.api.getGameOver(), false, engineId + ': engine failure must not end the game');
+    }
+  } finally {
+    for (const [engineId, engine] of originalEngines) sandbox.api.enginePlugins.set(engineId, engine);
+    sandbox.api.resetAIWorker();
+    sandbox.URL.createObjectURL = previousCreateObjectURL;
+    scheduledCallbacks.length = 0;
   }
 });
