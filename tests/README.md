@@ -48,6 +48,8 @@ The engine contract suite evaluates canonical rule/search functions from `script
 - Undo/redo restores complete move-log snapshots, moat-placement phase/turn, and terminal-game status.
 - JSON save export/import roundtrips board state, history, clocks, moat state, move logs, and terminal status. Import rejects malformed boards, pieces, phases, clocks, coordinates, mismatched current/history positions, and mismatched current/history logs. Missing optional legacy fields receive documented defaults; the latest history snapshot adopts current saved clocks because clocks tick between moves. Legacy saves without per-history log snapshots remain importable.
 
+- Board-surroundings source contract: the material balance is reflected in a thin, square-cornered board frame using the active piece palette colours; mode, points, and move count share a compact information strip; status text uses reduced sizing.
+
 ## Remaining verification
 
 This is a focused regression suite, not a complete rules suite or strength benchmark. Automated tests cover engine-setting persistence and validation, but browser rendering and real-browser/offline behavior still need browser verification. The worker and startup tests validate source-level contracts with mocks, not a live browser or deployed PWA. The 2026-11-04 mobile debug log recorded seven 15-second worker timeouts during opening, each followed by a main-thread retry; automated tests verify this fallback policy for both engine selectors but do not identify the cause of those device timeouts or establish mobile performance.

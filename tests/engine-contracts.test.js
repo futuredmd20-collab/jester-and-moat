@@ -33,7 +33,7 @@ function mockElement(id) {
       innerHTML: '',
       dataset: {},
       children: [],
-      style: {},
+      style: { setProperty(name, value) { this[name] = value; } },
       classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
       addEventListener() {},
       removeEventListener() {},
@@ -64,6 +64,7 @@ const sandbox = {
   window: { location: { search: '' }, innerWidth: 1024, Worker: function Worker() {}, addEventListener() {} },
   document: {
     getElementById(id) { return mockElement(id); },
+    querySelector(selector) { return selector === '.board-frame-wrap' ? mockElement('board-frame-wrap') : null; },
     querySelectorAll() { return []; },
     addEventListener() {},
     createElement(tag) { return mockElement(tag); },
@@ -2577,6 +2578,7 @@ test('variant-specific moves survive the shared contract and are resolved by the
       const canonical = sandbox.api.findLegalMoveMatch(fixture.state, result.move);
       assert.ok(canonical, engineId + ': ' + scenario.name + ' must resolve to a canonical legal move');
 
+      sandbox.api.resetAIWorker();
       sandbox.api.setState(fixture.state);
       sandbox.api.play(canonical, fixture.promotion || 'q', true);
       fixture.verify(sandbox.api.getState());

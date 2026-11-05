@@ -141,3 +141,57 @@ test('mobile visual polish keeps bottom coordinates clear and strengthens moat/e
   assert.ok(css.includes(`.square.moat-preview-${owner} { background: color-mix(in srgb, var(--moat-${owner}) 35%, transparent) !important; border: 2px dashed`));
  }
 });
+
+
+test('board surroundings keep the strength indicator in the frame and compact information together',()=>{
+ assert.match(html,/<div class="eval-bar-container" id="evalBarContainer">[\s\S]*?id="moveCounter"[\s\S]*?id="gameModeRow"/);
+ assert.equal((html.match(/id="gameModeRow"/g)||[]).length,1);
+ assert.ok(html.indexOf('id="gameModeRow"') > html.indexOf('id="evalBarContainer"'));
+ assert.ok(html.indexOf('id="gameModeRow"') < html.indexOf('<!-- Board Editor Toolbar -->'));
+ assert.match(css,/#board\s*\{[\s\S]*?border: 2px solid var\(--board-bg\);[\s\S]*?border-radius: 0;/);
+ assert.match(html,/<div class="board-frame-wrap">\s*<div id="board" role="grid"/);
+ assert.match(css,/\.board-frame-wrap\s*\{[\s\S]*?grid-column: 1;[\s\S]*?grid-row: 1;[\s\S]*?position: relative;/);
+ assert.match(css,/\.board-frame-wrap::before\s*\{[\s\S]*?top: -4px;[\s\S]*?left: 0;[\s\S]*?right: 0;[\s\S]*?height: 4px;[\s\S]*?linear-gradient\(to right, var\(--piece-w-body\) 0 var\(--white-strength, 50%\), var\(--piece-b-body\) var\(--white-strength, 50%\) 100%\)/);
+ assert.doesNotMatch(css,/\.board-layout::before\s*\{/);
+ assert.doesNotMatch(css,/#board(?:\.flipped)?::after\s*\{/);
+ assert.match(script,/querySelector\('\.board-frame-wrap'\)\.style\.setProperty\('--white-strength', `\$\{whitePercent\}%`\)/);
+ assert.match(css,/\.status\s*\{[\s\S]*?font-size: \.72rem/);
+ assert.match(css,/\.game-mode-row\s*\{[\s\S]*?flex: 0 1 auto/);
+});
+
+test('Eval & Score display modes reset every controlled element on every transition',()=>{
+ const match=script.match(/function updateDisplayPreferences\(\)\s*\{[\s\S]*?\n\}/);
+ assert.ok(match,'updateDisplayPreferences() was not found');
+ const ids=['clockContainerEl','evalBarContainer','boardEvalTrack','evalWhiteInfo','evalBlackInfo'];
+ const expected={
+  full:['flex','flex','flex','flex','flex'],
+  bar_pts:['none','flex','flex','flex','flex'],
+  bar_only:['none','flex','flex','none','none'],
+  clocks_only:['flex','none','none','none','none'],
+  hidden:['none','none','none','none','none']
+ };
+ const elements=new Map(ids.map(id=>[id,{style:{display:'stale'}}]));
+ const selector={value:'full'};
+ const context={document:{getElementById:id=>id==='uiDisplaySelect'?selector:elements.get(id)}};
+ vm.runInNewContext(match[0],context);
+ const transitions=['bar_pts','bar_only','clocks_only','hidden','full','hidden','clocks_only','bar_only','full'];
+ for(const mode of transitions){
+  selector.value=mode;
+  context.updateDisplayPreferences();
+  assert.deepEqual(ids.map(id=>elements.get(id).style.display),expected[mode],`incorrect visibility after switching to ${mode}`);
+ }
+});
+
+test('board-side eval track can be shown by display preferences on desktop',()=>{
+ const baseRule=css.match(/\.board-eval-track\s*\{([^}]*)\}/);
+ assert.ok(baseRule,'base desktop .board-eval-track rule is missing');
+ assert.match(baseRule[1],/display: none;/);
+ assert.doesNotMatch(baseRule[1],/display: none !important;/);
+});
+
+test('desktop board grid reserves separate columns for the eval track and clock panels',()=>{
+ assert.match(css,/\.board-layout\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+5px\s+104px/);
+ assert.match(css,/\.board-eval-track\s*\{[^}]*grid-column:\s*2;[^}]*grid-row:\s*1;/);
+ assert.match(css,/\.clock-container\s*\{[^}]*grid-column:\s*3;[^}]*grid-row:\s*1;/);
+ assert.match(css,/@media\s*\(max-width:\s*860px\)[\s\S]*?\.board-layout\s*\.board-frame-wrap\s*\{\s*grid-column:\s*1;\s*grid-row:\s*2;\s*\}/);
+});
