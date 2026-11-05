@@ -2181,7 +2181,7 @@ function updateDashboard(){
   }
   document.getElementById('evalFillWhite').style.height = `${whitePercent}%`;
   document.getElementById('evalFillBlack').style.height = `${100 - whitePercent}%`;
-  document.getElementById('board').style.setProperty('--white-strength', `${whitePercent}%`);
+  document.querySelector('.board-frame-wrap').style.setProperty('--white-strength', `${whitePercent}%`);
 
   const whiteCapEl = document.getElementById('capturedByWhite');
   const blackCapEl = document.getElementById('capturedByBlack');

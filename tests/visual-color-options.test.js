@@ -154,7 +154,7 @@ test('board surroundings keep the strength indicator in the frame and compact in
  assert.match(css,/\.board-frame-wrap::before\s*\{[\s\S]*?top: -4px;[\s\S]*?left: 0;[\s\S]*?right: 0;[\s\S]*?height: 4px;[\s\S]*?linear-gradient\(to right, var\(--piece-w-body\) 0 var\(--white-strength, 50%\), var\(--piece-b-body\) var\(--white-strength, 50%\) 100%\)/);
  assert.doesNotMatch(css,/\.board-layout::before\s*\{/);
  assert.doesNotMatch(css,/#board(?:\.flipped)?::after\s*\{/);
- assert.match(script,/setProperty\('--white-strength', `\$\{whitePercent\}%`\)/);
+ assert.match(script,/querySelector\('\.board-frame-wrap'\)\.style\.setProperty\('--white-strength', `\$\{whitePercent\}%`\)/);
  assert.match(css,/\.status\s*\{[\s\S]*?font-size: \.72rem/);
  assert.match(css,/\.game-mode-row\s*\{[\s\S]*?flex: 0 1 auto/);
 });
