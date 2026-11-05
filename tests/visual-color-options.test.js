@@ -183,6 +183,8 @@ test('Eval & Score display modes reset every controlled element on every transit
 });
 
 test('board-side eval track can be shown by display preferences on desktop',()=>{
- assert.match(css,/\.board-eval-track\s*\{\s*display: none;/);
- assert.doesNotMatch(css,/\.board-eval-track\s*\{\s*display: none !important;/);
+ const baseRule=css.match(/\.board-eval-track\s*\{([^}]*)\}/);
+ assert.ok(baseRule,'base desktop .board-eval-track rule is missing');
+ assert.match(baseRule[1],/display: none;/);
+ assert.doesNotMatch(baseRule[1],/display: none !important;/);
 });
