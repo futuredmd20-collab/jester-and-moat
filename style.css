@@ -221,7 +221,7 @@
 
   .game-mode-row {
     display: flex;
-    flex: 1 1 100%;
+    flex: 0 1 auto;
     justify-content: flex-start;
     align-items: center;
     margin: 0;
@@ -232,7 +232,7 @@
 
   .game-mode-pill {
     display: block;
-    width: 100%;
+    width: auto;
     box-sizing: border-box;
     text-align: center;
     /* Keep the full-width pill readable while adding virtually no height. */
