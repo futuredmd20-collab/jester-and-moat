@@ -1,7 +1,7 @@
 # Layout and Piece Design Plan
 Purpose: track design decisions, asset specifications, visual consistency, and implementation tasks for board layout, piece styling, and UI presentation.
 
-**Status: In progress (2026-11-04).** The main implementation work is substantially complete: Classic, Flat, and Minimal piece designs; Classic King/Queen/Bishop adjustments; responsive Mobile/Desktop defaults; four piece-colour palettes; four board-colour palettes; independent persistence; swatches and appearance reset; and theme-aware moat/indicator accents. Remaining work is primarily visual specification and verification: audit all designs/surfaces and the 96 combinations, refine Jester/Moat states, and check board layout/spacing. Do not treat these remaining checks as completed.
+**Status: In progress (2026-11-05).** The main implementation work is substantially complete: Classic, Flat, and Minimal piece designs; Classic King/Queen/Bishop adjustments; responsive Mobile/Desktop defaults; four piece-colour palettes; four board-colour palettes; independent persistence; swatches and appearance reset; theme-aware moat/indicator accents; and compact board surroundings. Remaining work is primarily visual specification and verification: audit all designs/surfaces and the 96 combinations, refine Jester/Moat states, and complete the broader board layout/spacing checks. Do not treat these remaining checks as completed.
 
 ## Goal and Scope
 Ensure clear, high-contrast, and aesthetically cohesive visual presentation across desktop and mobile PWA, covering:
@@ -17,6 +17,7 @@ Ensure clear, high-contrast, and aesthetically cohesive visual presentation acro
 - **Minimal set:** `pieces-minimal.svg` based on official newspaper/print diagram standard (Cburnett/FIDE) with matching 2D Jester.
 - **Theme support:** Light and dark theme palettes defined in `style.css`; piece colours and board colours are separate settings with theme-specific variants.
 - **Options integration:** Classic, Flat, and Minimal piece designs persist independently from piece-colour and board-style selections in `localStorage`.
+- **Board surroundings (PR #123):** Add a compact information strip for mode, points, and move count; show material balance through a thin board-frame indicator; and improve responsive board layout. The user manually verified the result and confirmed that it works.
 
 ## Unified Colour System
 - **Piece design:** Preserve the three existing choices: Classic, Flat, and Minimal.
@@ -35,7 +36,7 @@ Ensure clear, high-contrast, and aesthetically cohesive visual presentation acro
 ## Checklist & Next Steps
 - [ ] **1. Visual Audit:** Verify Classic, Flat, and Minimal sets in light/dark themes across mobile and desktop and across board, captured trays, promotion modal, and editor palette. Classic King, Queen, and Bishop mobile contrast has been checked; the complete audit remains open.
 - [ ] **2. Jester & Moat Refinement:** Specify and verify the Jester silhouette and Moat barrier states (active, destroyed, and redeployed).
-- [ ] **3. Board Layout & Spacing:** Audit the 10x8 board aspect ratio, coordinates, and drawer overlays on touch screens.
+- [ ] **3. Board Layout & Spacing:** Compact board surroundings and responsive board layout are implemented in PR #123 and manually confirmed by the user. The broader audit of the 10x8 board aspect ratio, coordinates, spacing, and drawer overlays on touch screens remains open.
 - [x] **4. Asset / CSS Updates:** Implement approved piece adjustments for Classic (`pieces.svg`, `pieces.css`), add `pieces-minimal.svg`, and establish responsive Mobile/Desktop defaults in `script.js` and `index.html`.
 - [x] **5. Unified Colour System:** Add four piece palettes, the fourth board palette, independent persistence, visual swatches, appearance reset, and theme-aware board/piece colours for moats and indicators.
 - [ ] **6. Verification:** Validate all 96 combinations (3 piece designs × 4 piece palettes × 4 board palettes × 2 display modes), indicator legibility, offline PWA precaching, and rendering across board, captured trays, promotion modal, and editor surfaces. Implementation of the palettes and controls is complete; this checklist item remains open until the combinations and surfaces are actually verified.
