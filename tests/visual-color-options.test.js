@@ -130,7 +130,8 @@ test('Newspaper black pieces use palette-aware body and visible detail strokes i
  }
 });
 
-\ntest('mobile visual polish keeps bottom coordinates clear and strengthens moat/editor indicators',()=>{
+
+test('mobile visual polish keeps bottom coordinates clear and strengthens moat/editor indicators',()=>{
  assert.ok(css.includes('.square.bottom-coordinate-row { padding-bottom: 4px; }'));
  assert.ok(script.includes("if (r === ROWS - 1) sq.classList.add('bottom-coordinate-row');"));
  assert.match(css,/\.palette-btn\.black-piece \.piece \{[^}]*drop-shadow\(0 0 1\.25px #f0e5d2\)/);
