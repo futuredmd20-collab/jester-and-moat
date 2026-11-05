@@ -2763,10 +2763,10 @@ test('AI NO_MOVE distinguishes checkmate and stalemate on worker and main-thread
           scheduledCallbacks.length = 0;
           scheduledTimeouts.length = 0;
           mockElement('modeSelect').value = 'human_vs_ai';
-          mockElement('whiteEngineSelect').value = engineId;
-          mockElement('whiteEnginePhaseSelect').value = 'endgame';
-          mockElement('blackEngineSelect').value = 'minmax_legacy';
-          mockElement('blackEnginePhaseSelect').value = 'opening';
+          mockElement('whiteEngineSelect').value = 'minmax_legacy';
+          mockElement('whiteEnginePhaseSelect').value = 'opening';
+          mockElement('blackEngineSelect').value = engineId;
+          mockElement('blackEnginePhaseSelect').value = 'endgame';
           sandbox.api.updateEngineConfigUI();
           sandbox.api.setState(s);
 
