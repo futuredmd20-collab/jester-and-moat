@@ -148,8 +148,8 @@ test('board surroundings keep the strength indicator in the frame and compact in
  assert.equal((html.match(/id="gameModeRow"/g)||[]).length,1);
  assert.ok(html.indexOf('id="gameModeRow"') > html.indexOf('id="evalBarContainer"'));
  assert.ok(html.indexOf('id="gameModeRow"') < html.indexOf('<!-- Board Editor Toolbar -->'));
- assert.match(css,/linear-gradient\(to right, var\(--piece-w-body\) 0 var\(--white-strength, 50%\), var\(--piece-b-body\) var\(--white-strength, 50%\) 100%\)/);
- assert.match(css,/#board\s*\{[\s\S]*?border: 2px solid transparent;[\s\S]*?border-radius: 0;/);
+ assert.match(css,/#board\s*\{[\s\S]*?border: 2px solid var\(--board-bg\);[\s\S]*?border-right: 0;[\s\S]*?border-radius: 0;/);
+ assert.match(css,/#board::after\s*\{[\s\S]*?right: 0;[\s\S]*?width: 2px;[\s\S]*?linear-gradient\(to bottom, var\(--piece-w-body\) 0 var\(--white-strength, 50%\), var\(--piece-b-body\) var\(--white-strength, 50%\) 100%\)/);
  assert.match(script,/setProperty\('--white-strength', `\$\{whitePercent\}%`\)/);
  assert.match(css,/\.status\s*\{[\s\S]*?font-size: \.72rem/);
  assert.match(css,/\.game-mode-row\s*\{[\s\S]*?flex: 0 1 auto/);

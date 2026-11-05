@@ -487,12 +487,25 @@
     width: 100%;
     max-width: 700px;
     aspect-ratio: 10/8;
-    border: 2px solid transparent;
-    background: linear-gradient(var(--board-bg), var(--board-bg)) padding-box, linear-gradient(to right, var(--piece-w-body) 0 var(--white-strength, 50%), var(--piece-b-body) var(--white-strength, 50%) 100%) border-box;
+    border: 2px solid var(--board-bg);
+    border-right: 0;
+    background: var(--board-bg);
     box-shadow: 0 7px 0 var(--board-edge), 0 12px 28px #44301c24;
     border-radius: 0;
     position: relative;
     overflow: hidden;
+  }
+
+  #board::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--piece-w-body) 0 var(--white-strength, 50%), var(--piece-b-body) var(--white-strength, 50%) 100%);
+    pointer-events: none;
+    z-index: 1;
   }
 
   #board.flipped { transform: rotate(180deg); }
