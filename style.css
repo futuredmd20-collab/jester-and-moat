@@ -368,7 +368,7 @@
   }
   .board-frame-wrap #board { min-width: 0; }
   .board-eval-track {
-    display: none !important;
+    display: none;
     grid-column: 2;
     grid-row: 1;
     display: none;

@@ -158,3 +158,31 @@ test('board surroundings keep the strength indicator in the frame and compact in
  assert.match(css,/\.status\s*\{[\s\S]*?font-size: \.72rem/);
  assert.match(css,/\.game-mode-row\s*\{[\s\S]*?flex: 0 1 auto/);
 });
+
+test('Eval & Score display modes reset every controlled element on every transition',()=>{
+ const match=script.match(/function updateDisplayPreferences\(\)\s*\{[\s\S]*?\n\}/);
+ assert.ok(match,'updateDisplayPreferences() was not found');
+ const ids=['clockContainerEl','evalBarContainer','boardEvalTrack','evalWhiteInfo','evalBlackInfo'];
+ const expected={
+  full:['flex','flex','flex','flex','flex'],
+  bar_pts:['none','flex','flex','flex','flex'],
+  bar_only:['none','flex','flex','none','none'],
+  clocks_only:['flex','none','none','none','none'],
+  hidden:['none','none','none','none','none']
+ };
+ const elements=new Map(ids.map(id=>[id,{style:{display:'stale'}}]));
+ const selector={value:'full'};
+ const context={document:{getElementById:id=>id==='uiDisplaySelect'?selector:elements.get(id)}};
+ vm.runInNewContext(match[0],context);
+ const transitions=['bar_pts','bar_only','clocks_only','hidden','full','hidden','clocks_only','bar_only','full'];
+ for(const mode of transitions){
+  selector.value=mode;
+  context.updateDisplayPreferences();
+  assert.deepEqual(ids.map(id=>elements.get(id).style.display),expected[mode],`incorrect visibility after switching to ${mode}`);
+ }
+});
+
+test('board-side eval track can be shown by display preferences on desktop',()=>{
+ assert.match(css,/\.board-eval-track\s*\{\s*display: none;/);
+ assert.doesNotMatch(css,/\.board-eval-track\s*\{\s*display: none !important;/);
+});

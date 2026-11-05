@@ -584,39 +584,21 @@ function stopAutoPlay(){
 
 function updateDisplayPreferences() {
   const displayMode = document.getElementById('uiDisplaySelect').value;
-  const clockContainer = document.getElementById('clockContainerEl');
-  const evalBarContainer = document.getElementById('evalBarContainer');
-  const evalTrack = document.getElementById('boardEvalTrack');
-  const whiteInfo = document.getElementById('evalWhiteInfo');
-  const blackInfo = document.getElementById('evalBlackInfo');
+  const visibility = {
+    full:        { clocks: 'flex', evalBar: 'flex', evalTrack: 'flex', whiteInfo: 'flex', blackInfo: 'flex' },
+    bar_pts:     { clocks: 'none', evalBar: 'flex', evalTrack: 'flex', whiteInfo: 'flex', blackInfo: 'flex' },
+    bar_only:    { clocks: 'none', evalBar: 'flex', evalTrack: 'flex', whiteInfo: 'none', blackInfo: 'none' },
+    clocks_only: { clocks: 'flex', evalBar: 'none', evalTrack: 'none', whiteInfo: 'none', blackInfo: 'none' },
+    hidden:      { clocks: 'none', evalBar: 'none', evalTrack: 'none', whiteInfo: 'none', blackInfo: 'none' }
+  }[displayMode];
 
-  if (displayMode === 'full') {
-    clockContainer.style.display = 'flex';
-    evalBarContainer.style.display = 'flex';
-    evalTrack.style.display = 'flex';
-    whiteInfo.style.display = 'flex';
-    blackInfo.style.display = 'flex';
-  } else if (displayMode === 'bar_pts') {
-    clockContainer.style.display = 'none';
-    evalBarContainer.style.display = 'flex';
-    evalTrack.style.display = 'flex';
-    whiteInfo.style.display = 'flex';
-    blackInfo.style.display = 'flex';
-  } else if (displayMode === 'bar_only') {
-    clockContainer.style.display = 'none';
-    evalBarContainer.style.display = 'flex';
-    evalTrack.style.display = 'flex';
-    whiteInfo.style.display = 'none';
-    blackInfo.style.display = 'none';
-  } else if (displayMode === 'clocks_only') {
-    clockContainer.style.display = 'flex';
-    evalBarContainer.style.display = 'none';
-    evalTrack.style.display = 'none';
-  } else if (displayMode === 'hidden') {
-    clockContainer.style.display = 'none';
-    evalBarContainer.style.display = 'none';
-    evalTrack.style.display = 'none';
-  }
+  if (!visibility) return;
+
+  document.getElementById('clockContainerEl').style.display = visibility.clocks;
+  document.getElementById('evalBarContainer').style.display = visibility.evalBar;
+  document.getElementById('boardEvalTrack').style.display = visibility.evalTrack;
+  document.getElementById('evalWhiteInfo').style.display = visibility.whiteInfo;
+  document.getElementById('evalBlackInfo').style.display = visibility.blackInfo;
 }
 
 function setEditorToggleLabel(label){
