@@ -199,6 +199,93 @@ test('MCTS levels all declare finite worker and fallback search budgets', () => 
   assert.deepEqual([1, 2, 3].map(level => sandbox.MCTS_LEVELS[level].timeBudgetMs), [2500, 5000, 10000]);
 });
 
+test('MCTS playout resolves checkmate and stalemate after its final permitted move', () => {
+  for (const fixture of [
+    { kind: 'checkmate', queenFrom: { r: 1, c: 2 }, queenTo: { r: 1, c: 1 }, expected: 1 },
+    { kind: 'stalemate', queenFrom: { r: 1, c: 3 }, queenTo: { r: 1, c: 2 }, expected: 0.5 }
+  ]) {
+    const s = position();
+    s.board = Array.from({ length: 8 }, () => Array(10).fill(null));
+    s.board[2][2] = { type: 'k', color: 'w', moved: true };
+    s.board[0][0] = { type: 'k', color: 'b', moved: true };
+    s.board[fixture.queenFrom.r][fixture.queenFrom.c] = { type: 'q', color: 'w', moved: true };
+    s.turn = 'w';
+
+    const legal = allLegalState(s, 'w');
+    const selected = legal.find(move =>
+      move.from.r === fixture.queenFrom.r && move.from.c === fixture.queenFrom.c &&
+      move.to.r === fixture.queenTo.r && move.to.c === fixture.queenTo.c
+    );
+    assert.ok(selected, fixture.kind + ': fixture move must be legal');
+
+    const originalAllLegalState = sandbox.allLegalState;
+    let forceFixtureMove = true;
+    sandbox.allLegalState = (state, color) => {
+      if (forceFixtureMove) {
+        forceFixtureMove = false;
+        return [selected];
+      }
+      return originalAllLegalState(state, color);
+    };
+    try {
+      const outcome = sandbox.mctsPlayout(s, 1, () => false);
+      assert.equal(outcome, fixture.expected,
+        fixture.kind + ': terminal result after the final playout move must override material evaluation');
+    } finally {
+      sandbox.allLegalState = originalAllLegalState;
+    }
+  }
+});
+
+test('MCTS playout resolves a terminal result when time expires immediately after the final move', () => {
+  for (const fixture of [
+    { kind: 'checkmate', queenFrom: { r: 1, c: 2 }, queenTo: { r: 1, c: 1 }, expected: 1 },
+    { kind: 'stalemate', queenFrom: { r: 1, c: 3 }, queenTo: { r: 1, c: 2 }, expected: 0.5 }
+  ]) {
+    const s = position();
+    s.board = Array.from({ length: 8 }, () => Array(10).fill(null));
+    s.board[2][2] = { type: 'k', color: 'w', moved: true };
+    s.board[0][0] = { type: 'k', color: 'b', moved: true };
+    s.board[fixture.queenFrom.r][fixture.queenFrom.c] = { type: 'q', color: 'w', moved: true };
+    s.turn = 'w';
+    const selected = allLegalState(s, 'w').find(move =>
+      move.from.r === fixture.queenFrom.r && move.from.c === fixture.queenFrom.c &&
+      move.to.r === fixture.queenTo.r && move.to.c === fixture.queenTo.c
+    );
+    assert.ok(selected, fixture.kind + ': fixture move must be legal');
+
+    const originalAllLegalState = sandbox.allLegalState;
+    let forceFixtureMove = true;
+    sandbox.allLegalState = (state, color) => {
+      if (forceFixtureMove) {
+        forceFixtureMove = false;
+        return [selected];
+      }
+      return originalAllLegalState(state, color);
+    };
+    try {
+      let stopChecks = 0;
+      const outcome = sandbox.mctsPlayout(s, 2, () => ++stopChecks > 1);
+      assert.equal(stopChecks, 2, fixture.kind + ': time check must interrupt after the terminal move');
+      assert.equal(outcome, fixture.expected,
+        fixture.kind + ': timeout after the final move must preserve its terminal result');
+    } finally {
+      sandbox.allLegalState = originalAllLegalState;
+    }
+  }
+});
+
+test('MCTS playout resolves terminal positions when the time check stops before another move', () => {
+  for (const fixture of [
+    { kind: 'checkmate', expected: 1 },
+    { kind: 'stalemate', expected: 0.5 }
+  ]) {
+    const outcome = sandbox.mctsPlayout(terminalPosition(fixture.kind), 5, () => true);
+    assert.equal(outcome, fixture.expected,
+      fixture.kind + ': a time-interrupted playout must preserve its terminal result');
+  }
+});
+
 test('MCTS cooperative search yields and exits when cancellation is requested', async () => {
   const s = position();
   s.board[6][0] = { type: 'r', color: 'w', moved: false };
