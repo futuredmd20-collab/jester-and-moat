@@ -107,6 +107,16 @@ function mctsPlayout(s, capDepth, shouldStop) {
     mctsApplyMove(s, moves[Math.floor(Math.random() * moves.length)]);
     d++;
   }
+
+  // The final permitted move (or the position where a time/cancellation
+  // check stopped the playout) may itself be terminal. Resolve that outcome
+  // before falling back to the material evaluation.
+  var finalMoves = allLegalState(s, s.turn);
+  if (finalMoves.length === 0) {
+    if (inCheck(s.turn, s.board, s.moats)) return s.turn === 'w' ? 0 : 1;
+    return 0.5;
+  }
+
   var score = evaluateBoard(s);
   return 1 / (1 + Math.exp(-score / 2));
 }
