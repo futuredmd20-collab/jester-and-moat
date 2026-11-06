@@ -38,3 +38,36 @@ jobs:
           node-version: 20
       - name: Run contract tests
         run: node --test tests/*.test.js
+
+  engine-strength-calibration:
+    name: Calibration ${{ matrix.pair }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 15
+      matrix:
+        pair:
+          - minmax-1,minmax-2
+          - minmax-1,minmax-3
+          - minmax-1,mcts-1
+          - minmax-1,mcts-2
+          - minmax-1,mcts-3
+          - minmax-2,minmax-3
+          - minmax-2,mcts-1
+          - minmax-2,mcts-2
+          - minmax-2,mcts-3
+          - minmax-3,mcts-1
+          - minmax-3,mcts-2
+          - minmax-3,mcts-3
+          - mcts-1,mcts-2
+          - mcts-1,mcts-3
+          - mcts-2,mcts-3
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run full-budget calibration (20 games)
+        run: node scripts/engine-strength-calibration.js --pair "${{ matrix.pair }}" --games-per-pair 20 --budget-scale 1 --json
