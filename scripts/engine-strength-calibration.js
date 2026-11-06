@@ -35,12 +35,12 @@ function createHarness(seed){
  vm.createContext(sb);vm.runInContext(fs.readFileSync(path.join(ROOT,'engines/minmax-engine.js'),'utf8'),sb,{filename:'engines/minmax-engine.js'});
  const api=['globalThis.calibrationApi={EngineContract,MinMaxLegacy,allLegalState,inCheck,findLegalMoveMatch,play,aiPlaceMoatForColor,',
  'setState(v){state=v;history=[clone(v)];historyMoveLogs=[[]];moveLog=[];gameOver=false;gameOverMessage="";},',
- 'getState(){return clone(state);},getGameOver(){return gameOver;},getGameOverMessage(){return gameOverMessage;}};'].join('\n');
+ 'getState(){return clone(state);},getPositionKey(st){return getPositionKey(st);},getGameOver(){return gameOver;},getGameOverMessage(){return gameOverMessage;}};'].join('\n');
  vm.runInContext(src.slice(0,cut)+'\n'+api,sb,{filename:'script.js'});
  vm.runInContext(fs.readFileSync(path.join(ROOT,'engines/mcts-engine.js'),'utf8'),sb,{filename:'engines/mcts-engine.js'});get('modeSelect').value='ai_vs_ai';return sb;
 }
-function initialPosition(){
- const back=['r','j','n','b','q','k','b','n','j','r'],board=Array.from({length:8},()=>Array(10).fill(null));
+function initialPosition(layout='classic'){
+ const back=layout==='center'?['r','n','b','j','q','k','j','b','n','r']:['r','j','n','b','q','k','b','n','j','r'],board=Array.from({length:8},()=>Array(10).fill(null));
  for(let c=0;c<10;c++){board[0][c]={type:back[c],color:'b',moved:false};board[1][c]={type:'p',color:'b',moved:false};board[6][c]={type:'p',color:'w',moved:false};board[7][c]={type:back[c],color:'w',moved:false};}
  return{board,turn:'w',ply:0,ep:null,moats:{w:null,b:null},moatDestroyed:{w:false,b:false},hasPlacedMoat:{w:false,b:false},moveCounts:{w:0,b:0},phase:'normal',captured:{w:[],b:[]},halfmoveClock:0,positionHistory:{},clocks:{w:0,b:0}};
 }
@@ -54,8 +54,8 @@ function searchMove(sb,st,id,scale){
  return{move,elapsed,timedOut:Boolean(res.metadata&&res.metadata.timedOut)};
 }
 function finishMoats(sb,st){let n=0;while(st.phase==='place_moat_w'||st.phase==='place_moat_b'){if(++n>2)throw Error('Unexpected moat-placement loop.');sb.calibrationApi.aiPlaceMoatForColor(st.phase.endsWith('_w')?'w':'b',true);st=sb.calibrationApi.getState();}return st;}
-function runGame(a,b,o,seed,aColor){
- const sb=createHarness(seed),api=sb.calibrationApi;let st=initialPosition();st.positionHistory[JSON.stringify(st.board)+'|w|{"w":null,"b":null}|-']=1;api.setState(st);
+function runGame(a,b,o,seed,aColor,layout='classic'){
+ const sb=createHarness(seed),api=sb.calibrationApi;let st=initialPosition(layout);st.positionHistory[api.getPositionKey(st)]=1;api.setState(st);
  const times={[a]:[],[b]:[]};let plies=0,out=null;
  while(plies<o.maxPlies){
   st=api.getState();const legal=api.allLegalState(st,st.turn);
@@ -63,20 +63,20 @@ function runGame(a,b,o,seed,aColor){
   const id=st.turn===aColor?a:b,found=searchMove(sb,st,id,o.budgetScale);times[id].push(found);
   if(!found.move){out={winner:null,termination:'unexpected-no-move'};break;}
   api.play(found.move,'q',true);plies++;st=api.getState();if(st.phase==='place_moat_w'||st.phase==='place_moat_b')st=finishMoats(sb,st);
-  if(api.getGameOver()){const msg=api.getGameOverMessage();out=/checkmate/i.test(msg)?{winner:st.turn==='w'?'b':'w',termination:'checkmate'}:{winner:null,termination:/stalemate/i.test(msg)?'stalemate':'draw'};break;}
+  if(api.getGameOver()){const noMoves=api.allLegalState(st,st.turn).length===0,check=noMoves&&api.inCheck(st.turn,st.board,st.moats);out=check?{winner:st.turn==='w'?'b':'w',termination:'checkmate'}:{winner:null,termination:noMoves?'stalemate':'draw'};break;}
  }
  if(!out)out={winner:null,termination:'max-plies'};
  const scoreA=out.winner===null?.5:out.winner===aColor?1:0,stats={};
  for(const id of[a,b]){const xs=times[id].map(x=>x.elapsed).sort((x,y)=>x-y);stats[id]={searches:xs.length,meanMs:xs.length?xs.reduce((s,x)=>s+x,0)/xs.length:0,medianMs:xs.length?xs[Math.floor(xs.length/2)]:0,budgetHitRate:times[id].length?times[id].filter(x=>x.timedOut).length/times[id].length:0};}
- return{seed,a,b,aColor,scoreA,winner:out.winner,termination:out.termination,plies,searchStats:stats};
+ return{seed,layout,a,b,aColor,scoreA,winner:out.winner,termination:out.termination,plies,searchStats:stats};
 }
 function summarize(a,b,games){const score=games.reduce((s,g)=>s+g.scoreA,0)/games.length,[lo,hi]=wilson(score,games.length);return{a,b,wins:games.filter(g=>g.scoreA===1).length,draws:games.filter(g=>g.scoreA===.5).length,losses:games.filter(g=>g.scoreA===0).length,score,eloAOverB:elo(score),elo95:[elo(lo),elo(hi)]};}
 function runTournament(o){
  const pairs=o.pair?[o.pair]:IDS.flatMap((a,i)=>IDS.slice(i+1).map(b=>[a,b])),games=[],summaries=[];let index=0;
- for(const[a,b]of pairs){const batch=[];for(let n=0;n<o.gamesPerPair;n++){const g=runGame(a,b,o,(o.seed+(++index*1009))>>>0,n%2===0?'w':'b');games.push(g);batch.push(g);}summaries.push(summarize(a,b,batch));}
+ for(const[a,b]of pairs){const batch=[];for(let n=0;n<o.gamesPerPair;n++){const g=runGame(a,b,o,(o.seed+(++index*1009))>>>0,n%2===0?'w':'b',index%2===0?'classic':'center');games.push(g);batch.push(g);}summaries.push(summarize(a,b,batch));}
  return{methodology:{profiles:IDS,gamesPerPair:o.gamesPerPair,maxPlies:o.maxPlies,seed:o.seed,budgetScale:o.budgetScale,budgetMs:BUDGETS,note:'Pairwise relative Elo only. Approximate 95% Wilson intervals transformed to Elo; results depend on device/runtime and budgets.'},pairs:summaries,games};
 }
-function selfTest(){const a=seededRandom(17),b=seededRandom(17);for(let i=0;i<10;i++)if(a()!==b())throw Error('Seeded PRNG mismatch.');if(Math.abs(elo(.5))>1e-9)throw Error('Elo midpoint mismatch.');const g=runGame('minmax-1','mcts-1',{maxPlies:2,budgetScale:.001},12345,'w');if(g.plies!==2||g.termination!=='max-plies')throw Error('Smoke game failed: '+JSON.stringify(g));return{ok:true,checks:['seeded PRNG','Elo midpoint','two legal plies across MinMax and MCTS'],smokeGame:g};}
+function selfTest(){const a=seededRandom(17),b=seededRandom(17);for(let i=0;i<10;i++)if(a()!==b())throw Error('Seeded PRNG mismatch.');if(Math.abs(elo(.5))>1e-9)throw Error('Elo midpoint mismatch.');const g=runGame('minmax-1','mcts-1',{maxPlies:2,budgetScale:.001},12345,'w','center');if(g.plies!==2||g.termination!=='max-plies')throw Error('Smoke game failed: '+JSON.stringify(g));return{ok:true,checks:['seeded PRNG','Elo midpoint','two legal plies across MinMax and MCTS'],smokeGame:g};}
 function format(r){const lines=['Pairwise engine strength (A relative to B)','Colour-balanced games; relative estimates, not official ratings.','','A             B             W-D-L       Score     Elo A-B       Approx. 95% interval'];for(const p of r.pairs)lines.push(p.a.padEnd(13)+' '+p.b.padEnd(13)+' '+(p.wins+'-'+p.draws+'-'+p.losses).padEnd(10)+' '+(p.score*100).toFixed(1).padStart(5)+'% '+p.eloAOverB.toFixed(0).padStart(8)+'   '+p.elo95[0].toFixed(0)+' to '+p.elo95[1].toFixed(0));lines.push('','Games: '+r.games.length+'; budget scale x'+r.methodology.budgetScale+'; max plies '+r.methodology.maxPlies+'.','Small samples produce wide intervals; increase games per pair before interpreting small differences.');return lines.join('\n');}
 if(require.main===module){try{const o=parseArgs(process.argv.slice(2));if(o.help)process.stdout.write(helpText()+'\n');else if(o.selfTest)process.stdout.write(JSON.stringify(selfTest(),null,2)+'\n');else{const r=runTournament(o);process.stdout.write(o.json?JSON.stringify(r,null,2)+'\n':format(r)+'\n');}}catch(e){process.stderr.write((e&&e.stack)||String(e));process.stderr.write('\n');process.exitCode=1;}}
 module.exports={seededRandom,wilson,elo,initialPosition,profile,parseArgs,createHarness,runGame,runTournament,selfTest};
