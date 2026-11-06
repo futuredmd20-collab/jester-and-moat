@@ -66,7 +66,7 @@ function runGame(a,b,o,seed,aColor,layout='classic'){
   if(api.getGameOver()){const noMoves=api.allLegalState(st,st.turn).length===0,check=noMoves&&api.inCheck(st.turn,st.board,st.moats);out=check?{winner:st.turn==='w'?'b':'w',termination:'checkmate'}:{winner:null,termination:noMoves?'stalemate':'draw'};break;}
  }
  if(!out)out={winner:null,termination:'max-plies'};
- const scoreA=out.winner===null?.5:out.winner===aColor?1:0,stats={};
+ const scoreA=out.winner===null ? 0.5 : (out.winner===aColor ? 1 : 0),stats={};
  for(const id of[a,b]){const xs=times[id].map(x=>x.elapsed).sort((x,y)=>x-y);stats[id]={searches:xs.length,meanMs:xs.length?xs.reduce((s,x)=>s+x,0)/xs.length:0,medianMs:xs.length?xs[Math.floor(xs.length/2)]:0,budgetHitRate:times[id].length?times[id].filter(x=>x.timedOut).length/times[id].length:0};}
  return{seed,layout,a,b,aColor,scoreA,winner:out.winner,termination:out.termination,plies,searchStats:stats};
 }
