@@ -58,7 +58,7 @@ The current integration/test pass is complete. The active strength-calibration s
 
 **Completed on 2026-10-31:** normal engine dispatch, side/configuration independence, phase-specific engine selection, and ordinary reload persistence were checked through browser play and the game log. In the second logged game, the opening began with 40 pieces; midgame began at ply 21 with 33 pieces; endgame began at ply 54 with 16 pieces; checkmate occurred at ply 79. The user considers this test pass complete.
 
-**Not covered by this checklist:** MCTS module-load failure, worker-construction fallback, induced worker-runtime recovery, completed strength-calibration results, and the full special-case regression list. Do not describe these as passed. The optional single-file build remains outside this checklist unless requested.
+**Not covered:** MCTS module-load failure, worker-construction fallback, induced worker-runtime recovery, strength calibration, and the full special-case regression list. Do not describe these as passed. The optional single-file build remains outside this checklist unless requested.
 
 Historical checklist items below remain candidates for future work, not requirements to continue this test pass.
 
