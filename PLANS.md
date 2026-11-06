@@ -42,4 +42,5 @@ These documents describe rules, facts, procedures, or history. They are not subs
 - [VERSIONING](docs/VERSIONING.md), [SEMVER](docs/SEMVER.md), and [RELEASE-GOVERNANCE](docs/RELEASE-GOVERNANCE.md) — version and release procedures.
 - [PROMPT](docs/PROMPT.md) — paste-ready kickoff instructions.
 - [Engine Strength Calibration](docs/ENGINE-STRENGTH-CALIBRATION.md) — method and runner for relative MinMax/MCTS strength measurements; not a plan or a record of completed results.
+- [Engine and Board Ideas](docs/ENGINE-IDEAS.md) — idea-stage register for standard-chess opponents, alternative board sizes/setups, and engine personalities; not an implementation plan.
 - [.agents/limitations.md](.agents/limitations.md) — shared agent capability and environment limits.
