@@ -12,6 +12,8 @@ node --test tests/*.test.js
 
 The engine contract suite evaluates canonical rule/search functions from `script.js` in a small VM context and skips browser UI startup. It also loads `engines/mcts-engine.js` to check the no-legal-moves contract. The PWA startup suite exercises the boot script and service worker with lightweight mocks; it does not require a browser or network access.
 
+The separate engine-strength calibration runner has a short smoke test and a full tournament mode; see [Engine Strength Calibration](../docs/ENGINE-STRENGTH-CALIBRATION.md). Run `node scripts/engine-strength-calibration.js --self-test` to check its local harness. This smoke test is not a strength result.
+
 ## Current coverage
 
 - MinMax returns a legal move in a simple position and does not mutate the input state.

@@ -28,7 +28,7 @@ A status summarizes progress recorded in the plan; it does not prove current run
 | --- | --- | --- | --- |
 | [Layout and Piece Design](docs/LAYOUT-AND-PIECE-DESIGN-PLAN.md) | **In progress** | Work on piece artwork (Classic, Flat, new sets), Jester/Moat visual representations, board styling, 10x8 layout responsiveness, and piece markup surfaces (board, trays, modals, editor palette). | Engine/AI algorithms, game rule changes, or save/load state logic. |
 | [Engine Interface Architecture](docs/ENGINE-INTERFACE-PLAN.md) | **Completed** | Reference for the implemented shared MinMax/MCTS contract, worker transport, lifecycle handling, cross-engine regressions, and bounded search. | New engine-interface changes; treat browser/device performance caveats in the plan as unresolved observations, not completed verification. |
-| [Engine Plugins](docs/ENGINE-PLUGINS.md) | **On hold** | Reference for the completed current integration/test pass and explicitly parked follow-up work: strength calibration, browser failure-recovery checks, offline behavior, and cache-cleared persistence. | Active implementation work; the remaining checks are parked, not current blockers or verified results. |
+| [Engine Plugins](docs/ENGINE-PLUGINS.md) | **In progress** | Reference for the completed integration/test pass and the active strength-calibration follow-up; also records other parked engine work. | New engine-interface architecture or changes to the shipped presets without measured evidence. |
 | [Bitboard Engine Evaluation and Migration](docs/BITBOARD-ENGINE-PLAN.md) | **Planned** | Evaluate 80-square bitboard encodings and, if measurements justify it, add a narrowly scoped engine-internal accelerator while retaining the canonical matrix board. | Replacing the game-state board, changing save/load or UI formats, or assuming bitboards improve performance without measurement. |
 | [Undo/Redo and Save/Load Consistency](docs/UNDO-REDO-SAVE-TESTING.md) | **Completed** | Work on history/log consistency, save import validation, legacy save compatibility, and browser verification of save/load and undo/redo. | Engine-plugin integration or claims that real-browser checks have passed. |
 
@@ -41,4 +41,5 @@ These documents describe rules, facts, procedures, or history. They are not subs
 - [HISTORY](docs/HISTORY.md) — dated record of past decisions and changes; not the current implementation state.
 - [VERSIONING](docs/VERSIONING.md), [SEMVER](docs/SEMVER.md), and [RELEASE-GOVERNANCE](docs/RELEASE-GOVERNANCE.md) — version and release procedures.
 - [PROMPT](docs/PROMPT.md) — paste-ready kickoff instructions.
+- [Engine Strength Calibration](docs/ENGINE-STRENGTH-CALIBRATION.md) — method and runner for relative MinMax/MCTS strength measurements; not a plan or a record of completed results.
 - [.agents/limitations.md](.agents/limitations.md) — shared agent capability and environment limits.
