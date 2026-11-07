@@ -1703,52 +1703,28 @@ onmessage = async function(event) {
   return aiWorker;
 }
 
-/* Plugin System: Get engine for a side based on current phase */
-function getEngineForSide(side) {
-  const config = defaultEngineForSide[side];
-  const phase = getGamePhase(state);
-  
-  if (config.phaseOverrides) {
-    const phaseEngineId = config.phaseOverrides[phase];
-    if (phaseEngineId && enginePlugins.has(phaseEngineId)) {
-      return enginePlugins.get(phaseEngineId);
-    }
-  }
-  
-  if (enginePlugins.has(config.engineId)) {
-    return enginePlugins.get(config.engineId);
-  }
-  
-  return enginePlugins.get('minmax_legacy');
+/* Phase detection remains independent; this layer only resolves the chosen assignment. */
+function getEngineForSide(side, phase = getGamePhase(state)) {
+  return getEngineAssignment(side, phase).engine;
 }
 
-/* Plugin System: Get engine config for a side based on current phase
- * Returns { engine, depth } where depth is derived from modeSelect.
- * Used by aiMove() to set the correct search depth for each engine type.
- */
 function getEngineConfig(side) {
-  const engine = getEngineForSide(side);
-  const mode = document.getElementById('modeSelect').value;
-  const isMinMax = engine === MinMaxLegacy;
-  const isMCTS = engine.name && engine.name.includes('MCTS');
-  
-  if (isMCTS) {
-    // MCTS uses level 1-3 corresponding to depth 1-3 from modeSelect
-    if (mode === 'ai_easy') return { engine, depth: 1 };
-    if (mode === 'ai_medium' || mode === 'ai_vs_ai') return { engine, depth: 2 };
-    if (mode === 'ai_hard') return { engine, depth: 3 };
-    return { engine, depth: 2 };
-  }
-  
-  if (isMinMax) {
-    let depth = 2;
-    if (mode === 'ai_easy') depth = 1;
-    if (mode === 'ai_medium' || mode === 'ai_vs_ai') depth = 2;
-    if (mode === 'ai_hard') depth = 3;
-    return { engine, depth };
-  }
-  
-  return { engine, depth: 2 };
+  if (!isAIMode()) return null;
+  const phase = getGamePhase(state);
+  const resolved = getEngineAssignment(side, phase);
+  const depth = resolved.engine.id === 'mcts'
+    ? ({ easy: 1, medium: 2, hard: 3 }[resolved.strength])
+    : resolved.settings.depth;
+  const timeMs = resolved.engine.id === 'mcts'
+    ? resolved.settings.timeBudgetMs : resolved.settings.timeMs;
+  return {
+    engine: resolved.engine,
+    phase,
+    strength: resolved.strength,
+    settings: resolved.settings,
+    depth,
+    timeMs
+  };
 }
 
 const AI_MAIN_THREAD_BUDGET_MS = 2000;
@@ -1873,20 +1849,22 @@ function handleAIWorkerFailure(worker, request) {
 }
 
 function aiMove(){
-  if (gameOver || isAIThinking) return;
+  if (!isAIMode() || gameOver || isAIThinking) return;
   isAIThinking = true;
   status("\u23f3 AI thinking...");
 
-  const { engine, depth } = getEngineConfig(state.turn);
-  const phase = getGamePhase(state);
+  const engineConfig = getEngineConfig(state.turn);
+  if (!engineConfig) { isAIThinking = false; return; }
+  const { engine, depth, phase, strength, settings, timeMs } = engineConfig;
   const side = state.turn === 'w' ? 'White' : 'Black';
   const engineName = engine.name || 'Unknown engine';
   const id = ++aiRequestId;
-  const searchBudgetMs = engine.id === 'mcts'
-    ? MCTS_LEVELS[depth].timeBudgetMs
-    : (AI_SEARCH_BUDGETS_MS[depth] || AI_SEARCH_BUDGETS_MS[2]);
   const contractRequest = typeof engine.search === 'function'
-    ? EngineContract.createRequest({ requestId: id, generation: id, engineId: engine.id, position: clone(state), limits: { depth, timeMs: searchBudgetMs } })
+    ? EngineContract.createRequest({
+        requestId: id, generation: id, engineId: engine.id, position: clone(state),
+        limits: { depth, timeMs },
+        config: { strength, settings }
+      })
     : null;
   const request = { id, engine, depth, state: clone(state), contractRequest, startedAt: Date.now(), phase, side, fallback: false };
   pendingAIRequest = request;
