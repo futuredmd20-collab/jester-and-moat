@@ -295,20 +295,26 @@ function mctsEngine(level) {
       playouts: { type: 'integer', default: 700, min: 50, max: 5000, label: 'Playouts', description: 'Number of simulations per search.' },
       capDepth: { type: 'integer', default: 14, min: 1, max: 40, label: 'Playout depth', description: 'Maximum moves in each simulation.' },
       temperature: { type: 'number', default: 0.15, min: 0, max: 1, step: 0.01, label: 'Randomness', description: 'Chance to choose among near-best root moves.' },
-      timeBudgetMs: { type: 'integer', default: 5000, min: 250, max: 15000, label: 'Time budget', description: 'Maximum search time in milliseconds.', unit: 'ms' }
+      timeBudgetMs: { type: 'integer', default: 5000, min: 250, max: 12000, label: 'Time budget', description: 'Maximum search time in milliseconds.', unit: 'ms' }
     },
     search: function (request) {
       if (!request || request.protocolVersion !== 1 || request.engineId !== this.id)
         return EngineContract.failed(request, 'INVALID_REQUEST', 'Invalid MCTS search request.');
       try {
+        var config = request.config;
+        if (config != null && (!config || typeof config !== 'object' || Array.isArray(config) ||
+            Object.keys(config).some(function (key) { return !['strength', 'settings'].includes(key); }) ||
+            (config.strength != null && !['easy', 'medium', 'hard'].includes(config.strength)))) {
+          return EngineContract.failed(request, 'INVALID_CONFIG', 'MCTS received unsupported configuration.');
+        }
         var searchLevel = mctsLevelFor(request.limits && request.limits.depth);
-        var settings = request.config && request.config.settings;
+        var settings = config && config.settings;
         if (settings != null && (!settings || typeof settings !== 'object' || Array.isArray(settings) ||
             Object.keys(settings).some(function (key) { return !['playouts', 'capDepth', 'temperature', 'timeBudgetMs'].includes(key); }) ||
             (settings.playouts != null && (!Number.isInteger(settings.playouts) || settings.playouts < 50 || settings.playouts > 5000)) ||
             (settings.capDepth != null && (!Number.isInteger(settings.capDepth) || settings.capDepth < 1 || settings.capDepth > 40)) ||
             (settings.temperature != null && (!Number.isFinite(settings.temperature) || settings.temperature < 0 || settings.temperature > 1)) ||
-            (settings.timeBudgetMs != null && (!Number.isInteger(settings.timeBudgetMs) || settings.timeBudgetMs < 250 || settings.timeBudgetMs > 15000))) {
+            (settings.timeBudgetMs != null && (!Number.isInteger(settings.timeBudgetMs) || settings.timeBudgetMs < 250 || settings.timeBudgetMs > 12000))) {
           return EngineContract.failed(request, 'INVALID_CONFIG', 'MCTS received invalid or unsupported settings.');
         }
         var searchConfig = Object.assign({}, MCTS_LEVELS[searchLevel], settings || {});
