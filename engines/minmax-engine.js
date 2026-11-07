@@ -209,7 +209,13 @@
           !['w', 'b'].includes(position.turn)) {
         return EngineContract.failed(request, EngineContract.errorCodes.INVALID_POSITION, 'MinMax search position is invalid.');
       }
-      const settings = request.config && request.config.settings;
+      const config = request.config;
+      if (config != null && (!config || typeof config !== 'object' || Array.isArray(config) ||
+          Object.keys(config).some(key => !['strength', 'settings'].includes(key)) ||
+          (config.strength != null && !['easy', 'medium', 'hard'].includes(config.strength)))) {
+        return EngineContract.failed(request, EngineContract.errorCodes.INVALID_CONFIG, 'MinMax received unsupported configuration.');
+      }
+      const settings = config && config.settings;
       if (settings != null && (!settings || typeof settings !== 'object' || Array.isArray(settings) ||
           Object.keys(settings).some(key => !['depth', 'timeMs'].includes(key)))) {
         return EngineContract.failed(request, EngineContract.errorCodes.INVALID_CONFIG, 'MinMax received unsupported settings.');
@@ -220,7 +226,7 @@
         return EngineContract.failed(request, EngineContract.errorCodes.INVALID_CONFIG, 'Search depth must be an integer from 1 to 10.');
       }
       const configuredTimeMs = settings && settings.timeMs;
-      if (configuredTimeMs != null && (!Number.isFinite(configuredTimeMs) || configuredTimeMs < 250 || configuredTimeMs > 15000)) {
+      if (configuredTimeMs != null && (!Number.isFinite(configuredTimeMs) || configuredTimeMs < 250 || configuredTimeMs > 12000)) {
         return EngineContract.failed(request, EngineContract.errorCodes.INVALID_CONFIG, 'MinMax timeMs must be between 250 and 15000.');
       }
       try {
