@@ -963,7 +963,7 @@ test('initial moat placement starts after four moves per side and completes for 
   move(1, 0);
 
   let after = getState();
-  assert.deepEqual(after.moveCounts, { w: 4, b: 4 });
+  assert.equal(JSON.stringify(after.moveCounts), JSON.stringify({ w: 4, b: 4 }));
   assert.equal(after.phase, 'place_moat_w');
   assert.equal(after.turn, 'w');
 
