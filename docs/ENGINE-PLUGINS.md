@@ -4,7 +4,7 @@ Purpose: record design decisions, repository implementation, verification gaps, 
 
 ## Status
 
-**Status: In progress (2026-11-06).** The current integration and contract-test pass remain complete; PR #119 (including PR #120) is merged. The strength-calibration runner and methodology are now documented, but no full tournament has been run. Other follow-up areas remain parked; unverified browser/device behavior is not marked as passed.
+**Status: In progress (2026-11-07).** The current integration and contract-test pass remain complete; PR #119 (including PR #120) is merged. The calibration runner and methodology are available. A previous run covering all 15 pairings with 20 games per pairing was completed and used to make adjustments (user-confirmed); the separate CI matrix in PR #133 was cancelled and produced no results. Full calibration is now an optional, manually requested measurement—not a prerequisite for continued engine development. Other follow-up areas remain parked; unverified browser/device behavior is not marked as passed.
 
 ## Goal and contract
 
@@ -19,7 +19,8 @@ Allow independently configured AI engines for White and Black, optionally limite
 - White and Black have engine and phase selectors. The selected engine applies only in the selected phase; other phases fall back to MinMax. Settings are stored in `localStorage` under `engineConfig`. Browser checks on 2026-11-05 confirmed that settings survive clearing cached images/files when site data is retained, while clearing site data restores MinMax/Midgame defaults for both sides.
 - Phase detection is `getGamePhase()` in `script.js`: opening if ply < 10 OR total pieces >= 34; endgame if total pieces <= 16; otherwise midgame. This policy is provisional and needs representative-game validation.
 - MCTS presets (in `engines/mcts-engine.js`): 200/700/2000 playouts, depth caps 10/14/18 plies, temperatures 0.35/0.15/0.00. Labels around 800/1200/1600 are estimates, not calibrated ratings. The UI exposes “MCTS (~1200 ELO)”; other levels follow game-mode difficulty. No calibrated, independently configurable rating system is established.
-- Strength-calibration tooling and methodology: [Engine Strength Calibration](ENGINE-STRENGTH-CALIBRATION.md). It compares the six current presets pairwise without changing engine settings; results are relative estimates with approximate uncertainty, not official ratings.
+- Strength-calibration tooling and methodology: [Engine Strength Calibration](ENGINE-STRENGTH-CALIBRATION.md). It compares the six current presets without changing engine settings; results are relative estimates with approximate uncertainty, not official ratings.
+- Testing cadence and agent guidance: [Engine Testing Workflow](ENGINE-TESTING-WORKFLOW.md). Use focused checks and reduced comparisons during development; full calibration is manual and on request.
 - Out of scope: weighted blending, opening books, tablebases, neural engines, and self-play tuning.
 
 ## Implementation and verification status
@@ -31,7 +32,7 @@ Allow independently configured AI engines for White and Black, optionally limite
 | Loading/build | MCTS script loading, service-worker precache and version alignment (PR #23); loading fix (PR #24); single-file builder embeds MCTS before `script.js`. | Exercise multi-file and built single-file pages. If MCTS fails to load on the multi-file page, startup warns and keeps board/MinMax available; MCTS selection falls back to MinMax. Confirm this recovery path in a browser. |
 | Worker dispatch | The reviewed game log showed matching engine-to-worker dispatch and 108 worker replies, with no obvious worker/engine errors. Offline behavior was also verified on the user's Android: after an online load, the app reopened in airplane mode and MCTS was selectable and made a move. | Browser verification of MCTS load failure, worker-construction fallback and induced worker-runtime recovery remains outstanding. |
 | Search budgets and responsiveness | PR #120 adds finite MCTS budgets for levels 1–3 (2.5s/5s/10s), request-scoped MinMax budgets (3s/6s/10s), best-so-far legal moves on budget expiry, and a 2s cap for main-thread fallback. Engine-contract workflow #364 passed 128 tests (0 failures). | Real-device/browser timing and responsiveness have not been re-verified. The mobile log's seven 15-second worker watchdog timeouts remain unexplained. |
-| Phase policy and ratings | Thresholds and provisional MCTS presets/labels are defined. A reproducible, colour-balanced pairwise calibration runner and methodology are available. | Run a full-budget tournament with sufficient samples; review uncertainty before changing or presenting ELO-like labels as measured ratings. |
+| Phase policy and ratings | Thresholds and provisional MCTS presets/labels are defined. A reproducible, colour-balanced pairwise calibration runner and methodology are available. A previous full 15-pair × 20-game run and resulting adjustments are user-confirmed. | No current universal Elo rating is established. Further full calibration is optional and should be run only on request. |
 
 ## Decisions to preserve
 
@@ -40,12 +41,13 @@ Allow independently configured AI engines for White and Black, optionally limite
 - Keep thresholds provisional: opening = ply < 10 OR pieces >= 34; endgame = pieces <= 16; otherwise midgame.
 - Treat MCTS ELO-like labels as estimates until repeatable calibration exists.
 - Do not infer test completion from merged PRs. Record only checks actually performed.
+- Follow [Engine Testing Workflow](ENGINE-TESTING-WORKFLOW.md): contract checks and focused comparisons support iteration; full calibration is manual and on request, not a routine gate.
 
 ## Remaining plan
 
-The current integration/test pass is complete. The active strength-calibration step is to run the documented full-budget tournament, review its pairwise estimates and uncertainty, and decide whether any labels need adjustment. No calibration result is claimed yet. Other follow-up areas remain parked:
+The integration and contract-test pass is complete. No full calibration is currently required to continue engine work. Use the documented test levels according to the change being made. Full-budget strength measurement remains available as an optional on-demand activity. Other follow-up areas remain parked:
 
-1. **Strength calibration:** tooling and methodology are present; run adequate full-budget samples before treating ELO-like labels as calibrated ratings.
+1. **Strength calibration:** runner and methodology are present; previous 15-pair × 20-game run and resulting adjustments are user-confirmed. Repeat the full tournament only when requested or when a specific decision requires a broader measurement.
 2. **Search responsiveness:** PR #120 now supplies finite budgets for all MCTS levels and request-scoped MinMax searches, preserves a legal best-so-far move, and caps main-thread fallback at 2s. Browser/device timing remains unverified; investigate the observed 15s worker watchdog timeouts only if this area is resumed.
 3. **Failure recovery:** browser-check MCTS load failure, worker-construction fallback, and induced worker-runtime recovery.
 4. **Additional regressions:** promotions, swaps, moats, no-legal-move/game-over handling, and responsive performance as relevant to future engine changes.
@@ -58,7 +60,7 @@ The current integration/test pass is complete. The active strength-calibration s
 
 **Completed on 2026-10-31:** normal engine dispatch, side/configuration independence, phase-specific engine selection, and ordinary reload persistence were checked through browser play and the game log. In the second logged game, the opening began with 40 pieces; midgame began at ply 21 with 33 pieces; endgame began at ply 54 with 16 pieces; checkmate occurred at ply 79. The user considers this test pass complete.
 
-**Not covered:** MCTS module-load failure, worker-construction fallback, induced worker-runtime recovery, strength calibration, and the full special-case regression list. Do not describe these as passed. The optional single-file build remains outside this checklist unless requested.
+**Not covered:** MCTS module-load failure, worker-construction fallback, induced worker-runtime recovery, and the full special-case regression list. Do not describe these as passed. The optional single-file build remains outside this checklist unless requested.
 
 Historical checklist items below remain candidates for future work, not requirements to continue this test pass.
 
@@ -73,7 +75,8 @@ Do not mark these checks complete until they have actually been observed in a br
 
 ## Progress log
 
-- **2026-11-06:** Added `scripts/engine-strength-calibration.js` and `docs/ENGINE-STRENGTH-CALIBRATION.md`. The runner compares MinMax/MCTS levels 1–3 from fixed opening layouts with balanced colours, seeded randomness, existing search budgets, pairwise relative Elo estimates, and approximate 95% intervals. Only the smoke test is intended for initial verification; no full tournament results are recorded here.
+- **2026-11-07:** Documented the tiered engine testing workflow. The earlier full 15-pair × 20-game run and resulting adjustments were user-confirmed. PR #133's separate automatic CI matrix was cancelled; full calibration is now manually dispatched on request, not run on every push or PR.
+- **2026-11-06:** Added `scripts/engine-strength-calibration.js` and `docs/ENGINE-STRENGTH-CALIBRATION.md`. The runner compares MinMax/MCTS levels 1–3 from fixed opening layouts with balanced colours, seeded randomness, existing search budgets, pairwise relative Elo estimates, and approximate 95% intervals. The runner's initial verification used a smoke test; the earlier full run and resulting adjustments are recorded as user-confirmed above, but its raw tournament output is not stored here.
 - **2026-11-05:** User-confirmed Android offline check: after an online load, the app reopened in airplane mode and MCTS was selectable and made a move.
 - **2026-11-05:** User-confirmed browser checks: clearing cached images/files while retaining site data preserved White MCTS/Opening and Black MCTS/Endgame; clearing site data restored MinMax/Midgame defaults for both sides.
 - **2026-11-04:** Current integration/test pass marked on hold after PR #119 (including PR #120) merged. Workflow #364 passed 128 tests (0 failures). Bounded search budgets are now 2.5s/5s/10s for MCTS levels 1–3, 3s/6s/10s for MinMax request levels, and at most 2s for main-thread fallback. Browser/device responsiveness and the cause of observed mobile worker watchdog timeouts remain unverified.

@@ -1,4 +1,4 @@
-# Purpose: Run the dependency-free engine and PWA startup contract tests on pushes and pull requests.
+# Purpose: Run engine and PWA contract tests automatically; keep full engine-strength calibration manual and on demand.
 name: Engine contract tests
 
 on:
@@ -40,6 +40,7 @@ jobs:
         run: node --test tests/*.test.js
 
   engine-strength-calibration:
+    if: github.event_name == 'workflow_dispatch'
     name: Calibration ${{ matrix.pair }}
     runs-on: ubuntu-latest
     strategy:
