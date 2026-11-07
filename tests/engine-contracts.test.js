@@ -93,6 +93,22 @@ vm.runInContext(mcts, sandbox, { filename: 'engines/mcts-engine.js' });
 sandbox.api.enginePlugins.set('mcts', sandbox.mctsEngine(2));
 sandbox.api.updateEngineConfigUI();
 
+function engineMetadata(engineId) {
+  const engine = sandbox.api.enginePlugins.get(engineId);
+  return {
+    id: engineId,
+    capabilities: engine.capabilities,
+    strengths: engine.strengths,
+    settings: engine.settings
+  };
+}
+
+function configureEngine(side, phase, engineId) {
+  const config = sandbox.api.getEngineConfiguration();
+  config.sides[side].phases[phase] = { engineId, strength: 'medium', advanced: {} };
+  sandbox.api.setEngineConfiguration(config);
+}
+
 function position() {
   const board = Array.from({ length: 8 }, () => Array(10).fill(null));
   board[7][4] = { type: 'k', color: 'w', moved: false };
@@ -588,10 +604,8 @@ test('worker rejects failed and malformed completed results for both engine sele
     for (const engineId of ['minmax_legacy', 'mcts']) {
       for (const resultKind of ['failed', 'malformed', 'wrong-protocol', 'wrong-engine', 'wrong-request-id', 'wrong-generation']) {
         sandbox.api.resetAIWorker();
-        mockElement('whiteEngineSelect').value = engineId;
-        mockElement('whiteEnginePhaseSelect').value = 'endgame';
-        mockElement('blackEngineSelect').value = 'minmax_legacy';
-        mockElement('blackEnginePhaseSelect').value = 'opening';
+        configureEngine('white', 'endgame', engineId);
+      configureEngine('black', 'opening', 'minmax_legacy');
         sandbox.api.updateEngineConfigUI();
         sandbox.api.setState(position());
         sandbox.api.aiMove();
@@ -1101,9 +1115,9 @@ test('engine configuration defaults cover every side and phase independently', (
   assert.equal(config.presetId, 'balanced');
   for (const side of ['white', 'black']) {
     for (const phase of ['opening', 'midgame', 'endgame']) {
-      assert.deepEqual(config.sides[side].phases[phase], {
+      assert.equal(JSON.stringify(config.sides[side].phases[phase]), JSON.stringify({
         engineId: 'minmax_legacy', strength: 'medium', advanced: {}
-      });
+      }));
     }
   }
 });
@@ -1377,9 +1391,8 @@ test('loading a saved game cancels the old engine request and permits a fresh se
   sandbox.window.Worker = SaveLoadWorker;
 
   try {
-    mockElement('modeSelect').value = 'human_vs_ai';
-    mockElement('whiteEngineSelect').value = 'minmax_legacy';
-    mockElement('whiteEnginePhaseSelect').value = 'opening';
+    mockElement('modeSelect').value = 'ai';
+    configureEngine('white', 'opening', 'minmax_legacy');
     sandbox.api.updateEngineConfigUI();
 
     const savedPosition = position();
@@ -1503,6 +1516,7 @@ test('cancelled main-thread contract search releases the active AI request', () 
   const previousWorker = sandbox.Worker;
   const previousWindowWorker = sandbox.window.Worker;
   const cancelledEngine = {
+    ...engineMetadata('minmax_legacy'),
     id: 'minmax_legacy',
     name: 'Cancelled search test engine',
     phases: ['opening', 'midgame', 'endgame'],
@@ -1567,6 +1581,7 @@ test('unresponsive worker times out, retries once on the main thread, and ignore
   sandbox.Worker = HangingWorker;
   sandbox.window.Worker = HangingWorker;
   sandbox.api.enginePlugins.set('minmax_legacy', {
+    ...engineMetadata('minmax_legacy'),
     id: 'minmax_legacy',
     name: 'MinMax timeout fallback probe',
     phases: ['opening', 'midgame', 'endgame'],
@@ -1578,10 +1593,8 @@ test('unresponsive worker times out, retries once on the main thread, and ignore
 
   try {
     mockElement('modeSelect').value = 'human_vs_ai';
-    mockElement('whiteEngineSelect').value = 'minmax_legacy';
-    mockElement('whiteEnginePhaseSelect').value = 'opening';
-    mockElement('blackEngineSelect').value = 'minmax_legacy';
-    mockElement('blackEnginePhaseSelect').value = 'opening';
+    configureEngine('white', 'opening', 'minmax_legacy');
+      configureEngine('black', 'opening', 'minmax_legacy');
     sandbox.api.updateEngineConfigUI();
     sandbox.api.setState(position());
     sandbox.api.aiMove();
@@ -1659,6 +1672,7 @@ test('worker runtime errors retry the selected engine on the main thread', () =>
   sandbox.Worker = FailingWorker;
   sandbox.window.Worker = FailingWorker;
   sandbox.api.enginePlugins.set('minmax_legacy', {
+    ...engineMetadata('minmax_legacy'),
     name: 'MinMax runtime fallback probe',
     phases: ['opening', 'midgame', 'endgame'],
     getMove(gameState, side) {
@@ -1752,10 +1766,8 @@ test('late worker result after a crash cannot bypass or duplicate the scheduled 
 
   try {
     mockElement('modeSelect').value = 'ai_vs_ai';
-    mockElement('whiteEngineSelect').value = 'minmax_legacy';
-    mockElement('whiteEnginePhaseSelect').value = 'opening';
-    mockElement('blackEngineSelect').value = 'minmax_legacy';
-    mockElement('blackEnginePhaseSelect').value = 'opening';
+    configureEngine('white', 'opening', 'minmax_legacy');
+      configureEngine('black', 'opening', 'minmax_legacy');
     sandbox.api.updateEngineConfigUI();
     const s = position();
     s.board[6][0] = { type: 'r', color: 'w', moved: false };
@@ -2233,10 +2245,8 @@ test('late worker replies after cancellation cannot affect the current game or r
 });
 
 test('engine selection resolves the configured engine independently for each side and phase', () => {
-  mockElement('whiteEngineSelect').value = 'mcts';
-  mockElement('whiteEnginePhaseSelect').value = 'midgame';
-  mockElement('blackEngineSelect').value = 'mcts';
-  mockElement('blackEnginePhaseSelect').value = 'endgame';
+  configureEngine('white', 'midgame', 'mcts');
+      configureEngine('black', 'endgame', 'mcts');
   sandbox.api.updateEngineConfigUI();
 
   const midgame = position();
@@ -2333,6 +2343,7 @@ test('structured main-thread fallback dispatches the selected MinMax and MCTS co
     for (const engineId of ['minmax_legacy', 'mcts']) {
       sandbox.api.resetAIWorker();
       const engine = {
+        ...engineMetadata(engineId),
         id: engineId,
         name: engineId === 'mcts' ? 'MCTS structured fallback probe' : 'MinMax structured fallback probe',
         phases: ['opening', 'midgame', 'endgame'],
@@ -2343,19 +2354,16 @@ test('structured main-thread fallback dispatches the selected MinMax and MCTS co
       };
       sandbox.api.enginePlugins.set(engineId, engine);
       mockElement('modeSelect').value = 'ai_vs_ai';
-      mockElement('whiteEngineSelect').value = engineId;
-      mockElement('whiteEnginePhaseSelect').value = 'opening';
-      mockElement('blackEngineSelect').value = 'minmax_legacy';
-      mockElement('blackEnginePhaseSelect').value = 'opening';
+      configureEngine('white', 'opening', engineId);
+      configureEngine('black', 'opening', 'minmax_legacy');
       // Mirror the browser select-change handler so the per-phase engine overrides update.
-      mockElement('whiteEngineSelect').onchange();
+      
 
       const s = position();
       s.board[6][0] = { type: 'r', color: 'w', moved: false };
       sandbox.api.setState(s);
       // The selected engine is applied to one phase only; match the current position's phase.
-      mockElement('whiteEnginePhaseSelect').value = sandbox.api.getGamePhase(s);
-      mockElement('whiteEngineSelect').onchange();
+      configureEngine('white', sandbox.api.getGamePhase(s), engineId);
       sandbox.api.aiMove();
 
       assert.equal(scheduledCallbacks.length, 1, 'main-thread fallback should be scheduled');
@@ -2592,6 +2600,7 @@ test('illegal worker result retries the selected engine on the main thread', () 
   assert.equal(sandbox.api.findLegalMoveMatch(s, illegal), null);
   const id = 701;
   const engine = {
+    ...engineMetadata('minmax_legacy'),
     id: 'minmax_legacy',
     name: 'Regression test engine',
     search(request) { return EngineContract.completed(request, legal); }
@@ -2839,10 +2848,8 @@ test('worker timeout fallback retries the selected MinMax or MCTS engine once wi
       sandbox.api.enginePlugins.set(engineId, engine);
 
       mockElement('modeSelect').value = 'human_vs_ai';
-      mockElement('whiteEngineSelect').value = engineId;
-      mockElement('whiteEnginePhaseSelect').value = 'opening';
-      mockElement('blackEngineSelect').value = 'minmax_legacy';
-      mockElement('blackEnginePhaseSelect').value = 'opening';
+      configureEngine('white', 'opening', engineId);
+      configureEngine('black', 'opening', 'minmax_legacy');
       sandbox.api.updateEngineConfigUI();
       mockElement('whiteEngineSelect').onchange();
 
@@ -2933,6 +2940,7 @@ test('AI NO_MOVE distinguishes checkmate and stalemate on worker and main-thread
   try {
     for (const engineId of ['minmax_legacy', 'mcts']) {
       sandbox.api.enginePlugins.set(engineId, {
+        ...engineMetadata(engineId),
         id: engineId,
         name: engineId + ' NO_MOVE test engine',
         phases: ['opening', 'midgame', 'endgame'],
@@ -2956,10 +2964,8 @@ test('AI NO_MOVE distinguishes checkmate and stalemate on worker and main-thread
           mockElement('modeSelect').value = 'human_vs_ai';
           // The unexpected-NO_MOVE fixture has White to move; configure both
           // sides so the selected test engine is used regardless of turn.
-          mockElement('whiteEngineSelect').value = engineId;
-          mockElement('whiteEnginePhaseSelect').value = 'endgame';
-          mockElement('blackEngineSelect').value = engineId;
-          mockElement('blackEnginePhaseSelect').value = 'endgame';
+          configureEngine('white', 'endgame', engineId);
+      configureEngine('black', 'endgame', engineId);
           sandbox.api.updateEngineConfigUI();
           sandbox.api.setState(s);
 
@@ -3026,10 +3032,8 @@ test('main-thread engine failures do not end the game for MinMax or MCTS', () =>
       sandbox.api.resetAIWorker();
       scheduledCallbacks.length = 0;
       mockElement('modeSelect').value = 'human_vs_ai';
-      mockElement('whiteEngineSelect').value = engineId;
-      mockElement('whiteEnginePhaseSelect').value = 'endgame';
-      mockElement('blackEngineSelect').value = 'minmax_legacy';
-      mockElement('blackEnginePhaseSelect').value = 'opening';
+      configureEngine('white', 'endgame', engineId);
+      configureEngine('black', 'opening', 'minmax_legacy');
       sandbox.api.enginePlugins.set(engineId, {
         id: engineId,
         name: engineId + ' failing test engine',
@@ -3038,7 +3042,6 @@ test('main-thread engine failures do not end the game for MinMax or MCTS', () =>
           return EngineContract.failed(request, EngineContract.errorCodes.SEARCH_FAILED, 'simulated main-thread failure');
         }
       });
-      sandbox.api.updateEngineConfigUI();
       sandbox.api.setState(position());
       sandbox.api.aiMove();
 
