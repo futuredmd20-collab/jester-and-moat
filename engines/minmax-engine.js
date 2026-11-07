@@ -227,7 +227,7 @@
       }
       const configuredTimeMs = settings && settings.timeMs;
       if (configuredTimeMs != null && (!Number.isFinite(configuredTimeMs) || configuredTimeMs < 250 || configuredTimeMs > 12000)) {
-        return EngineContract.failed(request, EngineContract.errorCodes.INVALID_CONFIG, 'MinMax timeMs must be between 250 and 15000.');
+        return EngineContract.failed(request, EngineContract.errorCodes.INVALID_CONFIG, 'MinMax timeMs must be between 250 and 12000.');
       }
       try {
         const timeMs = request.limits && request.limits.timeMs > 0
