@@ -72,3 +72,7 @@ Future full tournaments are optional follow-up measurements. They are not a prer
 ## Current status
 
 The runner and methodology are available. The earlier 15-pair × 20-game run is user-confirmed; PR #133's later CI matrix run was cancelled. No new full tournament is implied by this document change.
+
+## Progress log
+
+- **2026-11-06:** Added `scripts/engine-strength-calibration.js` and this methodology. The runner's initial verification used a smoke test; raw output from the earlier full tournament is not preserved here.
