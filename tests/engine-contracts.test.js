@@ -1753,6 +1753,7 @@ test('late worker result after a crash cannot bypass or duplicate the scheduled 
   sandbox.Worker = CrashingWorker;
   sandbox.window.Worker = CrashingWorker;
   sandbox.api.enginePlugins.set('minmax_legacy', {
+    ...engineMetadata('minmax_legacy'),
     id: 'minmax_legacy',
     name: 'MinMax crash fallback probe',
     phases: ['opening', 'midgame', 'endgame'],
@@ -1817,6 +1818,7 @@ test('main-thread fallback rejects unsupported contract result statuses without 
   sandbox.api.resetAIWorker();
   sandbox.URL.createObjectURL = () => { throw new Error('Blob workers blocked by test'); };
   sandbox.api.enginePlugins.set('minmax_legacy', {
+    ...engineMetadata('minmax_legacy'),
     id: 'minmax_legacy',
     name: 'MinMax unsupported status probe',
     phases: ['opening', 'midgame', 'endgame'],
@@ -1860,6 +1862,7 @@ test('main-thread fallback calls the selected engine when Blob workers are block
   sandbox.api.resetAIWorker();
   sandbox.URL.createObjectURL = () => { throw new Error('Blob workers blocked by test'); };
   sandbox.api.enginePlugins.set('minmax_legacy', {
+    ...engineMetadata('minmax_legacy'),
     name: 'MinMax construction fallback probe',
     phases: ['opening', 'midgame', 'endgame'],
     getMove(gameState, side) {
@@ -2833,6 +2836,7 @@ test('worker timeout fallback retries the selected MinMax or MCTS engine once wi
       let fallbackCalls = 0;
       let fallbackRequest = null;
       const engine = {
+        ...engineMetadata(engineId),
         id: engineId,
         name: engineId + ' timeout fallback probe',
         phases: ['opening', 'midgame', 'endgame'],
@@ -3033,6 +3037,7 @@ test('main-thread engine failures do not end the game for MinMax or MCTS', () =>
       configureEngine('white', 'endgame', engineId);
       configureEngine('black', 'opening', 'minmax_legacy');
       sandbox.api.enginePlugins.set(engineId, {
+        ...engineMetadata(engineId),
         id: engineId,
         name: engineId + ' failing test engine',
         phases: ['opening', 'midgame', 'endgame'],
