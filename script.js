@@ -1272,6 +1272,7 @@ function getEngineAssignment(side, phase) {
 }
 
 let engineConfiguration = createDefaultEngineConfiguration();
+let engineConfigInvalidField = null;
 
 function persistEngineConfiguration() {
   try {
@@ -1303,10 +1304,14 @@ function renderEngineConfigurationUI() {
       const effective = Object.assign({}, engine.strengths[assignment.strength], assignment.advanced);
       const fields = Object.entries(engine.settings || {}).map(([key, definition]) => {
         const value = effective[key] == null ? definition.default : effective[key];
+        const invalid = engineConfigInvalidField &&
+          engineConfigInvalidField.side === side && engineConfigInvalidField.phase === phase &&
+          engineConfigInvalidField.key === key;
         return '<label class="engine-config-field"><span>' + escapeEngineConfigHtml(definition.label || key) +
           '</span><input type="number" data-side="' + side + '" data-phase="' + phase +
           '" data-setting="advanced:' + key + '" min="' + definition.min + '" max="' + definition.max +
-          '" step="' + (definition.step || 1) + '" value="' + escapeEngineConfigHtml(value) + '">' +
+          '" step="' + (definition.step || 1) + '" value="' + escapeEngineConfigHtml(value) +
+          '" aria-invalid="' + (invalid ? 'true' : 'false') + '">' +
           (definition.description ? '<small>' + escapeEngineConfigHtml(definition.description) + '</small>' : '') +
           '</label>';
       }).join('');
@@ -1320,7 +1325,10 @@ function renderEngineConfigurationUI() {
         '" data-phase="' + phase + '" data-setting="strength">' +
         strengthOptions.replace('value="' + assignment.strength + '"', 'value="' + assignment.strength + '" selected') +
         '</select></label>' +
-        '<details class="engine-advanced"><summary>Advanced settings</summary>' +
+        '<details class="engine-advanced"' +
+         (engineConfigInvalidField && engineConfigInvalidField.side === side &&
+          engineConfigInvalidField.phase === phase ? ' open' : '') +
+         '><summary>Advanced settings</summary>' +
         '<div class="engine-advanced-fields">' + fields + '</div>' +
         '<button type="button" class="engine-reset-advanced" data-side="' + side +
         '" data-phase="' + phase + '">Reset advanced settings</button></details></section>');
@@ -1376,10 +1384,12 @@ function handleEngineConfigurationChange(event) {
       validateEngineSettingsAgainstSchema(assignment.engineId, { [key]: value }, getEngineSettingsSchemas());
       assignment.advanced[key] = value;
     } catch (error) {
+      engineConfigInvalidField = { side, phase, key };
       status(error.message);
       renderEngineConfigurationUI();
       return;
     }
+    engineConfigInvalidField = null;
   } else {
     return;
   }
