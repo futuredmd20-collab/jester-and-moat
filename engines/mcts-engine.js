@@ -282,7 +282,7 @@ function mctsEngine(level) {
   var cfg = MCTS_LEVELS[lvl];
   return {
     id: 'mcts',
-    name: 'MCTS (' + cfg.rating + ')',
+    name: 'MCTS',
     phases: ['opening', 'midgame', 'endgame'],
     capabilities: ['custom-playouts', 'custom-depth-cap', 'custom-temperature', 'custom-time-budget'],
     strength: cfg,
