@@ -1355,6 +1355,7 @@ function applyEnginePreset(presetId) {
     }
   }
   engineConfiguration = validateEngineConfiguration(next);
+  engineConfigInvalidField = null;
   persistEngineConfiguration();
   renderEngineConfigurationUI();
   return true;
@@ -1371,6 +1372,8 @@ function handleEngineConfigurationChange(event) {
     if (!enginePlugins.has(target.value)) return;
     assignment.engineId = target.value;
     assignment.advanced = {};
+    if (engineConfigInvalidField && engineConfigInvalidField.side === side &&
+        engineConfigInvalidField.phase === phase) engineConfigInvalidField = null;
   } else if (setting === 'strength') {
     if (!ENGINE_STRENGTHS.includes(target.value)) return;
     assignment.strength = target.value;
@@ -1475,6 +1478,8 @@ if (engineAssignmentsHost) engineAssignmentsHost.addEventListener('click', event
   const { side, phase } = target.dataset || {};
   if (!['white', 'black'].includes(side) || !Object.values(ENGINE_PHASES).includes(phase)) return;
   engineConfiguration.sides[side].phases[phase].advanced = {};
+  if (engineConfigInvalidField && engineConfigInvalidField.side === side &&
+      engineConfigInvalidField.phase === phase) engineConfigInvalidField = null;
   engineConfiguration.presetId = null;
   persistEngineConfiguration();
   renderEngineConfigurationUI();
