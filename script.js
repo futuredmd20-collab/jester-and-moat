@@ -1484,7 +1484,13 @@ function ensureAIWorker() {
   if (typeof mctsGetMove === 'function' && typeof mctsSearch === 'function') {
     engineFunctions.push(mctsLevelFor, mctsApplyMove, mctsPlayout, mctsNode, mctsUctChild, mctsSearch, mctsSearchAsync, mctsGetMove, mctsEngine);
   }
+  const workerEngineSettingsSchemas = getEngineSettingsSchemas();
   const workerSource = `"use strict";
+const ENGINE_STRENGTHS = ['easy', 'medium', 'hard'];
+const ENGINE_SETTINGS_SCHEMAS = ${JSON.stringify(workerEngineSettingsSchemas)};
+${engineHasOnlyKeys.toString()}
+${validateEngineSettingsAgainstSchema.toString()}
+${validateEngineRequestConfig.toString()}
 const ROWS = 8, COLS = 10;
 const DIRS = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
 function engineCopy(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
@@ -1525,12 +1531,14 @@ onmessage = async function(event) {
       state = clone(request.position);
       if (!['minmax_legacy', 'mcts'].includes(request.engineId))
         throw new Error('Unsupported structured engine selector.');
+      const validatedConfig = validateEngineRequestConfig(request.engineId, request.config, ENGINE_SETTINGS_SCHEMAS);
       const control = { cancelled: false };
       const key = String(request.requestId);
       activeSearches.set(key, control);
       let result;
       if (request.engineId === 'mcts') {
-        const mctsConfig = Object.assign({}, MCTS_LEVELS[mctsLevelFor(request.limits && request.limits.depth)]);
+        const mctsConfig = Object.assign({}, MCTS_LEVELS[mctsLevelFor(request.limits && request.limits.depth)],
+          validatedConfig.settings || {});
         if (request.limits && request.limits.timeMs > 0) mctsConfig.timeBudgetMs = request.limits.timeMs;
         const outcome = await mctsSearchAsync(
           clone(request.position), mctsConfig,
@@ -1547,10 +1555,14 @@ onmessage = async function(event) {
         }
         result = EngineContract.completed(request, outcome.move, { timedOut: outcome.timedOut });
       } else {
-        const deadline = request.limits && request.limits.timeMs > 0
-          ? Date.now() + request.limits.timeMs : Infinity;
+        const minmaxSettings = validatedConfig.settings || {};
+        const searchDepth = request.limits && request.limits.depth != null
+          ? request.limits.depth : (minmaxSettings.depth || 2);
+        const timeMs = request.limits && request.limits.timeMs > 0
+          ? request.limits.timeMs : minmaxSettings.timeMs;
+        const deadline = timeMs > 0 ? Date.now() + timeMs : Infinity;
         const outcome = await MinMaxSearchCore.getBestMoveAsync(
-          clone(request.position), request.limits.depth,
+          clone(request.position), searchDepth,
           () => control.cancelled,
           () => new Promise(resolve => setTimeout(resolve, 0)),
           () => Date.now() >= deadline
