@@ -1214,7 +1214,6 @@ test('new configuration persists and restores; old or malformed saved shapes res
   assert.equal(saved.schemaVersion, 1);
   assert.equal(saved.sides.white.phases.opening.engineId, 'mcts');
 
-  sandbox.api.applyEnginePreset('balanced');
   sandbox.api.loadEngineConfig();
   assert.equal(sandbox.api.getEngineAssignment('w', 'opening').engine.id, 'mcts');
   assert.equal(sandbox.api.getEngineAssignment('w', 'opening').settings.playouts, 2500);
@@ -1482,9 +1481,8 @@ test('cancelled worker contract result releases the active AI request without en
   const before = JSON.stringify(s);
 
   try {
-    mockElement('modeSelect').value = 'human_vs_ai';
-    mockElement('whiteEngineSelect').value = 'minmax_legacy';
-    mockElement('whiteEnginePhaseSelect').value = 'opening';
+    mockElement('modeSelect').value = 'ai';
+    configureEngine('white', 'opening', 'minmax_legacy');
     sandbox.api.updateEngineConfigUI();
     sandbox.api.aiMove();
 
@@ -1592,7 +1590,7 @@ test('unresponsive worker times out, retries once on the main thread, and ignore
   });
 
   try {
-    mockElement('modeSelect').value = 'human_vs_ai';
+    mockElement('modeSelect').value = 'ai';
     configureEngine('white', 'opening', 'minmax_legacy');
       configureEngine('black', 'opening', 'minmax_legacy');
     sandbox.api.updateEngineConfigUI();
@@ -2847,16 +2845,16 @@ test('worker timeout fallback retries the selected MinMax or MCTS engine once wi
       };
       sandbox.api.enginePlugins.set(engineId, engine);
 
-      mockElement('modeSelect').value = 'human_vs_ai';
+      mockElement('modeSelect').value = 'ai';
       configureEngine('white', 'opening', engineId);
       configureEngine('black', 'opening', 'minmax_legacy');
       sandbox.api.updateEngineConfigUI();
-      mockElement('whiteEngineSelect').onchange();
+      
 
       const s = position();
       s.board[6][0] = { type: 'r', color: 'w', moved: false };
-      mockElement('whiteEnginePhaseSelect').value = sandbox.api.getGamePhase(s);
-      mockElement('whiteEngineSelect').onchange();
+      configureEngine('white', sandbox.api.getGamePhase(s), engineId);
+      
       sandbox.api.setState(s);
       sandbox.api.aiMove();
 
@@ -2961,7 +2959,7 @@ test('AI NO_MOVE distinguishes checkmate and stalemate on worker and main-thread
           sandbox.api.stopAutoPlayForTest();
           scheduledCallbacks.length = 0;
           scheduledTimeouts.length = 0;
-          mockElement('modeSelect').value = 'human_vs_ai';
+          mockElement('modeSelect').value = 'ai';
           // The unexpected-NO_MOVE fixture has White to move; configure both
           // sides so the selected test engine is used regardless of turn.
           configureEngine('white', 'endgame', engineId);
@@ -3031,7 +3029,7 @@ test('main-thread engine failures do not end the game for MinMax or MCTS', () =>
     for (const engineId of ['minmax_legacy', 'mcts']) {
       sandbox.api.resetAIWorker();
       scheduledCallbacks.length = 0;
-      mockElement('modeSelect').value = 'human_vs_ai';
+      mockElement('modeSelect').value = 'ai';
       configureEngine('white', 'endgame', engineId);
       configureEngine('black', 'opening', 'minmax_legacy');
       sandbox.api.enginePlugins.set(engineId, {
