@@ -1139,7 +1139,7 @@ const MinMaxLegacy = {
   },
   settings: {
     depth: { type: 'integer', default: 2, min: 1, max: 10, label: 'Search depth', description: 'Maximum search depth in plies.' },
-    timeMs: { type: 'integer', default: 6000, min: 250, max: 15000, label: 'Time budget', description: 'Maximum search time in milliseconds.', unit: 'ms' }
+    timeMs: { type: 'integer', default: 6000, min: 250, max: 12000, label: 'Time budget', description: 'Maximum search time in milliseconds.', unit: 'ms' }
   },
   strength: 'default',
   search: function(request) { return MinMaxSearchCore.search(request); },
