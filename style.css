@@ -1574,6 +1574,11 @@ html:not(.theme-dark) .piece-set-minimal[data-color="b"] {
   font: inherit;
 }
 .engine-config-field small { color: var(--muted-ink); font-size: 0.75rem; line-height: 1.3; }
+.engine-config-field input[aria-invalid="true"] {
+  border-color: #b42318;
+  background: #fff6f5;
+  box-shadow: 0 0 0 1px #b42318;
+}
 .engine-advanced { margin-top: 8px; padding-top: 7px; border-top: 1px solid var(--line); }
 .engine-advanced summary { min-height: 34px; display: flex; align-items: center; cursor: pointer; color: var(--burgundy-dark); font-weight: 700; }
 .engine-advanced-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
