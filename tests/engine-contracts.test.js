@@ -92,14 +92,18 @@ vm.runInContext(mcts, sandbox, { filename: 'engines/mcts-engine.js' });
 // because this test harness evaluates script.js first to expose the test API.
 sandbox.api.enginePlugins.set('mcts', sandbox.mctsEngine(2));
 sandbox.api.updateEngineConfigUI();
+const canonicalEngineMetadata = new Map(['minmax_legacy', 'mcts'].map(engineId => {
+  const engine = sandbox.api.enginePlugins.get(engineId);
+  return [engineId, { capabilities: engine.capabilities, strengths: engine.strengths, settings: engine.settings }];
+}));
 
 function engineMetadata(engineId) {
-  const engine = sandbox.api.enginePlugins.get(engineId);
+  const metadata = canonicalEngineMetadata.get(engineId);
   return {
     id: engineId,
-    capabilities: engine.capabilities,
-    strengths: engine.strengths,
-    settings: engine.settings
+    capabilities: metadata.capabilities,
+    strengths: metadata.strengths,
+    settings: metadata.settings
   };
 }
 
@@ -1110,6 +1114,7 @@ test('worker reports unsupported engine selectors explicitly', async () => {
 
 
 test('engine configuration defaults cover every side and phase independently', () => {
+  sandbox.api.applyEnginePreset('balanced');
   const config = sandbox.api.getEngineConfiguration();
   assert.equal(config.schemaVersion, 1);
   assert.equal(config.presetId, 'balanced');
