@@ -2305,7 +2305,7 @@ function getSpeed(){ return parseInt(document.getElementById('speedSelect').valu
 
 function stepNextMove(){
   stopAutoPlay();
-  if (gameOver || isAIThinking) return;
+  if (!isAIMode() || gameOver || isAIThinking) return;
   if (state.phase.startsWith('place_moat')){
     const color = state.phase.split('_')[2];
     aiPlaceMoatForColor(color);
@@ -2345,6 +2345,7 @@ function generateRandomMidgame(){
 }
 
 function toggleAutoPlay(){
+  if (!autoPlayInterval && !isAIMode()) return;
   if (autoPlayInterval){
     stopAutoPlay();
     status("Game Paused.");
@@ -2355,7 +2356,7 @@ function toggleAutoPlay(){
     gameStarted = true;
     status("Game Running / Auto-play active...");
     autoPlayInterval = setInterval(() => {
-      if (gameOver){ stopAutoPlay(); return; }
+      if (!isAIMode() || gameOver){ stopAutoPlay(); return; }
       if (state.phase.startsWith('place_moat')){
         const color = state.phase.split('_')[2];
         aiPlaceMoatForColor(color);
