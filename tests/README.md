@@ -27,6 +27,7 @@ The separate engine-strength calibration runner has a short smoke test and a ful
 - Kingside and queenside castling relocate both king and rook to the variant's configured squares. Negative cases cover moved kings/rooks, missing rooks, blocked paths, check, attacked transit squares, and kings off their original square. Loading a custom editor position resets castling movement flags for a king and rooks on their home squares.
 - En passant is available only immediately after a double pawn move, removes the captured pawn, rejects invalid targets/captures, and is illegal when it exposes the king to check.
 - A moat is destroyed when two opposing pieces occupy its three cells.
+- Rook, queen, and jester horizontal moves may pass through the same moat they start on; moves starting outside a moat stop on its first square. Sliding attack detection applies the same rule from the attacking piece's origin.
 - AI worker setup returns safely to main-thread fallback when Blob workers are blocked; the selected engine is called with a cloned state.
 - Worker runtime errors terminate the failed worker and retry the active request once through the selected engine on the main thread.
 - Loading a valid saved game cancels any in-flight search for the previous position; a fresh search can run and stale worker responses are ignored.
