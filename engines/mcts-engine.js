@@ -284,7 +284,7 @@ function mctsEngine(level) {
     id: 'mcts',
     name: 'MCTS',
     phases: ['opening', 'midgame', 'endgame'],
-    capabilities: ['custom-playouts', 'custom-depth-cap', 'custom-temperature', 'custom-time-budget'],
+    capabilities: ['playouts', 'capDepth', 'temperature', 'timeBudgetMs']
     strength: cfg,
     strengths: {
       easy: { playouts: 200, capDepth: 10, temperature: 0.35, timeBudgetMs: 2500 },
