@@ -104,6 +104,50 @@ function position() {
   };
 }
 
+test('sliding pieces can move horizontally through the same moat they start on', () => {
+  for (const { type, toCol } of [
+    { type: 'r', toCol: 6 },
+    { type: 'q', toCol: 6 },
+    { type: 'j', toCol: 5 }
+  ]) {
+    const s = position();
+    s.board[5][2] = { type, color: 'w', moved: false };
+    s.moats.w = { r: 5, c: 2 };
+    const moves = allLegalState(s).filter(m => m.from.r === 5 && m.from.c === 2);
+    assert.ok(moves.some(m => m.to.r === 5 && m.to.c === toCol),
+      `${type} should pass through its starting moat horizontally`);
+  }
+});
+
+test('a sliding move that starts outside a moat stops on its first moat square', () => {
+  const s = position();
+  s.board[5][1] = { type: 'r', color: 'w', moved: false };
+  s.moats.w = { r: 5, c: 2 };
+  const moves = allLegalState(s).filter(m => m.from.r === 5 && m.from.c === 1);
+  assert.ok(moves.some(m => m.to.r === 5 && m.to.c === 2));
+  assert.ok(!moves.some(m => m.to.r === 5 && m.to.c > 2));
+});
+
+test('sliding attacks use the attacking piece origin when applying moat passage rules', () => {
+  const blocked = position();
+  blocked.board = Array.from({ length: 8 }, () => Array(10).fill(null));
+  blocked.board[5][2] = { type: 'k', color: 'w', moved: true };
+  blocked.board[5][6] = { type: 'r', color: 'b', moved: true };
+  blocked.board[0][9] = { type: 'k', color: 'b', moved: true };
+  blocked.moats.w = { r: 5, c: 2 };
+  assert.equal(sandbox.api.inCheck('w', blocked.board, blocked.moats), false,
+    'an attacker outside the moat cannot pass through it to reach a king beyond it');
+
+  const allowed = position();
+  allowed.board = Array.from({ length: 8 }, () => Array(10).fill(null));
+  allowed.board[5][6] = { type: 'k', color: 'w', moved: true };
+  allowed.board[5][2] = { type: 'r', color: 'b', moved: true };
+  allowed.board[0][9] = { type: 'k', color: 'b', moved: true };
+  allowed.moats.b = { r: 5, c: 2 };
+  assert.equal(sandbox.api.inCheck('w', allowed.board, allowed.moats), true,
+    'an attacker starting on a moat can pass through that same moat');
+});
+
 function terminalPosition(kind) {
   const s = position();
   if (kind === 'unexpected-no-move') return s;

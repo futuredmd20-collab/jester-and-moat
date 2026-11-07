@@ -63,7 +63,7 @@ test('missing or invalid new preferences safely fall back to first palette choic
 });
 test('piece palette is included in saved options and service-worker cache is bumped',()=>{
  assert.match(script,/piecePalette:\s*document\.getElementById\('piecePaletteSelect'\)\.value/);
- assert.match(sw,/jm-cache-v0\.8\.2-unified-colors-3/);
+ assert.match(sw,/jm-cache-v0\.8\.2-unified-colors-4/);
 });
 
 test('piece palette accents blend with the selected board profile for moats and indicators',()=>{
