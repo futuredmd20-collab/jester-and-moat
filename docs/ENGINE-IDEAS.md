@@ -25,9 +25,11 @@ Explore additional board configurations, including:
 
 This could become a separate play mode or an experimental environment for engine evaluation. The exact pieces, starting positions, rules, and relationship to the existing 10×8 game are undecided.
 
-## 3. Engine Personalities
+## 3. Engine Personalities — Future Extension
 
 Explore a personality layer that adjusts how an engine plays without requiring a separate search engine for every personality. Ideally, personality choices could be used with either MinMax or MCTS, subject to what their implementations support.
+
+**Relationship to the configuration plan:** [Engine Configuration Plan](ENGINE-CONFIGURATION-PLAN.md) covers the planned engine and strength assignment per side and game phase. Personality is deliberately excluded from that plan's implementation scope. If selected for future development, personality could become an additional independently configurable value for each side/phase assignment. This idea entry is the sole planning home for personality behavior; do not duplicate its design in the configuration plan.
 
 Illustrative personalities:
 - **Dragjägaren (Move Hunter):** emphasizes checks, threats, and tactical opportunities.
@@ -51,6 +53,6 @@ A future design should distinguish personality from basic playing competence: a 
 These are separate but potentially complementary tracks:
 - Standard chess concerns a different ruleset and opponent environment.
 - Alternative boards concern board geometry and/or starting configurations.
-- Personalities concern playing style layered over an engine.
+- Personalities concern playing style layered over an engine and may later extend the per-side/per-phase configuration described in the Engine Configuration Plan.
 
 They should not be treated as dependencies of one another. No work should begin from this document alone; select and scope an idea explicitly first.
