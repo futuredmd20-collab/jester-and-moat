@@ -314,7 +314,7 @@ function mctsEngine(level) {
             (settings.playouts != null && (!Number.isInteger(settings.playouts) || settings.playouts < 50 || settings.playouts > 5000)) ||
             (settings.capDepth != null && (!Number.isInteger(settings.capDepth) || settings.capDepth < 1 || settings.capDepth > 40)) ||
             (settings.temperature != null && (!Number.isFinite(settings.temperature) || settings.temperature < 0 || settings.temperature > 1)) ||
-            (settings.timeBudgetMs != null && (!Number.isInteger(settings.timeBudgetMs) || settings.timeBudgetMs < 250 || settings.timeBudgetMs > 12000))) {
+            (settings.timeBudgetMs != null && (!Number.isInteger(settings.timeBudgetMs) || settings.timeBudgetMs < 250 || settings.timeBudgetMs > 12000)))) {
           return EngineContract.failed(request, 'INVALID_CONFIG', 'MCTS received invalid or unsupported settings.');
         }
         var searchConfig = Object.assign({}, MCTS_LEVELS[searchLevel], settings || {});
