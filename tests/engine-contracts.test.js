@@ -24,7 +24,7 @@ function mockElement(id) {
   if (!elements.has(id)) {
     elements.set(id, {
       id,
-      value: id.includes('EngineSelect') ? 'minmax_legacy' : id.includes('PhaseSelect') ? 'opening' : id === 'modeSelect' ? 'human_vs_ai' : '',
+      value: id.includes('EngineSelect') ? 'minmax_legacy' : id.includes('PhaseSelect') ? 'opening' : id === 'modeSelect' ? 'ai' : '',
       checked: false,
       hidden: false,
       disabled: false,
@@ -85,12 +85,13 @@ const sandbox = {
 vm.createContext(sandbox);
 vm.runInContext(minmax, sandbox);
 vm.runInContext(source.slice(0, boundary) + `
-globalThis.api = { EngineContract, MinMaxLegacy, cancelActiveAIRequest, setActiveAIForTest(worker, request) { aiWorker = worker; pendingAIRequest = request; aiRequestId = request.id; isAIThinking = true; }, getActiveAIForTest() { return { worker: aiWorker, request: pendingAIRequest, thinking: isAIThinking, id: aiRequestId }; }, allLegalState, inCheck, findLegalMoveMatch, MinMaxSearchCore, getBestMove: MinMaxSearchCore.getBestMove, getBestMoveAsync: MinMaxSearchCore.getBestMoveAsync, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout); aiWorkerTimeout = null; if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; gameOver = false; gameOverMessage = ''; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getDefaultEngineForSide() { return defaultEngineForSide; }, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, applyLoadedGame, resumeLoadedGamePlayback, getAutoPlayForTest() { return autoPlayInterval; }, stopAutoPlayForTest: stopAutoPlay, ENGINE_PHASES, debugLogger, DebugLogger, status };
+globalThis.api = { EngineContract, MinMaxLegacy, cancelActiveAIRequest, setActiveAIForTest(worker, request) { aiWorker = worker; pendingAIRequest = request; aiRequestId = request.id; isAIThinking = true; }, getActiveAIForTest() { return { worker: aiWorker, request: pendingAIRequest, thinking: isAIThinking, id: aiRequestId }; }, allLegalState, inCheck, findLegalMoveMatch, MinMaxSearchCore, getBestMove: MinMaxSearchCore.getBestMove, getBestMoveAsync: MinMaxSearchCore.getBestMoveAsync, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout); aiWorkerTimeout = null; if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; gameOver = false; gameOverMessage = ''; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getEngineConfiguration() { return engineCopy(engineConfiguration); }, setEngineConfiguration(config) { engineConfiguration = validateEngineConfiguration(config); updateEngineConfigUI(); }, validateEngineConfiguration, getEngineAssignment, applyEnginePreset, isAIMode, updateModeUI, stepNextMove, toggleAutoPlay, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, applyLoadedGame, resumeLoadedGamePlayback, getAutoPlayForTest() { return autoPlayInterval; }, stopAutoPlayForTest: stopAutoPlay, ENGINE_PHASES, debugLogger, DebugLogger, status };
 `, sandbox, { filename: 'script.js' });
 vm.runInContext(mcts, sandbox, { filename: 'engines/mcts-engine.js' });
 // The app's HTML loads the MCTS module before script.js; register its plugin here
 // because this test harness evaluates script.js first to expose the test API.
 sandbox.api.enginePlugins.set('mcts', sandbox.mctsEngine(2));
+sandbox.api.updateEngineConfigUI();
 
 function position() {
   const board = Array.from({ length: 8 }, () => Array(10).fill(null));
@@ -1094,79 +1095,124 @@ test('worker reports unsupported engine selectors explicitly', async () => {
 });
 
 
-test('White and Black engine settings persist and restore independently', () => {
-  const whiteEngine = mockElement('whiteEngineSelect');
-  const whitePhase = mockElement('whiteEnginePhaseSelect');
-  const blackEngine = mockElement('blackEngineSelect');
-  const blackPhase = mockElement('blackEnginePhaseSelect');
-
-  whiteEngine.value = 'mcts';
-  whitePhase.value = 'midgame';
-  blackEngine.value = 'minmax_legacy';
-  blackPhase.value = 'endgame';
-  sandbox.api.updateEngineConfigUI();
-
-  assert.deepEqual(JSON.parse(storedValues.get('engineConfig')), {
-    whiteEngine: 'mcts', whitePhase: 'midgame',
-    blackEngine: 'minmax_legacy', blackPhase: 'endgame'
-  });
-
-  whiteEngine.value = 'minmax_legacy';
-  whitePhase.value = 'opening';
-  blackEngine.value = 'mcts';
-  blackPhase.value = 'opening';
-  sandbox.api.loadEngineConfig();
-
-  assert.equal(whiteEngine.value, 'mcts');
-  assert.equal(whitePhase.value, 'midgame');
-  assert.equal(blackEngine.value, 'minmax_legacy');
-  assert.equal(blackPhase.value, 'endgame');
+test('engine configuration defaults cover every side and phase independently', () => {
+  const config = sandbox.api.getEngineConfiguration();
+  assert.equal(config.schemaVersion, 1);
+  assert.equal(config.presetId, 'balanced');
+  for (const side of ['white', 'black']) {
+    for (const phase of ['opening', 'midgame', 'endgame']) {
+      assert.deepEqual(config.sides[side].phases[phase], {
+        engineId: 'minmax_legacy', strength: 'medium', advanced: {}
+      });
+    }
+  }
 });
 
-test('engine configuration applies MCTS only in the selected phase and keeps MinMax elsewhere', () => {
-  const config = sandbox.api.getDefaultEngineForSide();
-  mockElement('whiteEngineSelect').value = 'mcts';
-  mockElement('whiteEnginePhaseSelect').value = 'midgame';
-  mockElement('blackEngineSelect').value = 'mcts';
-  mockElement('blackEnginePhaseSelect').value = 'endgame';
-  sandbox.api.updateEngineConfigUI();
+test('side and phase assignments accept mixed engines, strengths, and independent advanced settings', () => {
+  const config = sandbox.api.getEngineConfiguration();
+  config.sides.white.phases.opening = {
+    engineId: 'mcts', strength: 'hard', advanced: { playouts: 3000 }
+  };
+  config.sides.white.phases.midgame = {
+    engineId: 'minmax_legacy', strength: 'easy', advanced: { depth: 4 }
+  };
+  config.sides.black.phases.endgame = {
+    engineId: 'mcts', strength: 'easy', advanced: { temperature: 0.7 }
+  };
+  sandbox.api.setEngineConfiguration(config);
 
-  assert.deepEqual(JSON.parse(JSON.stringify(config.w.phaseOverrides)), {
-    opening: 'minmax_legacy', midgame: 'mcts', endgame: 'minmax_legacy'
-  });
-  assert.deepEqual(JSON.parse(JSON.stringify(config.b.phaseOverrides)), {
-    opening: 'minmax_legacy', midgame: 'minmax_legacy', endgame: 'mcts'
-  });
+  const whiteOpening = sandbox.api.getEngineAssignment('w', 'opening');
+  const whiteMidgame = sandbox.api.getEngineAssignment('w', 'midgame');
+  const blackEndgame = sandbox.api.getEngineAssignment('b', 'endgame');
+  assert.equal(whiteOpening.engine.id, 'mcts');
+  assert.equal(whiteOpening.strength, 'hard');
+  assert.equal(whiteOpening.settings.playouts, 3000);
+  assert.equal(whiteOpening.settings.capDepth, 18);
+  assert.equal(whiteMidgame.engine.id, 'minmax_legacy');
+  assert.equal(whiteMidgame.settings.depth, 4);
+  assert.equal(blackEndgame.engine.id, 'mcts');
+  assert.equal(blackEndgame.settings.temperature, 0.7);
+  assert.equal(blackEndgame.settings.playouts, 200);
+  assert.equal(sandbox.api.getEngineAssignment('b', 'opening').engine.id, 'minmax_legacy');
 });
 
-test('missing or malformed saved engine configuration falls back to UI-aligned midgame defaults', () => {
-  storedValues.delete('engineConfig');
+test('engine configuration rejects unknown engines, unsupported settings, and out-of-range values', () => {
+  const base = sandbox.api.getEngineConfiguration();
+  const unknownEngine = JSON.parse(JSON.stringify(base));
+  unknownEngine.sides.white.phases.opening.engineId = 'missing-engine';
+  assert.throws(() => sandbox.api.validateEngineConfiguration(unknownEngine), /Invalid white opening engine assignment/);
+
+  const unsupportedSetting = JSON.parse(JSON.stringify(base));
+  unsupportedSetting.sides.black.phases.midgame.advanced = { exploration: 2 };
+  assert.throws(() => sandbox.api.validateEngineConfiguration(unsupportedSetting), /Unsupported setting/);
+
+  const outOfRange = JSON.parse(JSON.stringify(base));
+  outOfRange.sides.white.phases.endgame = {
+    engineId: 'mcts', strength: 'medium', advanced: { temperature: 1.5 }
+  };
+  assert.throws(() => sandbox.api.validateEngineConfiguration(outOfRange), /Invalid value/);
+});
+
+test('strength profiles supply engine-specific settings and Advanced overrides take priority', () => {
+  const config = sandbox.api.getEngineConfiguration();
+  config.sides.white.phases.opening = {
+    engineId: 'mcts', strength: 'medium', advanced: { playouts: 1200 }
+  };
+  config.sides.black.phases.opening = {
+    engineId: 'minmax_legacy', strength: 'hard', advanced: { depth: 5 }
+  };
+  sandbox.api.setEngineConfiguration(config);
+
+  const mcts = sandbox.api.getEngineAssignment('w', 'opening');
+  const minmax = sandbox.api.getEngineAssignment('b', 'opening');
+  assert.equal(mcts.settings.playouts, 1200);
+  assert.equal(mcts.settings.capDepth, 14);
+  assert.equal(mcts.settings.temperature, 0.15);
+  assert.equal(minmax.settings.depth, 5);
+  assert.equal(minmax.settings.timeMs, 10000);
+});
+
+test('presets populate all assignments and manual changes mark the configuration custom', () => {
+  assert.equal(sandbox.api.applyEnginePreset('easy'), true);
+  let config = sandbox.api.getEngineConfiguration();
+  assert.equal(config.presetId, 'easy');
+  assert.equal(config.sides.white.phases.endgame.strength, 'easy');
+  assert.equal(config.sides.black.phases.opening.strength, 'easy');
+
+  config.sides.white.phases.opening.engineId = 'mcts';
+  config.presetId = null;
+  sandbox.api.setEngineConfiguration(config);
+  assert.equal(sandbox.api.getEngineConfiguration().presetId, null);
+  assert.equal(sandbox.api.applyEnginePreset('balanced'), true);
+  config = sandbox.api.getEngineConfiguration();
+  assert.equal(config.presetId, 'balanced');
+  assert.equal(config.sides.white.phases.opening.engineId, 'minmax_legacy');
+  assert.equal(config.sides.black.phases.endgame.strength, 'medium');
+});
+
+test('new configuration persists and restores; old or malformed saved shapes reset to defaults', () => {
+  const config = sandbox.api.getEngineConfiguration();
+  config.sides.white.phases.opening = {
+    engineId: 'mcts', strength: 'hard', advanced: { playouts: 2500 }
+  };
+  sandbox.api.setEngineConfiguration(config);
+  const saved = JSON.parse(storedValues.get('engineConfig'));
+  assert.equal(saved.schemaVersion, 1);
+  assert.equal(saved.sides.white.phases.opening.engineId, 'mcts');
+
+  sandbox.api.applyEnginePreset('balanced');
   sandbox.api.loadEngineConfig();
-  assert.equal(mockElement('whiteEngineSelect').value, 'minmax_legacy');
-  assert.equal(mockElement('whiteEnginePhaseSelect').value, 'midgame');
-  assert.equal(mockElement('blackEngineSelect').value, 'minmax_legacy');
-  assert.equal(mockElement('blackEnginePhaseSelect').value, 'midgame');
+  assert.equal(sandbox.api.getEngineAssignment('w', 'opening').engine.id, 'mcts');
+  assert.equal(sandbox.api.getEngineAssignment('w', 'opening').settings.playouts, 2500);
+
+  storedValues.set('engineConfig', JSON.stringify({ whiteEngine: 'mcts', whitePhase: 'opening' }));
+  sandbox.api.loadEngineConfig();
+  assert.equal(sandbox.api.getEngineAssignment('w', 'opening').engine.id, 'minmax_legacy');
+  assert.equal(sandbox.api.getEngineConfiguration().presetId, 'balanced');
 
   storedValues.set('engineConfig', '{broken json');
-  mockElement('whiteEngineSelect').value = 'mcts';
-  mockElement('blackEngineSelect').value = 'mcts';
   sandbox.api.loadEngineConfig();
-  assert.equal(mockElement('whiteEngineSelect').value, 'minmax_legacy');
-  assert.equal(mockElement('whiteEnginePhaseSelect').value, 'midgame');
-  assert.equal(mockElement('blackEngineSelect').value, 'minmax_legacy');
-  assert.equal(mockElement('blackEnginePhaseSelect').value, 'midgame');
-});
-
-test('invalid saved engine names and phases are replaced with defaults per field', () => {
-  storedValues.set('engineConfig', JSON.stringify({
-    whiteEngine: 'not-an-engine', whitePhase: 'invalid-phase',
-    blackEngine: 'mcts', blackPhase: 'endgame'
-  }));
-  sandbox.api.loadEngineConfig();
-  assert.equal(mockElement('whiteEngineSelect').value, 'minmax_legacy');
-  assert.equal(mockElement('whiteEnginePhaseSelect').value, 'midgame');
-  assert.equal(mockElement('blackEngineSelect').value, 'mcts');
-  assert.equal(mockElement('blackEnginePhaseSelect').value, 'endgame');
+  assert.equal(sandbox.api.getEngineAssignment('b', 'endgame').engine.id, 'minmax_legacy');
 });
 
 test('storage read and write failures do not throw during engine configuration setup', () => {
@@ -1175,6 +1221,20 @@ test('storage read and write failures do not throw during engine configuration s
   assert.doesNotThrow(() => sandbox.api.loadEngineConfig());
   storageThrowsOnRead = false;
   storageThrowsOnWrite = false;
+});
+
+test('2 Player Pass hides engine controls and cannot dispatch Play or Next AI actions', () => {
+  mockElement('modeSelect').value = 'pvp';
+  sandbox.api.updateModeUI();
+  assert.equal(mockElement('aiEngineSection').hidden, true);
+  assert.equal(mockElement('stepBtn').disabled, true);
+  assert.equal(mockElement('autoBtn').disabled, true);
+
+  sandbox.api.aiMove();
+  sandbox.api.stepNextMove();
+  sandbox.api.toggleAutoPlay();
+  assert.equal(sandbox.api.getActiveAIForTest().thinking, false);
+  assert.equal(sandbox.api.getAutoPlayForTest(), null);
 });
 
 
