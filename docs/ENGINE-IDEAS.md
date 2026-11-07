@@ -1,6 +1,6 @@
 # Engine and Board Ideas
 
-Purpose: preserve exploratory ideas for future engine, board, and opponent modes. This is an idea register, not an implementation plan, feature commitment, or statement of current capabilities.
+Purpose: preserve exploratory ideas for future engine, board, and opponent modes. This is an idea register, not an implementation plan, feature commitment, or statement of current capabilities. Cross-cutting architecture and sequencing are tracked in [Engine Extensibility Plan](ENGINE-EXTENSIBILITY-PLAN.md).
 
 ## Status
 
@@ -29,7 +29,7 @@ This could become a separate play mode or an experimental environment for engine
 
 Explore a personality layer that adjusts how an engine plays without requiring a separate search engine for every personality. Ideally, personality choices could be used with either MinMax or MCTS, subject to what their implementations support.
 
-**Relationship to the configuration plan:** [Engine Configuration Plan](ENGINE-CONFIGURATION-PLAN.md) covers the planned engine and strength assignment per side and game phase. Personality is deliberately excluded from that plan's implementation scope. If selected for future development, personality could become an additional independently configurable value for each side/phase assignment. This idea entry is the sole planning home for personality behavior; do not duplicate its design in the configuration plan.
+**Relationship to the configuration and extensibility plans:** [Engine Configuration Plan](ENGINE-CONFIGURATION-PLAN.md) records the completed engine and strength assignment per side and phase. [Engine Extensibility Plan](ENGINE-EXTENSIBILITY-PLAN.md) defines the proposed architecture and staged investigation for a reusable personality layer. This idea entry remains the home for personality examples and behavior ideas; no personality roster or implementation is approved.
 
 Illustrative personalities:
 - **Dragjägaren (Move Hunter):** emphasizes checks, threats, and tactical opportunities.

@@ -1,14 +1,14 @@
 # Engine Configuration Plan
 
-Purpose: define and track configurable engine assignments, common strength levels, editable presets, and engine-specific advanced settings. Random configuration and future game dimensions are recorded as deferred work, not part of the current implementation.
+Purpose: record the design, implementation, and verification of configurable engine assignments, common strength levels, editable presets, and engine-specific advanced settings. Future game dimensions are tracked separately.
 
 ## Status
 
-**Status: In progress (2026-11-07).** The user approved the technical design and implementation using Workflow D. Implementation is underway on `feat/engine-configuration`. No merge is authorized.
+**Status: Completed (2026-11-07; PR #138 merged).** The implementation is integrated into `main` at `bbc0357`. The engine-configuration CI workflow passed. The user completed manual PWA verification of the configuration features; Edit Board edge cases were recorded separately and are not part of this plan.
 
 ## Goal
 
-Let the player configure the engine and strength independently for every side and game phase, with optional engine-specific advanced overrides. Keep the configuration model extensible without implementing personalities, alternative boards, or other future dimensions now.
+Let the player configure the engine and strength independently for every side and game phase, with optional engine-specific advanced overrides. Keep the current configuration model focused; broader extensibility for personalities, alternative boards, and future game dimensions is covered by [Engine Extensibility Plan](ENGINE-EXTENSIBILITY-PLAN.md).
 
 ## Approved configuration model
 
@@ -85,4 +85,4 @@ The configuration unit is one **side × phase** assignment:
 ## Change log
 
 - **2026-11-07:** User approved nine design decisions: independent side × phase assignments; common Easy/Medium/Hard levels; engine-declared Advanced schemas; Advanced overrides win; editable presets; reuse of protocol `config`; strict validation; no migration; phase detection remains separate.
-- **2026-11-07:** Implementation started on `feat/engine-configuration` under Workflow D. Random engine configuration remains deferred.
+- **2026-11-07:** PR #138 was squash-merged to `main` at `bbc0357`. The engine-configuration CI workflow passed, and the user completed manual PWA verification of side/phase assignments, strength, Advanced settings, presets/custom state, persistence, and 2 Player Pass. Edit Board edge cases remain a separate follow-up. Future extensions are tracked in [Engine Extensibility Plan](ENGINE-EXTENSIBILITY-PLAN.md).
