@@ -27,12 +27,15 @@ A fixed seed makes random choices repeatable within the same runtime conditions.
 Requires Node.js (18 or newer recommended). No dependencies or network access are needed.
 
 ```sh
+node --test tests/*.test.js
 node scripts/engine-strength-calibration.js --self-test
-node scripts/engine-strength-calibration.js --pair minmax-2,mcts-2 --games-per-pair 20
+node scripts/engine-strength-calibration.js --pair minmax-2,mcts-2 --games-per-pair 4 --budget-scale 1
 node scripts/engine-strength-calibration.js --games-per-pair 20 --seed 20261106 --json
 ```
 
-The default tournament runs all 15 pairings among the six profiles, with two colour-balanced games per pair. Increase `--games-per-pair` substantially for useful evidence; 20 or more is a starting point, not a guarantee of statistical power.
+See [Engine Testing Workflow](ENGINE-TESTING-WORKFLOW.md) for when to use contract tests, reduced comparisons, and the full on-demand tournament.
+
+The default tournament runs all 15 pairings among the six profiles, with two colour-balanced games per pair. Increase `--games-per-pair` for more evidence; 20 games per pairing is the configured full-run sample, not a guarantee of statistical power.
 
 Options:
 
@@ -46,7 +49,7 @@ Options:
 | `--json` | off | Emit the complete results as JSON. |
 | `--self-test` | off | Run a short two-ply MinMax/MCTS smoke game. |
 
-Use full budgets (`--budget-scale 1`) for calibration. A reduced scale is useful only for checking the runner; do not compare its ratings with full-budget results.
+Use full budgets (`--budget-scale 1`) when comparing results with the full-run baseline. A reduced scale is useful only for checking the runner; do not compare its ratings with full-budget results.
 
 ## Reading the results
 
@@ -56,8 +59,16 @@ Each matchup reports wins-draws-losses from the first profile's perspective, sco
 
 A 50% score corresponds to 0 Elo difference; positive values favour profile A. The approximate 95% interval is calculated from a Wilson score interval and transformed to Elo. Draws contribute half a point. Because this is a compact approximation for fractional scores—not a full Bradley–Terry model—the interval should be treated as indicative, especially with small samples.
 
-These are relative, matchup-specific estimates, not official or independently calibrated Elo ratings. Do not convert the results into UI labels or claim a universal rating without a larger, representative tournament and a documented statistical model. Compare only runs with the same budgets, start layouts, ply cap, and runtime environment.
+These are relative, matchup-specific estimates, not official or independently calibrated Elo ratings. Reduced samples and selected matchups provide directional evidence only. They cannot establish that untested pairings behave the same way. Do not convert the results into UI labels or claim a universal rating without a larger, representative tournament and a documented statistical model. Compare only runs with the same budgets, start layouts, ply cap, and runtime environment.
+
+## Recorded calibration context
+
+A previous run covering all 15 pairings with 20 games per pairing was completed, and adjustments were made based on its results (user-confirmed on 2026-11-07). The detailed raw output and individual decisions are not recorded in this document.
+
+The separate 15-job CI matrix added in PR #133 was cancelled during merge. Its cancelled jobs produced no results and must not be confused with the earlier completed run.
+
+Future full tournaments are optional follow-up measurements. They are not a prerequisite for ordinary engine development and should be run manually when requested.
 
 ## Current status
 
-The runner and methodology are in place; no full calibration tournament has been run or verified as part of this change. Record actual results and any resulting decisions only after a full-budget run has completed.
+The runner and methodology are available. The earlier 15-pair × 20-game run is user-confirmed; PR #133's later CI matrix run was cancelled. No new full tournament is implied by this document change.
