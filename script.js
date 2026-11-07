@@ -1131,7 +1131,16 @@ const MinMaxLegacy = {
   id: 'minmax_legacy',
   name: 'MinMax',
   phases: [ENGINE_PHASES.OPENING, ENGINE_PHASES.MIDGAME, ENGINE_PHASES.ENDGAME],
-  capabilities: [],
+  capabilities: ['custom-depth', 'custom-time-budget'],
+  strengths: {
+    easy: { depth: 1, timeMs: 3000 },
+    medium: { depth: 2, timeMs: 6000 },
+    hard: { depth: 3, timeMs: 10000 }
+  },
+  settings: {
+    depth: { type: 'integer', default: 2, min: 1, max: 10, label: 'Search depth', description: 'Maximum search depth in plies.' },
+    timeMs: { type: 'integer', default: 6000, min: 250, max: 15000, label: 'Time budget', description: 'Maximum search time in milliseconds.', unit: 'ms' }
+  },
   strength: 'default',
   search: function(request) { return MinMaxSearchCore.search(request); },
 };
