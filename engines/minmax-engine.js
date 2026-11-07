@@ -209,13 +209,30 @@
           !['w', 'b'].includes(position.turn)) {
         return EngineContract.failed(request, EngineContract.errorCodes.INVALID_POSITION, 'MinMax search position is invalid.');
       }
-      const depth = request.limits && request.limits.depth != null ? request.limits.depth : 2;
+      const config = request.config;
+      if (config != null && (!config || typeof config !== 'object' || Array.isArray(config) ||
+          Object.keys(config).some(key => !['strength', 'settings'].includes(key)) ||
+          (config.strength != null && !['easy', 'medium', 'hard'].includes(config.strength)))) {
+        return EngineContract.failed(request, EngineContract.errorCodes.INVALID_CONFIG, 'MinMax received unsupported configuration.');
+      }
+      const settings = config && config.settings;
+      if (settings != null && (!settings || typeof settings !== 'object' || Array.isArray(settings) ||
+          Object.keys(settings).some(key => !['depth', 'timeMs'].includes(key)))) {
+        return EngineContract.failed(request, EngineContract.errorCodes.INVALID_CONFIG, 'MinMax received unsupported settings.');
+      }
+      const depth = settings && settings.depth != null ? settings.depth
+        : request.limits && request.limits.depth != null ? request.limits.depth : 2;
       if (!Number.isInteger(depth) || depth < 1 || depth > 10) {
         return EngineContract.failed(request, EngineContract.errorCodes.INVALID_CONFIG, 'Search depth must be an integer from 1 to 10.');
       }
+      const configuredTimeMs = settings && settings.timeMs;
+      if (configuredTimeMs != null && (!Number.isFinite(configuredTimeMs) || configuredTimeMs < 250 || configuredTimeMs > 12000)) {
+        return EngineContract.failed(request, EngineContract.errorCodes.INVALID_CONFIG, 'MinMax timeMs must be between 250 and 12000.');
+      }
       try {
-        const deadline = request.limits && request.limits.timeMs > 0
-          ? Date.now() + request.limits.timeMs : Infinity;
+        const timeMs = request.limits && request.limits.timeMs > 0
+          ? request.limits.timeMs : configuredTimeMs;
+        const deadline = timeMs > 0 ? Date.now() + timeMs : Infinity;
         const shouldStop = () => Date.now() >= deadline;
         const move = getBestMove(clone(position), depth, shouldStop);
         return EngineContract.completed(request, move, { timedOut: shouldStop() });

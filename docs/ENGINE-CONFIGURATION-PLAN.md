@@ -1,124 +1,88 @@
 # Engine Configuration Plan
 
-Purpose: plan configurable engine assignments, strength settings, presets, and expanded random setup for each side and game phase. This is an implementation plan, not proof that the planned behavior exists.
+Purpose: define and track configurable engine assignments, common strength levels, editable presets, and engine-specific advanced settings. Random configuration and future game dimensions are recorded as deferred work, not part of the current implementation.
 
 ## Status
 
-**Status: Planned (2026-11-07).** Scope comes from the user's concept discussion. No implementation, detailed technical design, or delivery sequence has been approved beyond the work areas below. Inspect the current code and tests before implementation; the existing engine registry, protocol, settings, and UI are the starting point, not constraints that every future decision must preserve.
+**Status: In progress (2026-11-07).** The user approved the technical design and implementation using Workflow D. Implementation is underway on `feat/engine-configuration`. No merge is authorized.
 
 ## Goal
 
-Let players define which engine controls each side in each game phase, how strongly each selected engine plays, and how those choices are assembled or generated. Make common configurations quick to select while keeping individual settings straightforward to customize.
+Let the player configure the engine and strength independently for every side and game phase, with optional engine-specific advanced overrides. Keep the configuration model extensible without implementing personalities, alternative boards, or other future dimensions now.
 
-The same underlying configuration should support:
-- predefined presets;
-- manual customization;
-- random generation.
+## Approved configuration model
 
-Keep the model extensible for additional engines and future configuration dimensions without implementing those future dimensions in this plan.
+The configuration unit is one **side × phase** assignment:
 
-## Configuration scope
+```js
+{
+  schemaVersion: 1,
+  presetId: 'balanced',
+  sides: {
+    white: { phases: {
+      opening: { engineId: 'minmax_legacy', strength: 'medium', advanced: {} },
+      midgame: { engineId: 'minmax_legacy', strength: 'medium', advanced: {} },
+      endgame: { engineId: 'minmax_legacy', strength: 'medium', advanced: {} }
+    } },
+    black: { phases: { /* same phase structure, independently configurable */ } }
+  }
+}
+```
 
-The intended configuration unit is one **side × phase** combination:
+- White and Black are independent.
+- Opening, midgame, and endgame are independent for each side.
+- Every assignment selects an engine, a common strength, and optional advanced overrides.
+- Common strengths are **Easy**, **Medium**, and **Hard**. Each engine maps them to its own algorithm settings.
+- Each engine declares its own supported settings, types, defaults, ranges, labels, and descriptions.
+- Advanced overrides take priority over the selected strength profile.
+- Presets populate the same model and remain freely editable. A manual change marks the preset as custom.
+- Phase detection only identifies the current phase; it does not select or mutate engine configuration.
+- The existing Engine Contract `config` field carries the selected strength and effective engine settings.
 
-| Dimension | Required behavior |
-| --- | --- |
-| Side | White and Black are configured independently. |
-| Phase | Opening, midgame, and endgame can each have their own assignment. |
-| Engine | Each side/phase can use the same engine as another assignment or a different one. |
-| Strength | Each assignment can have its own strength setting, within the selected engine's supported capabilities. |
+## Validation and persistence
 
-The plan must not assume that all engines expose identical strength controls. Define a clear user-facing strength concept while preserving engine-specific limits and translating settings safely at the engine boundary.
+- Validate the complete configuration before saving and before dispatch.
+- Reject unknown engines, unsupported settings, invalid types, and out-of-range values. Do not silently ignore unsupported input.
+- Fill omitted advanced values from the selected engine's strength profile/defaults.
+- Persist the versioned model in `localStorage` under `engineConfig`.
+- No migration or backward compatibility is required. Old or invalid saved engine configuration is replaced with the new defaults.
+- Preserve the existing main-thread fallback budget; fallback limits must override the normal configured time budget.
 
-## Work areas
+## Implementation scope
 
-### 1. Configuration model and engine compatibility
+1. Add the versioned configuration model, defaults, presets, validation, and persistence.
+2. Declare MinMax and MCTS strength profiles and engine-specific advanced settings.
+3. Pass effective settings through the existing protocol-v1 `config` field to both worker and main-thread searches.
+4. Replace the single engine/phase selectors with mobile-friendly side × phase controls and Advanced settings.
+5. Keep phase detection separate from configuration selection.
+6. In **2 Player Pass**, hide engine controls and prevent automated Play/Next actions at both UI and dispatch boundaries.
+7. Add regression tests for all assignments, validation, presets, persistence reset, strength mapping, advanced overrides, worker/main-thread configuration, and 2 Player Pass.
+8. Update engine documentation and this plan with verified implementation status.
 
-- Inspect the current side/phase selectors, `engineConfig` persistence, engine registry, engine capabilities, request configuration, and fallback behavior.
-- Define a validated configuration representation for every side/phase assignment.
-- Preserve stable engine identifiers and explicitly handle engines that do not support a requested phase or strength option.
-- Define defaults and migration behavior for existing saved browser settings.
-- Keep phase detection policy separate from the selected engine configuration; changing an assignment must not silently redefine when a phase begins.
-- Avoid making personality, board size, or a fixed number of engines mandatory fields.
+## Deferred work
 
-### 2. Predefined presets and customization
-
-- Provide predefined configurations that populate all applicable side/phase assignments.
-- Retain the existing game difficulty choices as recognizable starting points where appropriate; decide their mapping only after inspecting current behavior.
-- Allow the player to customize any engine or strength value without changing unrelated assignments.
-- Make it clear when a preset has been customized.
-- Provide a simple way to reapply a preset or restore defaults.
-- Avoid requiring manual setup of every assignment before a game can start.
-
-Illustrative preset composition (not a committed preset or engine roster):
-
-| Phase | White | Black |
-| --- | --- | --- |
-| Opening | Opening engine / Medium | Opening engine / Medium |
-| Midgame | Midgame engine / Strong | Midgame engine / Strong |
-| Endgame | Endgame engine / Weak | Endgame engine / Weak |
-
-The two sides may instead use different engines and/or strengths in any phase.
-
-### 3. Random configuration
-
-- Extend the existing random/dice experience beyond its current opening-related role.
-- Support random selection of engine assignments and strength settings, including a complete side-by-phase configuration.
-- Define the eligible engines, supported phases, strength ranges, and exclusions before generating a result.
-- Ensure random generation uses the same validated configuration model as presets and manual customization.
-- Preserve the existing random-opening behavior unless a separately approved change explicitly revises it.
-- Make the generated result visible and editable before play; do not silently change a player's configuration during a game.
-
-### 4. Two Player Pass behavior
-
-- In **2 Player Pass**, no engine can be selected or assigned for either side.
-- Hide or disable engine-selection controls in this mode.
-- Disable **Play** and **Next** in this mode; they must not start or advance automated engine play.
-- Ensure mode changes cannot leave stale engine actions or enabled controls behind.
-- Verify this behavior in the UI and at the action/dispatch boundary, not only by hiding controls.
-
-### 5. User experience
-
-- Make selecting a predefined configuration the fast/default path.
-- Keep detailed customization accessible without forcing it on players who choose a preset.
-- Organize assignments consistently by side and phase.
-- Clearly communicate unsupported engine/phase combinations and any effective fallback; avoid silent substitutions that misrepresent the chosen setup.
-- Keep the interaction manageable on mobile screens.
-
-### 6. Verification
-
-- Add focused tests for configuration validation, defaults, persistence/migration, preset application, partial customization, random generation constraints, and mode-specific restrictions.
-- Cover all side/phase combinations, including same-engine and mixed-engine assignments.
-- Verify that the effective engine and strength passed to a search match the selected assignment.
-- Verify that 2 Player Pass cannot invoke engine Play/Next behavior.
-- Perform browser/mobile checks for the preset-to-customization flow and random configuration review.
-- Update relevant engine documentation only with behavior actually implemented and verified.
-
-## Future extension boundary
-
-The configuration model should leave room for a future **personality** value per side/phase assignment, but personality is not part of this plan's implementation scope. Personality concepts and behavior remain in [Engine and Board Ideas](ENGINE-IDEAS.md).
-
-Additional engines, reduced or alternative board sizes, and other future game variables are also not implementation requirements here. Revisit the model when those ideas are selected; do not prematurely freeze assumptions about engine count, board geometry, or the number of configuration dimensions.
+- Random generation of engine configurations is not part of this implementation. Preserve the existing random-opening/midgame behavior.
+- Personality profiles, alternative or reduced board sizes, additional game variables, and future engines are not implemented now. The configuration model should not make them mandatory fields or assume a fixed engine count.
 
 ## Dependencies and boundaries
 
-- [Engine Interface Architecture Plan](ENGINE-INTERFACE-PLAN.md) is the completed engine-contract baseline. Reuse its validated request, capability, lifecycle, and worker boundaries; do not reopen that completed work without a concrete gap.
-- [Engine Plugins](ENGINE-PLUGINS.md) records current engine integration, settings behavior, and outstanding verification. It is implementation reference material, not a duplicate checklist for this plan.
-- [Engine and Board Ideas](ENGINE-IDEAS.md) remains the idea-stage register for personalities, alternative board configurations, and standard-chess opponents.
-- Do not include strength calibration, bitboard migration, general engine algorithm work, or unrelated UI cleanup unless a specific dependency is demonstrated and separately approved.
+- [Engine Interface Architecture Plan](ENGINE-INTERFACE-PLAN.md) is the completed engine-contract baseline. Reuse its request, worker, lifecycle, and fallback boundaries.
+- [Engine Plugins](ENGINE-PLUGINS.md) records the existing engine integration and verification gaps.
+- Do not include strength calibration, bitboard migration, general engine algorithm work, or unrelated UI cleanup.
 
 ## Acceptance criteria
 
-- Every side/phase assignment can independently select a compatible engine and strength.
-- The same engine can be reused across assignments, or different engines can be combined.
-- A predefined preset configures the complete intended setup and remains editable.
-- Changing one assignment leaves all other assignments unchanged.
-- Existing settings have a defined, safe migration/default path.
-- Random generation produces a valid, reviewable configuration through the same model.
-- 2 Player Pass offers no engine selection and cannot use Play/Next for automated engine actions.
-- The design remains open to future personality settings and additional engines without implementing them now.
-- Tests and browser checks support all completion claims.
+- All six side × phase assignments can be configured independently.
+- MinMax and MCTS each map Easy/Medium/Hard to their own settings.
+- Advanced settings are engine-declared, validated, editable, and override strength defaults.
+- Presets populate all assignments and remain editable.
+- Invalid engine IDs, unsupported settings, invalid types, and out-of-range values are rejected.
+- Effective settings reach both worker and main-thread searches through the existing protocol.
+- Old saved engine configuration resets safely to defaults; no migration is implemented.
+- 2 Player Pass exposes no engine controls and cannot trigger automated Play/Next actions.
+- Tests and browser checks support completion claims. Browser/mobile checks are recorded only after they are performed.
 
 ## Change log
 
-- **2026-11-07:** Initial plan created from the user's configuration concepts. Personality, alternative board sizes, and future engine expansion are explicitly kept outside implementation scope.
+- **2026-11-07:** User approved nine design decisions: independent side × phase assignments; common Easy/Medium/Hard levels; engine-declared Advanced schemas; Advanced overrides win; editable presets; reuse of protocol `config`; strict validation; no migration; phase detection remains separate.
+- **2026-11-07:** Implementation started on `feat/engine-configuration` under Workflow D. Random engine configuration remains deferred.

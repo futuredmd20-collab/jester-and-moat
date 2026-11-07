@@ -1131,7 +1131,16 @@ const MinMaxLegacy = {
   id: 'minmax_legacy',
   name: 'MinMax',
   phases: [ENGINE_PHASES.OPENING, ENGINE_PHASES.MIDGAME, ENGINE_PHASES.ENDGAME],
-  capabilities: [],
+  capabilities: ['depth', 'timeMs'],
+  strengths: {
+    easy: { depth: 1, timeMs: 3000 },
+    medium: { depth: 2, timeMs: 6000 },
+    hard: { depth: 3, timeMs: 10000 }
+  },
+  settings: {
+    depth: { type: 'integer', default: 2, min: 1, max: 10, label: 'Search depth', description: 'Maximum search depth in plies.' },
+    timeMs: { type: 'integer', default: 6000, min: 250, max: 12000, label: 'Time budget', description: 'Maximum search time in milliseconds.', unit: 'ms' }
+  },
   strength: 'default',
   search: function(request) { return MinMaxSearchCore.search(request); },
 };
@@ -1146,105 +1155,343 @@ if (typeof mctsEngine === 'function') {
   console.warn('MCTS engine failed to load; falling back to MinMax.');
 }
 
-/* Plugin System: Per-side default engine configuration
- * Both sides default to MinMaxLegacy for all phases (single-engine mode)
- * Format: { engineId: string, phaseOverrides: { [phase]: engineId } | null } */
-const defaultEngineForSide = {
-  w: { engineId: 'minmax_legacy', phaseOverrides: { opening: 'minmax_legacy', midgame: 'minmax_legacy', endgame: 'minmax_legacy' } },
-  b: { engineId: 'minmax_legacy', phaseOverrides: { opening: 'minmax_legacy', midgame: 'minmax_legacy', endgame: 'minmax_legacy' } }
+/* Engine configuration: one independent assignment for every side and phase. */
+const ENGINE_STRENGTHS = Object.freeze(['easy', 'medium', 'hard']);
+const ENGINE_STRENGTH_LABELS = Object.freeze({ easy: 'Easy', medium: 'Medium', hard: 'Hard' });
+const ENGINE_CONFIG_SCHEMA_VERSION = 1;
+const ENGINE_PRESETS = Object.freeze({
+  balanced: { label: 'Balanced · MinMax Medium', engineId: 'minmax_legacy', strength: 'medium' },
+  easy: { label: 'Easy · MinMax Easy', engineId: 'minmax_legacy', strength: 'easy' },
+  hard: { label: 'Hard · MinMax Hard', engineId: 'minmax_legacy', strength: 'hard' }
+});
+
+function createDefaultEngineConfiguration() {
+  const phases = {};
+  for (const phase of Object.values(ENGINE_PHASES)) {
+    phases[phase] = { engineId: 'minmax_legacy', strength: 'medium', advanced: {} };
+  }
+  return {
+    schemaVersion: ENGINE_CONFIG_SCHEMA_VERSION,
+    presetId: 'balanced',
+    sides: {
+      white: { phases: engineCopy(phases) },
+      black: { phases: engineCopy(phases) }
+    }
+  };
+}
+
+function engineHasOnlyKeys(value, allowed) {
+  return value && typeof value === 'object' && !Array.isArray(value) &&
+    Object.keys(value).every(key => allowed.includes(key));
+}
+
+function validateEngineSettingsAgainstSchema(engineId, settings, schemas) {
+  const schema = schemas && schemas[engineId];
+  if (!schema) throw new Error('Unknown engine: ' + engineId);
+  if (settings == null) return {};
+  if (!settings || typeof settings !== 'object' || Array.isArray(settings))
+    throw new Error('Engine settings must be an object.');
+  for (const [key, value] of Object.entries(settings)) {
+    const definition = schema[key];
+    if (!definition) throw new Error('Unsupported setting "' + key + '" for ' + engineId + '.');
+    const validType = definition.type === 'integer' ? Number.isInteger(value)
+      : definition.type === 'number' ? Number.isFinite(value)
+      : definition.type === 'boolean' ? typeof value === 'boolean'
+      : definition.type === 'enum' ? definition.options.includes(value)
+      : false;
+    if (!validType || (definition.min != null && value < definition.min) ||
+        (definition.max != null && value > definition.max))
+      throw new Error('Invalid value for ' + engineId + ' setting "' + key + '".');
+  }
+  return engineCopy(settings);
+}
+
+function validateEngineRequestConfig(engineId, config, schemas) {
+  if (config == null) return { strength: 'medium', settings: {} };
+  if (!engineHasOnlyKeys(config, ['strength', 'settings']))
+    throw new Error('Unsupported engine configuration field.');
+  const strength = config.strength == null ? 'medium' : config.strength;
+  if (!ENGINE_STRENGTHS.includes(strength))
+    throw new Error('Unsupported engine strength: ' + strength);
+  return {
+    strength,
+    settings: validateEngineSettingsAgainstSchema(engineId, config.settings, schemas)
+  };
+}
+
+function getEngineSettingsSchemas() {
+  return Object.fromEntries(Array.from(enginePlugins.entries()).map(([id, engine]) => [id, engine.settings || {}]));
+}
+
+function validateEngineConfiguration(value) {
+  if (!engineHasOnlyKeys(value, ['schemaVersion', 'presetId', 'sides']) ||
+      value.schemaVersion !== ENGINE_CONFIG_SCHEMA_VERSION ||
+      !(value.presetId === null || Object.prototype.hasOwnProperty.call(ENGINE_PRESETS, value.presetId)) ||
+      !engineHasOnlyKeys(value.sides, ['white', 'black']) ||
+      !value.sides.white || !value.sides.black)
+    throw new Error('Invalid engine configuration structure.');
+
+  const normalized = { schemaVersion: ENGINE_CONFIG_SCHEMA_VERSION, presetId: value.presetId, sides: {} };
+  const schemas = getEngineSettingsSchemas();
+  for (const side of ['white', 'black']) {
+    const sideConfig = value.sides[side];
+    if (!engineHasOnlyKeys(sideConfig, ['phases']) ||
+        !engineHasOnlyKeys(sideConfig.phases, Object.values(ENGINE_PHASES)))
+      throw new Error('Invalid phase assignments for ' + side + '.');
+    normalized.sides[side] = { phases: {} };
+    for (const phase of Object.values(ENGINE_PHASES)) {
+      const assignment = sideConfig.phases[phase];
+      if (!engineHasOnlyKeys(assignment, ['engineId', 'strength', 'advanced']) ||
+          typeof assignment.engineId !== 'string' || !enginePlugins.has(assignment.engineId) ||
+          !ENGINE_STRENGTHS.includes(assignment.strength) ||
+          !enginePlugins.get(assignment.engineId).phases.includes(phase))
+        throw new Error('Invalid ' + side + ' ' + phase + ' engine assignment.');
+      const advanced = validateEngineSettingsAgainstSchema(assignment.engineId, assignment.advanced || {}, schemas);
+      normalized.sides[side].phases[phase] = {
+        engineId: assignment.engineId,
+        strength: assignment.strength,
+        advanced
+      };
+    }
+  }
+  return normalized;
+}
+
+function getEngineAssignment(side, phase) {
+  const normalizedSide = side === 'w' ? 'white' : side === 'b' ? 'black' : side;
+  const assignment = engineConfiguration.sides[normalizedSide] &&
+    engineConfiguration.sides[normalizedSide].phases[phase];
+  if (!assignment) throw new Error('Unknown engine assignment: ' + side + ' / ' + phase);
+  const engine = enginePlugins.get(assignment.engineId);
+  if (!engine) throw new Error('Unknown engine: ' + assignment.engineId);
+  const profile = engine.strengths && engine.strengths[assignment.strength];
+  if (!profile) throw new Error(engine.name + ' does not support ' + assignment.strength + ' strength.');
+  const settings = Object.assign({}, profile, assignment.advanced);
+  validateEngineSettingsAgainstSchema(engine.id, settings, getEngineSettingsSchemas());
+  return { engine, phase, strength: assignment.strength, advanced: engineCopy(assignment.advanced), settings };
+}
+
+let engineConfiguration = createDefaultEngineConfiguration();
+let engineConfigInvalidField = null;
+
+function persistEngineConfiguration() {
+  try {
+    localStorage.setItem('engineConfig', JSON.stringify(engineConfiguration));
+  } catch (e) {
+    // Storage may be unavailable in private browsing or restricted contexts.
+  }
+}
+
+function escapeEngineConfigHtml(value) {
+  return String(value).replace(/[&<>"']/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[char]);
+}
+
+function renderEngineConfigurationUI() {
+  const host = document.getElementById('engineAssignments');
+  if (!host) return;
+  const engineOptions = Array.from(enginePlugins.values()).map(engine =>
+    '<option value="' + escapeEngineConfigHtml(engine.id) + '">' +
+    escapeEngineConfigHtml(engine.name || engine.id) + '</option>').join('');
+  const strengthOptions = ENGINE_STRENGTHS.map(strength =>
+    '<option value="' + strength + '">' + ENGINE_STRENGTH_LABELS[strength] + '</option>').join('');
+  const cards = [];
+  for (const side of ['white', 'black']) {
+    for (const phase of Object.values(ENGINE_PHASES)) {
+      const assignment = engineConfiguration.sides[side].phases[phase];
+      const engine = enginePlugins.get(assignment.engineId);
+      const effective = Object.assign({}, engine.strengths[assignment.strength], assignment.advanced);
+      const fields = Object.entries(engine.settings || {}).map(([key, definition]) => {
+        const value = effective[key] == null ? definition.default : effective[key];
+        const invalid = engineConfigInvalidField &&
+          engineConfigInvalidField.side === side && engineConfigInvalidField.phase === phase &&
+          engineConfigInvalidField.key === key;
+        return '<label class="engine-config-field"><span>' + escapeEngineConfigHtml(definition.label || key) +
+          '</span><input type="number" data-side="' + side + '" data-phase="' + phase +
+          '" data-setting="advanced:' + key + '" min="' + definition.min + '" max="' + definition.max +
+          '" step="' + (definition.step || 1) + '" value="' + escapeEngineConfigHtml(value) +
+          '" aria-invalid="' + (invalid ? 'true' : 'false') + '">' +
+          (definition.description ? '<small>' + escapeEngineConfigHtml(definition.description) + '</small>' : '') +
+          '</label>';
+      }).join('');
+      cards.push('<section class="engine-assignment"><h4>' + (side === 'white' ? 'White' : 'Black') +
+        ' · ' + phase.charAt(0).toUpperCase() + phase.slice(1) + '</h4>' +
+        '<label class="engine-config-field"><span>Engine</span><select data-side="' + side +
+        '" data-phase="' + phase + '" data-setting="engineId">' +
+        engineOptions.replace('value="' + assignment.engineId + '"', 'value="' + assignment.engineId + '" selected') +
+        '</select></label>' +
+        '<label class="engine-config-field"><span>Strength</span><select data-side="' + side +
+        '" data-phase="' + phase + '" data-setting="strength">' +
+        strengthOptions.replace('value="' + assignment.strength + '"', 'value="' + assignment.strength + '" selected') +
+        '</select></label>' +
+        '<details class="engine-advanced"' +
+         (engineConfigInvalidField && engineConfigInvalidField.side === side &&
+          engineConfigInvalidField.phase === phase ? ' open' : '') +
+         '><summary>Advanced settings</summary>' +
+        '<div class="engine-advanced-fields">' + fields + '</div>' +
+        '<button type="button" class="engine-reset-advanced" data-side="' + side +
+        '" data-phase="' + phase + '">Reset advanced settings</button></details></section>');
+    }
+  }
+  host.innerHTML = cards.join('');
+  const presetSelect = document.getElementById('enginePresetSelect');
+  if (presetSelect) presetSelect.value = engineConfiguration.presetId || 'custom';
+  const presetStatus = document.getElementById('enginePresetStatus');
+  if (presetStatus) presetStatus.textContent = engineConfiguration.presetId
+    ? ENGINE_PRESETS[engineConfiguration.presetId].label : 'Custom configuration';
+}
+
+function applyEnginePreset(presetId) {
+  const preset = ENGINE_PRESETS[presetId];
+  if (!preset) return false;
+  const next = createDefaultEngineConfiguration();
+  next.presetId = presetId;
+  for (const side of ['white', 'black']) {
+    for (const phase of Object.values(ENGINE_PHASES)) {
+      next.sides[side].phases[phase] = {
+        engineId: preset.engineId, strength: preset.strength, advanced: {}
+      };
+    }
+  }
+  engineConfiguration = validateEngineConfiguration(next);
+  engineConfigInvalidField = null;
+  persistEngineConfiguration();
+  renderEngineConfigurationUI();
+  return true;
+}
+
+function handleEngineConfigurationChange(event) {
+  const target = event && event.target;
+  if (!target || !target.dataset) return;
+  const { side, phase, setting } = target.dataset;
+  if (!['white', 'black'].includes(side) || !Object.values(ENGINE_PHASES).includes(phase) || !setting) return;
+  const previous = engineCopy(engineConfiguration);
+  const assignment = engineConfiguration.sides[side].phases[phase];
+  if (setting === 'engineId') {
+    if (!enginePlugins.has(target.value)) return;
+    assignment.engineId = target.value;
+    assignment.advanced = {};
+    if (engineConfigInvalidField && engineConfigInvalidField.side === side &&
+        engineConfigInvalidField.phase === phase) engineConfigInvalidField = null;
+  } else if (setting === 'strength') {
+    if (!ENGINE_STRENGTHS.includes(target.value)) return;
+    assignment.strength = target.value;
+  } else if (setting.startsWith('advanced:')) {
+    const key = setting.slice('advanced:'.length);
+    const engine = enginePlugins.get(assignment.engineId);
+    const definition = engine && engine.settings && engine.settings[key];
+    if (!definition) return;
+    const value = Number(target.value);
+    try {
+      validateEngineSettingsAgainstSchema(assignment.engineId, { [key]: value }, getEngineSettingsSchemas());
+      assignment.advanced[key] = value;
+    } catch (error) {
+      engineConfigInvalidField = { side, phase, key };
+      status(error.message);
+      renderEngineConfigurationUI();
+      return;
+    }
+    engineConfigInvalidField = null;
+  } else {
+    return;
+  }
+  engineConfiguration.presetId = null;
+  try {
+    engineConfiguration = validateEngineConfiguration(engineConfiguration);
+  } catch (error) {
+    engineConfiguration = previous;
+    status(error.message);
+  }
+  persistEngineConfiguration();
+  renderEngineConfigurationUI();
+}
+
+function updateEngineConfigUI() {
+  renderEngineConfigurationUI();
+  persistEngineConfiguration();
+}
+
+function loadEngineConfig() {
+  let saved = null;
+  try {
+    const raw = localStorage.getItem('engineConfig');
+    if (raw) saved = JSON.parse(raw);
+  } catch (e) {
+    // Missing, malformed, or inaccessible storage uses safe defaults.
+  }
+  try {
+    engineConfiguration = validateEngineConfiguration(saved);
+  } catch (e) {
+    // The old shape and any invalid schema are intentionally reset; no migration is required.
+    engineConfiguration = createDefaultEngineConfiguration();
+  }
+  renderEngineConfigurationUI();
+  persistEngineConfiguration();
+  return engineCopy(engineConfiguration);
+}
+
+function isAIMode() {
+  const mode = document.getElementById('modeSelect').value;
+  return mode === 'ai' || mode === 'ai_vs_ai' || mode.startsWith('ai_');
+}
+
+/* Game-mode indicator and controls that have no meaning in AI modes. */
+const MODE_TAG = {
+  pvp: '2 Players',
+  ai: 'vs AI · Configured',
+  ai_easy: 'vs AI · Configured',
+  ai_medium: 'vs AI · Configured',
+  ai_hard: 'vs AI · Configured',
+  ai_vs_ai: 'AI vs AI'
 };
-const MODE_TAG = { pvp: '2 Players', ai_easy: 'vs AI · Easy', ai_medium: 'vs AI · Medium', ai_hard: 'vs AI · Hard', ai_vs_ai: 'AI vs AI' };
-/* Game-mode indicator and controls that have no meaning in AI vs AI. */
+
 function updateModeUI() {
   const mode = document.getElementById('modeSelect').value;
   const isSim = mode === 'ai_vs_ai';
+  const isPvp = mode === 'pvp';
   const modeRow = document.getElementById('gameModeRow');
   const modeIndicator = document.getElementById('gameModePill');
   const showModeIndicator = document.getElementById('showModeIndicatorToggle');
   if (modeIndicator) modeIndicator.textContent = MODE_TAG[mode] || '';
   if (modeRow) modeRow.hidden = !(showModeIndicator && showModeIndicator.checked);
   const switchBtn = document.getElementById('sideSwitchBtn');
-  switchBtn.disabled = isSim;
-  switchBtn.title = isSim ? 'Not available in AI vs AI' : 'Switch player side and board view';
-  document.getElementById('playerSideSelect').disabled = isSim;
-}function updateEngineConfigUI() {
-  // Read White engine/phase selects
-  const whiteEngine = document.getElementById('whiteEngineSelect').value;
-  const whitePhase = document.getElementById('whiteEnginePhaseSelect').value;
-  const blackEngine = document.getElementById('blackEngineSelect').value;
-  const blackPhase = document.getElementById('blackEnginePhaseSelect').value;
-
-  // Helper: build phaseOverrides where only the selected phase gets the chosen engine
-  function buildPhaseOverrides(engine, phase) {
-    const base = { opening: 'minmax_legacy', midgame: 'minmax_legacy', endgame: 'minmax_legacy' };
-    if (engine === 'mcts') {
-      base[phase] = 'mcts';
-    }
-    return base;
+  if (switchBtn) {
+    switchBtn.disabled = isSim;
+    switchBtn.title = isSim ? 'Not available in AI vs AI' : 'Switch player side and board view';
   }
-
-  defaultEngineForSide.w.phaseOverrides = buildPhaseOverrides(whiteEngine, whitePhase);
-  defaultEngineForSide.b.phaseOverrides = buildPhaseOverrides(blackEngine, blackPhase);
-  defaultEngineForSide.w.engineId = whiteEngine;
-  defaultEngineForSide.b.engineId = blackEngine;
-
-  // Persist to localStorage for reload persistence
-  try {
-    localStorage.setItem('engineConfig', JSON.stringify({
-      whiteEngine, whitePhase,
-      blackEngine, blackPhase
-    }));
-  } catch (e) {
-    // localStorage not available (e.g. private browsing); ignore
-  }
+  const playerSideSelect = document.getElementById('playerSideSelect');
+  if (playerSideSelect) playerSideSelect.disabled = isSim;
+  const aiSection = document.getElementById('aiEngineSection');
+  if (aiSection) aiSection.hidden = isPvp;
+  const stepButton = document.getElementById('stepBtn');
+  const autoButton = document.getElementById('autoBtn');
+  if (stepButton) stepButton.disabled = isPvp;
+  if (autoButton) autoButton.disabled = isPvp;
 }
 
-function isAIMode() {
-  const m = document.getElementById('modeSelect').value;
-  return m.startsWith('ai_');
-}
-
-// Restore saved engine settings before the user starts or changes a game.
-function loadEngineConfig() {
-  const defaults = {
-    whiteEngine: 'minmax_legacy',
-    whitePhase: ENGINE_PHASES.MIDGAME,
-    blackEngine: 'minmax_legacy',
-    blackPhase: ENGINE_PHASES.MIDGAME
-  };
-  const validEngines = new Set(['minmax_legacy', 'mcts']);
-  const validPhases = new Set(Object.values(ENGINE_PHASES));
-  let saved = null;
-  try {
-    const raw = localStorage.getItem('engineConfig');
-    if (raw) {
-      saved = JSON.parse(raw);
-    }
-  } catch (e) {
-    // Missing or inaccessible storage and malformed JSON use safe defaults.
-  }
-  const config = { ...defaults };
-  if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
-    if (validEngines.has(saved.whiteEngine)) config.whiteEngine = saved.whiteEngine;
-    if (validPhases.has(saved.whitePhase)) config.whitePhase = saved.whitePhase;
-    if (validEngines.has(saved.blackEngine)) config.blackEngine = saved.blackEngine;
-    if (validPhases.has(saved.blackPhase)) config.blackPhase = saved.blackPhase;
-  }
-  document.getElementById('whiteEngineSelect').value = config.whiteEngine;
-  document.getElementById('whiteEnginePhaseSelect').value = config.whitePhase;
-  document.getElementById('blackEngineSelect').value = config.blackEngine;
-  document.getElementById('blackEnginePhaseSelect').value = config.blackPhase;
-  updateEngineConfigUI();
-  return config;
-}
-
-// Wire up engine/phase per-side configuration UI.
-document.getElementById('whiteEngineSelect').onchange = updateEngineConfigUI;
-document.getElementById('whiteEnginePhaseSelect').onchange = updateEngineConfigUI;
-document.getElementById('blackEngineSelect').onchange = updateEngineConfigUI;
-document.getElementById('blackEnginePhaseSelect').onchange = updateEngineConfigUI;
+const engineAssignmentsHost = document.getElementById('engineAssignments');
+if (engineAssignmentsHost) engineAssignmentsHost.addEventListener('change', handleEngineConfigurationChange);
+if (engineAssignmentsHost) engineAssignmentsHost.addEventListener('click', event => {
+  const target = event && event.target;
+  if (!target || !target.classList || !target.classList.contains('engine-reset-advanced')) return;
+  const { side, phase } = target.dataset || {};
+  if (!['white', 'black'].includes(side) || !Object.values(ENGINE_PHASES).includes(phase)) return;
+  engineConfiguration.sides[side].phases[phase].advanced = {};
+  if (engineConfigInvalidField && engineConfigInvalidField.side === side &&
+      engineConfigInvalidField.phase === phase) engineConfigInvalidField = null;
+  engineConfiguration.presetId = null;
+  persistEngineConfiguration();
+  renderEngineConfigurationUI();
+});
+const applyPresetButton = document.getElementById('applyEnginePresetBtn');
+if (applyPresetButton) applyPresetButton.addEventListener('click', () => {
+  const presetSelect = document.getElementById('enginePresetSelect');
+  if (presetSelect) applyEnginePreset(presetSelect.value);
+});
+const resetEngineButton = document.getElementById('resetEngineConfigBtn');
+if (resetEngineButton) resetEngineButton.addEventListener('click', () => applyEnginePreset('balanced'));
 loadEngineConfig();
-
 function ensureAIWorker() {
   if (aiWorker || !('Worker' in window)) return aiWorker;
   const engineFunctions = [clone, inside, other, pieceAt, getMoatCells, isMoatCell, checkMoatDestructionState, attacked, kingPos, inCheck, pseudoMoves, applyRaw, cloneForMoveLegality, legalMovesFromState, allLegalState, getJesterValue, evaluateBoard, minimax, getBestMove, MinMaxSearchCoreFactory];
@@ -1252,7 +1499,13 @@ function ensureAIWorker() {
   if (typeof mctsGetMove === 'function' && typeof mctsSearch === 'function') {
     engineFunctions.push(mctsLevelFor, mctsApplyMove, mctsPlayout, mctsNode, mctsUctChild, mctsSearch, mctsSearchAsync, mctsGetMove, mctsEngine);
   }
+  const workerEngineSettingsSchemas = getEngineSettingsSchemas();
   const workerSource = `"use strict";
+const ENGINE_STRENGTHS = ['easy', 'medium', 'hard'];
+const ENGINE_SETTINGS_SCHEMAS = ${JSON.stringify(workerEngineSettingsSchemas)};
+${engineHasOnlyKeys.toString()}
+${validateEngineSettingsAgainstSchema.toString()}
+${validateEngineRequestConfig.toString()}
 const ROWS = 8, COLS = 10;
 const DIRS = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
 function engineCopy(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
@@ -1293,12 +1546,14 @@ onmessage = async function(event) {
       state = clone(request.position);
       if (!['minmax_legacy', 'mcts'].includes(request.engineId))
         throw new Error('Unsupported structured engine selector.');
+      const validatedConfig = validateEngineRequestConfig(request.engineId, request.config, ENGINE_SETTINGS_SCHEMAS);
       const control = { cancelled: false };
       const key = String(request.requestId);
       activeSearches.set(key, control);
       let result;
       if (request.engineId === 'mcts') {
-        const mctsConfig = Object.assign({}, MCTS_LEVELS[mctsLevelFor(request.limits && request.limits.depth)]);
+        const mctsConfig = Object.assign({}, MCTS_LEVELS[mctsLevelFor(request.limits && request.limits.depth)],
+          validatedConfig.settings || {});
         if (request.limits && request.limits.timeMs > 0) mctsConfig.timeBudgetMs = request.limits.timeMs;
         const outcome = await mctsSearchAsync(
           clone(request.position), mctsConfig,
@@ -1315,10 +1570,14 @@ onmessage = async function(event) {
         }
         result = EngineContract.completed(request, outcome.move, { timedOut: outcome.timedOut });
       } else {
-        const deadline = request.limits && request.limits.timeMs > 0
-          ? Date.now() + request.limits.timeMs : Infinity;
+        const minmaxSettings = validatedConfig.settings || {};
+        const searchDepth = request.limits && request.limits.depth != null
+          ? request.limits.depth : (minmaxSettings.depth || 2);
+        const timeMs = request.limits && request.limits.timeMs > 0
+          ? request.limits.timeMs : minmaxSettings.timeMs;
+        const deadline = timeMs > 0 ? Date.now() + timeMs : Infinity;
         const outcome = await MinMaxSearchCore.getBestMoveAsync(
-          clone(request.position), request.limits.depth,
+          clone(request.position), searchDepth,
           () => control.cancelled,
           () => new Promise(resolve => setTimeout(resolve, 0)),
           () => Date.now() >= deadline
@@ -1459,52 +1718,28 @@ onmessage = async function(event) {
   return aiWorker;
 }
 
-/* Plugin System: Get engine for a side based on current phase */
-function getEngineForSide(side) {
-  const config = defaultEngineForSide[side];
-  const phase = getGamePhase(state);
-  
-  if (config.phaseOverrides) {
-    const phaseEngineId = config.phaseOverrides[phase];
-    if (phaseEngineId && enginePlugins.has(phaseEngineId)) {
-      return enginePlugins.get(phaseEngineId);
-    }
-  }
-  
-  if (enginePlugins.has(config.engineId)) {
-    return enginePlugins.get(config.engineId);
-  }
-  
-  return enginePlugins.get('minmax_legacy');
+/* Phase detection remains independent; this layer only resolves the chosen assignment. */
+function getEngineForSide(side, phase = getGamePhase(state)) {
+  return getEngineAssignment(side, phase).engine;
 }
 
-/* Plugin System: Get engine config for a side based on current phase
- * Returns { engine, depth } where depth is derived from modeSelect.
- * Used by aiMove() to set the correct search depth for each engine type.
- */
 function getEngineConfig(side) {
-  const engine = getEngineForSide(side);
-  const mode = document.getElementById('modeSelect').value;
-  const isMinMax = engine === MinMaxLegacy;
-  const isMCTS = engine.name && engine.name.includes('MCTS');
-  
-  if (isMCTS) {
-    // MCTS uses level 1-3 corresponding to depth 1-3 from modeSelect
-    if (mode === 'ai_easy') return { engine, depth: 1 };
-    if (mode === 'ai_medium' || mode === 'ai_vs_ai') return { engine, depth: 2 };
-    if (mode === 'ai_hard') return { engine, depth: 3 };
-    return { engine, depth: 2 };
-  }
-  
-  if (isMinMax) {
-    let depth = 2;
-    if (mode === 'ai_easy') depth = 1;
-    if (mode === 'ai_medium' || mode === 'ai_vs_ai') depth = 2;
-    if (mode === 'ai_hard') depth = 3;
-    return { engine, depth };
-  }
-  
-  return { engine, depth: 2 };
+  if (!isAIMode()) return null;
+  const phase = getGamePhase(state);
+  const resolved = getEngineAssignment(side, phase);
+  const depth = resolved.engine.id === 'mcts'
+    ? ({ easy: 1, medium: 2, hard: 3 }[resolved.strength])
+    : resolved.settings.depth;
+  const timeMs = resolved.engine.id === 'mcts'
+    ? resolved.settings.timeBudgetMs : resolved.settings.timeMs;
+  return {
+    engine: resolved.engine,
+    phase,
+    strength: resolved.strength,
+    settings: resolved.settings,
+    depth,
+    timeMs
+  };
 }
 
 const AI_MAIN_THREAD_BUDGET_MS = 2000;
@@ -1629,20 +1864,22 @@ function handleAIWorkerFailure(worker, request) {
 }
 
 function aiMove(){
-  if (gameOver || isAIThinking) return;
+  if (!isAIMode() || gameOver || isAIThinking) return;
   isAIThinking = true;
   status("\u23f3 AI thinking...");
 
-  const { engine, depth } = getEngineConfig(state.turn);
-  const phase = getGamePhase(state);
+  const engineConfig = getEngineConfig(state.turn);
+  if (!engineConfig) { isAIThinking = false; return; }
+  const { engine, depth, phase, strength, settings, timeMs } = engineConfig;
   const side = state.turn === 'w' ? 'White' : 'Black';
   const engineName = engine.name || 'Unknown engine';
   const id = ++aiRequestId;
-  const searchBudgetMs = engine.id === 'mcts'
-    ? MCTS_LEVELS[depth].timeBudgetMs
-    : (AI_SEARCH_BUDGETS_MS[depth] || AI_SEARCH_BUDGETS_MS[2]);
   const contractRequest = typeof engine.search === 'function'
-    ? EngineContract.createRequest({ requestId: id, generation: id, engineId: engine.id, position: clone(state), limits: { depth, timeMs: searchBudgetMs } })
+    ? EngineContract.createRequest({
+        requestId: id, generation: id, engineId: engine.id, position: clone(state),
+        limits: { depth, timeMs },
+        config: { strength, settings }
+      })
     : null;
   const request = { id, engine, depth, state: clone(state), contractRequest, startedAt: Date.now(), phase, side, fallback: false };
   pendingAIRequest = request;
@@ -2083,7 +2320,7 @@ function getSpeed(){ return parseInt(document.getElementById('speedSelect').valu
 
 function stepNextMove(){
   stopAutoPlay();
-  if (gameOver || isAIThinking) return;
+  if (!isAIMode() || gameOver || isAIThinking) return;
   if (state.phase.startsWith('place_moat')){
     const color = state.phase.split('_')[2];
     aiPlaceMoatForColor(color);
@@ -2123,6 +2360,7 @@ function generateRandomMidgame(){
 }
 
 function toggleAutoPlay(){
+  if (!autoPlayInterval && !isAIMode()) return;
   if (autoPlayInterval){
     stopAutoPlay();
     status("Game Paused.");
@@ -2133,7 +2371,7 @@ function toggleAutoPlay(){
     gameStarted = true;
     status("Game Running / Auto-play active...");
     autoPlayInterval = setInterval(() => {
-      if (gameOver){ stopAutoPlay(); return; }
+      if (!isAIMode() || gameOver){ stopAutoPlay(); return; }
       if (state.phase.startsWith('place_moat')){
         const color = state.phase.split('_')[2];
         aiPlaceMoatForColor(color);
