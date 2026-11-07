@@ -8,27 +8,36 @@ Purpose: record design decisions, repository implementation, verification gaps, 
 
 ## Goal and contract
 
-Allow independently configured AI engines for White and Black, optionally limited to one game phase. MinMax remains the default; MCTS is opt-in.
+The current configuration design assigns an engine and strength independently for every **side × phase** combination. MinMax is the default for all six assignments; MCTS is available as an alternative.
 
 ```js
-{ name, phases, strength, getMove(gameState) }
+{
+  schemaVersion: 1,
+  sides: {
+    white: { phases: { opening: { engineId, strength, advanced }, midgame: { ... }, endgame: { ... } } },
+    black: { phases: { opening: { ... }, midgame: { ... }, endgame: { ... } } }
+  }
+}
 ```
 
-- `name`: display label; `phases`: supported phases; `strength`: engine-specific settings; `getMove(gameState)`: a move in the game's existing format.
-- MinMax is a legacy adapter around `getBestMove`, preserving Easy/Medium/Hard depths 1/2/3 (AI vs AI uses 2). MCTS is implemented in `engines/mcts-engine.js`.
-- White and Black have engine and phase selectors. The selected engine applies only in the selected phase; other phases fall back to MinMax. Settings are stored in `localStorage` under `engineConfig`. Browser checks on 2026-11-05 confirmed that settings survive clearing cached images/files when site data is retained, while clearing site data restores MinMax/Midgame defaults for both sides.
-- Phase detection is `getGamePhase()` in `script.js`: opening if ply < 10 OR total pieces >= 34; endgame if total pieces <= 16; otherwise midgame. This policy is provisional and needs representative-game validation.
-- MCTS presets (in `engines/mcts-engine.js`): 200/700/2000 playouts, depth caps 10/14/18 plies, temperatures 0.35/0.15/0.00. Labels around 800/1200/1600 are estimates, not calibrated ratings. The UI exposes “MCTS (~1200 ELO)”; other levels follow game-mode difficulty. No calibrated, independently configurable rating system is established.
-- Strength-calibration tooling and methodology: [Engine Strength Calibration](ENGINE-STRENGTH-CALIBRATION.md). It compares the six current presets without changing engine settings; results are relative estimates with approximate uncertainty, not official ratings.
-- Testing cadence and agent guidance: [Engine Testing Workflow](ENGINE-TESTING-WORKFLOW.md). Use focused checks and reduced comparisons during development; full calibration is manual and on request.
-- Out of scope: weighted blending, opening books, tablebases, neural engines, and self-play tuning.
+- Common strength levels are Easy, Medium, and Hard. Each engine declares its own strength profiles and translates the common level into its own search settings.
+- Each engine declares its supported Advanced settings, including type, default, range, label, and description. Explicit Advanced overrides take priority over strength-profile values.
+- Presets populate the same configuration model and remain editable. Manual changes mark the configuration as custom.
+- The implementation uses `localStorage` key `engineConfig` with schema version 1. The old settings shape is intentionally reset to defaults; no migration is required.
+- Effective strength and settings travel through the existing protocol-v1 `config` field. The worker and main-thread search paths validate engine-specific settings; main-thread fallback time limits continue to take precedence.
+- Phase detection remains `getGamePhase()` in `script.js`: opening if ply < 10 OR total pieces >= 34; endgame if total pieces <= 16; otherwise midgame. It identifies the phase only; it does not select or modify an assignment.
+- In 2 Player Pass, engine controls are hidden and automated Next/auto-play actions are blocked.
+- The implementation is in progress on `feat/engine-configuration`; CI and browser/mobile verification are pending. Do not treat source presence as a passing test.
+- MCTS strength profiles retain the current 200/700/2000 playouts, depth caps 10/14/18, temperatures 0.35/0.15/0.00, and 2.5s/5s/10s budgets. ELO-like labels remain estimates, not calibrated ratings.
+- Strength-calibration tooling and methodology: [Engine Strength Calibration](ENGINE-STRENGTH-CALIBRATION.md). Full calibration is manual and on request; it is not a prerequisite for this configuration work.
+- Random engine configuration is deferred. Preserve the existing random-opening/midgame behavior. Personalities, alternative boards, and other future dimensions remain outside this implementation.
 
 ## Implementation and verification status
 
 | Area | Present in repository / source-reviewed | Still unverified or remaining |
 | --- | --- | --- |
 | Plugin setup | Registry, MinMax adapter, MCTS module and dispatch were exercised in manual browser play; both engines ran without visible errors. | These checks do not establish exhaustive engine correctness. |
-| Side/phase UI | White/Black settings were independent. Runtime logs confirmed phase-specific selection: in the second logged game, White used MCTS in opening, both sides used MinMax in midgame, and Black used MCTS in endgame. | None for the cache/site-data persistence distinction; broader phase-policy validation remains outstanding. |
+| Side/phase UI | Earlier browser checks confirmed phase-specific selection and storage persistence for the previous two-selector UI. The new six-assignment configuration UI and engine settings are implemented on `feat/engine-configuration`. | New configuration tests/CI and browser/mobile verification are pending; phase-policy validation remains outstanding. |
 | Loading/build | MCTS script loading, service-worker precache and version alignment (PR #23); loading fix (PR #24); single-file builder embeds MCTS before `script.js`. | Exercise multi-file and built single-file pages. If MCTS fails to load on the multi-file page, startup warns and keeps board/MinMax available; MCTS selection falls back to MinMax. Confirm this recovery path in a browser. |
 | Worker dispatch | The reviewed game log showed matching engine-to-worker dispatch and 108 worker replies, with no obvious worker/engine errors. Offline behavior was also verified on the user's Android: after an online load, the app reopened in airplane mode and MCTS was selectable and made a move. | Browser verification of MCTS load failure, worker-construction fallback and induced worker-runtime recovery remains outstanding. |
 | Search budgets and responsiveness | PR #120 adds finite MCTS budgets for levels 1–3 (2.5s/5s/10s), request-scoped MinMax budgets (3s/6s/10s), best-so-far legal moves on budget expiry, and a 2s cap for main-thread fallback. Engine-contract workflow #364 passed 128 tests (0 failures). | Real-device/browser timing and responsiveness have not been re-verified. The mobile log's seven 15-second worker watchdog timeouts remain unexplained. |
@@ -36,6 +45,12 @@ Allow independently configured AI engines for White and Black, optionally limite
 
 ## Decisions to preserve
 
+- Keep one independent engine/strength/advanced assignment for every side × phase combination.
+- Use common Easy/Medium/Hard strength names, translated by each engine's own profiles.
+- Engine-declared Advanced overrides win over strength defaults; unsupported settings are rejected.
+- Presets are editable profiles, not separate configuration systems.
+- No migration is required for the previous `engineConfig` shape.
+- Keep phase detection separate from engine assignment resolution.
 - Default both sides to MinMax in every phase unless the user opts into MCTS.
 - Classify phases using total piece count plus the existing ply condition, not material score.
 - Keep thresholds provisional: opening = ply < 10 OR pieces >= 34; endgame = pieces <= 16; otherwise midgame.
