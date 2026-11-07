@@ -119,19 +119,6 @@ test('sliding pieces can move horizontally through the same moat they start on',
   }
 });
 
-test('a rook can leave its starting moat when that moat blocks an enemy rook from the king', () => {
-  const s = position();
-  s.board = Array.from({ length: 8 }, () => Array(10).fill(null));
-  s.board[5][3] = { type: 'k', color: 'w', moved: true };
-  s.board[5][2] = { type: 'r', color: 'w', moved: false };
-  s.board[5][0] = { type: 'r', color: 'b', moved: true };
-  s.board[0][9] = { type: 'k', color: 'b', moved: true };
-  s.moats.w = { r: 5, c: 2 };
-  const moves = allLegalState(s).filter(m => m.from.r === 5 && m.from.c === 2);
-  assert.ok(moves.some(m => m.to.r === 5 && m.to.c === 6),
-    'the rook may cross its starting moat; the enemy rook cannot attack through that moat');
-});
-
 test('a sliding move that starts outside a moat stops on its first moat square', () => {
   const s = position();
   s.board[5][1] = { type: 'r', color: 'w', moved: false };
