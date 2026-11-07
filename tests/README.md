@@ -38,10 +38,13 @@ The separate engine-strength calibration runner has a short smoke test and a ful
 - MCTS levels 1–3 have finite budgets; worker and synchronous search paths stop at their configured limits and return a legal best-so-far move. MinMax synchronous and cooperative searches also stop at their request deadline while preserving a legal best-so-far move.
 - Worker requests carry engine-specific search budgets; worker results and main-thread fallback log engine, side, phase, request identity, elapsed time, and whether the search reached its budget. Main-thread retries are capped at 2 seconds.
 - Unknown worker engine selectors return an explicit protocol error.
-- White/Black engine and phase settings are saved and restored independently.
-- MCTS configuration is limited to its selected phase, with MinMax in other phases.
+- Engine configuration uses a versioned schema with six independent side × phase assignments, common Easy/Medium/Hard levels, and editable presets.
+- MinMax and MCTS expose engine-specific strength profiles and Advanced setting schemas; Advanced overrides win, while unknown engines, unsupported settings, invalid types, and out-of-range values are rejected.
+- Effective engine settings are passed through protocol-v1 `config` to worker and main-thread searches; main-thread fallback budgets remain capped.
+- New configuration persists and restores; old or malformed `engineConfig` shapes reset to defaults without migration.
+- 2 Player Pass hides engine controls and blocks automated Next and auto-play dispatch.
 - Debug logging records engine changes and phase transitions without per-move selection/dispatch noise; routine status messages are omitted while warnings and errors remain. The event export filters the complete stored log without deleting entries, and `?debug=1` remains the opt-in URL parameter.
-- Missing, malformed, or invalid saved settings fall back to safe defaults; storage errors do not throw.
+- Storage errors do not throw during engine configuration setup.
 - Bottom-row coordinates retain extra clearance from pieces; editor black-piece silhouettes receive a light edge on the dark palette; moat ownership badges are larger and preview moats use stronger dashed outlines.\n- Piece design, piece-colour palette, board palette, and light/dark theme remain independent settings; all four piece palettes and all four board palettes have explicit theme coverage. Moat and move/selection accents blend the board profile with the selected piece palette while check retains its semantic warning colour. Swatches stay synchronized with the selectors, and appearance reset leaves gameplay settings unchanged.
 - Multi-file startup fetches both SVG sprites and loads MCTS before `script.js`.
 - Single-file startup skips sprite fetches when the piece symbols are inline.
@@ -56,4 +59,4 @@ The separate engine-strength calibration runner has a short smoke test and a ful
 
 ## Remaining verification
 
-This is a focused regression suite, not a complete rules suite or strength benchmark. Automated tests cover engine-setting persistence and validation, but browser rendering and real-browser/offline behavior still need browser verification. The worker and startup tests validate source-level contracts with mocks, not a live browser or deployed PWA. The 2026-11-04 mobile debug log recorded seven 15-second worker timeouts during opening, each followed by a main-thread retry; automated tests verify this fallback policy for both engine selectors but do not identify the cause of those device timeouts or establish mobile performance.
+This is a focused regression suite, not a complete rules suite or strength benchmark. Automated tests cover the engine-configuration model, validation, persistence reset, strength mapping, Advanced overrides, and Pass & Play restrictions. The new implementation's CI result and browser rendering/mobile behavior still need verification. The worker and startup tests validate source-level contracts with mocks, not a live browser or deployed PWA. The 2026-11-04 mobile debug log recorded seven 15-second worker timeouts during opening, each followed by a main-thread retry; automated tests verify this fallback policy for both engine selectors but do not identify the cause of those device timeouts or establish mobile performance.
