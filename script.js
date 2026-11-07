@@ -1131,7 +1131,7 @@ const MinMaxLegacy = {
   id: 'minmax_legacy',
   name: 'MinMax',
   phases: [ENGINE_PHASES.OPENING, ENGINE_PHASES.MIDGAME, ENGINE_PHASES.ENDGAME],
-  capabilities: ['custom-depth', 'custom-time-budget'],
+  capabilities: ['depth', 'timeMs']
   strengths: {
     easy: { depth: 1, timeMs: 3000 },
     medium: { depth: 2, timeMs: 6000 },
