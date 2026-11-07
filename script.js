@@ -750,24 +750,35 @@ function attacked(r, c, by, b = state.board, moats = state.moats) {
   }
   for (const [dr, dc] of DIRS) { const p = pieceAt(r + dr, c + dc, b); if (p && p.color === by && p.type === 'k') return true; }
 
-  const startMoat = isMoatCell(r, c, moats);
   for (const [dr, dc] of DIRS) {
+    let pathMoat = null;
+    let crossesDifferentMoats = false;
     for (let step = 1; step < Math.max(ROWS, COLS); step++) {
       const rr = r + dr * step, cc = c + dc * step; if (!inside(rr, cc)) break;
-
-      // A piece standing ON a moat cell attacks normally off the moat
-      // (consistent with pseudoMoves), so inspect the piece BEFORE letting
-      // the moat block the ray.
       const p = pieceAt(rr, cc, b);
-      if (p && p.color === by) {
-        if (p.type === 'q' || (p.type === 'r' && (dr === 0 || dc === 0)) || (p.type === 'b' && dr !== 0 && dc !== 0) || (p.type === 'j' && step <= 3)) return true;
+      if (p) {
+        if (p.color === by) {
+          const attacksAlongRay = p.type === 'q' ||
+            (p.type === 'r' && (dr === 0 || dc === 0)) ||
+            (p.type === 'b' && dr !== 0 && dc !== 0) ||
+            (p.type === 'j' && step <= 3);
+          if (attacksAlongRay) {
+            // Moat passage is determined by the attacking piece's origin,
+            // not by the king square from which this ray is being scanned.
+            const attackerMoat = isMoatCell(rr, cc, moats);
+            const moatPathAllowed = attackerMoat === null
+              ? pathMoat === null
+              : !crossesDifferentMoats && (pathMoat === null || pathMoat === attackerMoat);
+            if (moatPathAllowed) return true;
+          }
+        }
+        break;
       }
-      if (p) break;
 
-      const targetMoat = isMoatCell(rr, cc, moats);
-      if (targetMoat !== null) {
-        if (startMoat === null) break;
-        else if (targetMoat !== startMoat) break;
+      const cellMoat = isMoatCell(rr, cc, moats);
+      if (cellMoat !== null) {
+        if (pathMoat === null) pathMoat = cellMoat;
+        else if (cellMoat !== pathMoat) crossesDifferentMoats = true;
       }
     }
   }
