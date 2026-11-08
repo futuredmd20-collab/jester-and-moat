@@ -4,7 +4,7 @@ Purpose: preserve exploratory ideas for future engine, board, and opponent modes
 
 ## Status
 
-All items below remain exploratory unless explicitly noted. The engine-personality architecture direction has been agreed and is recorded in the Engine Extensibility Plan; no personality implementation, profile roster, or specific engine behavior has been approved. The other ideas remain at idea stage. Revisit an item only when it is explicitly selected for further investigation.
+The engine-personality architecture direction is agreed. Dragjägaren (Move Hunter) is the first selected profile and is being implemented for MinMax midgame on the current task branch. Other personality examples and all remaining ideas below remain exploratory unless explicitly noted.
 
 ## 1. Standard Chess Opponents and Strength Measurement
 
@@ -35,10 +35,9 @@ Explore a personality layer that adjusts how an engine plays without requiring a
 - Personality selections are part of presets and saved custom configurations. Presets remain editable.
 - Built-in profiles only in the first version; no user-created profiles or shared numeric style dimensions initially.
 
-See [Engine Extensibility Plan](ENGINE-EXTENSIBILITY-PLAN.md) for the complete design decisions, acceptance gate, and implementation sequence. The names and behavior examples below remain illustrative only; they are not an approved profile roster.
+See [Engine Extensibility Plan](ENGINE-EXTENSIBILITY-PLAN.md) for the complete design decisions, acceptance gate, and implementation sequence. The remaining names and behavior examples below are illustrative only; they are not an approved profile roster.
 
-Illustrative personalities:
-- **Dragjägaren (Move Hunter):** emphasizes checks, threats, and tactical opportunities.
+Other illustrative personalities (not selected or approved):
 - **Optimisten (Optimist):** favors attacking chances and accepts more risk.
 - **Fegisen (Coward):** prioritizes king safety and avoids risky positions.
 - **Materialisten (Materialist):** gives greater weight to material gains.

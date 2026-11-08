@@ -4,7 +4,7 @@ Purpose: define the architectural investigation and staged direction for adding 
 
 ## Status
 
-**Status: In progress (2026-11-08).** Stages A and B are complete. The existing game is represented by explicit `jester-moat` v1 identity (PR #140, merged), and Stage C engine/variant compatibility is complete (PR #141, merged and manually PWA-tested). Stage D's personality-layer design decisions are agreed. Stage E.3's minimal `Default` profile contract is implemented on the current task branch, automated CI passed (152 tests); PWA verification pending; no non-default profiles or personality behavior have been added. Alternative-board work remains unstarted.
+**Status: In progress (2026-11-08).** Stages A–D are complete. Variant identity (PR #140), engine/variant compatibility (PR #141), and the minimal personality contract (PR #143) are merged; PR #143 passed 153 automated tests and received manual PWA approval. Stage E.4's first non-default profile, MinMax Dragjägaren (Move Hunter), is implemented on the current task branch; CI passed 156 tests and manual PWA verification is pending. Further profiles, engines, and alternative-board work remain unstarted.
 
 ## Goal
 
@@ -26,7 +26,7 @@ Do not build a general-purpose game framework, public plugin SDK, dynamic market
 - The current registry is a static `enginePlugins` Map. Keep registration simple unless a concrete requirement proves otherwise.
 - Variant identity is explicit: the current game is `jester-moat` v1 (PR #140).
 - MinMax and MCTS declare supported variants; configuration and pre-search checks, including worker dispatch, reject unsupported variants with `UNSUPPORTED_VARIANT` (PR #141).
-- The minimal personality contract is implemented on the current task branch: a global `Default` profile and engine-declared support metadata. No non-default profiles or personality behavior are implemented. Alternative board sizes remain unimplemented. Illustrative profile names and behavior examples remain exploratory. See [Engine and Board Ideas](ENGINE-IDEAS.md).
+- The minimal personality contract is merged in PR #143: a global `Default` profile and engine-declared support metadata. The first non-default profile, MinMax Dragjägaren (Move Hunter), is being implemented on the current task branch for midgame only. Alternative board sizes remain unimplemented. Other illustrative profile names and behavior examples remain exploratory. See [Engine and Board Ideas](ENGINE-IDEAS.md).
 - The bitboard proposal is a separate engine-internal performance investigation. It must not silently replace the canonical game-state representation.
 
 This is a baseline, not a promise that every current implementation detail is suitable for future variants. Re-inspect code and tests before each implementation stage.
@@ -105,7 +105,7 @@ Keep the personality contract small. It should establish stable profile identity
 - A supported non-default profile produces an observable style difference in controlled positions without changing legal move output, bypassing immediate tactical wins, or breaking search budgets, cancellation, stale-result rejection, and worker/main-thread behavior.
 - Existing configurations and saves receive a deliberate, tested defaulting/compatibility behavior; do not assume a migration without inspecting the actual formats.
 
-**Progress:** Design decisions complete. The minimal runtime contract is implemented on the current task branch: `Default` is registered, both current engines declare support, profile IDs are stored per side × phase, and unsupported profiles are rejected during configuration and dispatch. Non-default profiles and engine-specific behavior remain unimplemented; automated CI passed (152 tests); PWA verification is pending.
+**Progress:** Complete. PR #143 merged the minimal runtime contract: `Default` is registered, both current engines declare support, profile IDs are stored per side × phase, and unsupported profiles are rejected during configuration and dispatch. CI passed with 153 tests and the user approved the PWA test.
 
 ### E. Implement incrementally
 
@@ -113,13 +113,29 @@ Recommended implementation order after the design gates above:
 
 1. Represent the existing 10×8 Jester & Moat rules as the first variant, with behavior-preserving regression tests. **Complete (PR #140).**
 2. Add declared engine/variant compatibility and validation for MinMax and MCTS. **Complete (PR #141).**
-3. Implement the minimal personality contract from Stage D, including mandatory `Default`, engine-declared supported profile IDs, and explicit unsupported-profile validation. **Implemented on the current task branch; automated CI passed (152 tests), PWA verification pending.**
-4. Add a small built-in profile set only after selecting and testing the first engine's concrete behavior. Keep the roster deliberately small; the examples in ENGINE-IDEAS.md are candidates, not approved choices.
+3. Implement the minimal personality contract from Stage D, including mandatory `Default`, engine-declared supported profile IDs, and explicit unsupported-profile validation. **Complete (PR #143; 153 CI tests passed; manual PWA test approved).**
+4. Add the first built-in profile to one engine and one phase, then verify its behavior in controlled positions before expanding the roster. Dragjägaren (Move Hunter) is the selected first profile; its implementation is in progress on the current task branch.
 5. Add personality support to further engines one at a time, preserving engine-owned interpretation and shared contract tests.
 6. Add further engines one at a time, with explicit variant/capability declarations and shared contract tests.
 7. Add a reduced board such as 5×8 only after geometry, setup, rule differences, serialization, editor, rendering, and engine compatibility have explicit designs and tests.
 
 The ordering may be revised if the dependency audit demonstrates a lower-risk sequence. A new engine does not need to wait for every personality or board variant if its scope is compatible with the current game.
+
+### E.4. First non-default profile: Dragjägaren (Move Hunter)
+
+**Agreed behavior (2026-11-08):**
+
+- First engine: MinMax only; MCTS remains `Default`-only and its evaluation behavior must not change.
+- Availability: midgame only, independently selectable for White and Black through the side × phase configuration.
+- Scope: positions are evaluated differently; move ordering is unchanged.
+- Behavior: reward actual attacks against enemy pieces, including defended targets. Do not reward merely potential attacks and do not add a separate check bonus.
+- Count each attacked enemy piece once, regardless of the number of attackers.
+- Scale the bonus to 10% of the target's existing material value. The king is excluded because its 200-point value is a terminal-search sentinel, not a capturable material value.
+- Keep the existing Default evaluation unchanged.
+
+**Implementation gate:** Add the profile to the shared registry, declare MinMax support, enforce its midgame-only availability in configuration and dispatch, pass personality identity through main-thread and worker requests, and cover scoring/sign/one-per-target behavior with regression tests. CI and manual PWA verification must be recorded only after completion.
+
+**Progress:** Implemented on `feat/minmax-move-hunter-personality`; GitHub Actions passed all 156 tests. Manual PWA verification remains pending.
 
 ## Cross-cutting verification
 
@@ -140,7 +156,7 @@ Browser/mobile verification must be recorded separately from automated tests and
 
 ## Explicit non-goals
 
-- No immediate implementation of personalities, additional engines, or reduced boards as part of this design/documentation stage.
+- No broad personality roster or additional engine implementations as part of the first Move Hunter profile task; further profiles and engines remain separately staged.
 - No commitment to the illustrative personality names or roster.
 - No user-created personality profiles in the first implementation.
 - No shared numeric personality parameter model in the first implementation.
@@ -160,5 +176,5 @@ Browser/mobile verification must be recorded separately from automated tests and
 
 ## Change log
 
-- **2026-11-08:** Stage E.3 minimal personality contract implemented on `feat/personality-contract`, automated CI passed (152 tests); PWA verification pending. It adds the global `Default` profile, engine support declarations, per-assignment profile identity, and explicit configuration/main-thread/worker rejection for unsupported profiles. No non-default profiles or behavior are included. Stage C remains complete (PR #141); Stage D design decisions remain agreed; Stages A and B remain complete (PR #140).
+- **2026-11-08:** PR #143 merged Stage E.3's minimal personality contract; CI passed 153 tests and manual PWA verification was approved. Stage E.4's first non-default profile, MinMax Dragjägaren (Move Hunter), is implemented for midgame only on `feat/minmax-move-hunter-personality`; CI passed 156 tests and manual PWA verification is pending.
 - **2026-11-07:** Created after Engine Configuration PR #138 merged. Records a planning direction only; no extension implementation is authorized by this document.

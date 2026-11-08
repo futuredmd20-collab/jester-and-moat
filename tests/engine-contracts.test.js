@@ -213,6 +213,137 @@ test('loading a saved AI-vs-AI game resumes auto-play after import paused it', (
   sandbox.api.resetAIWorker();
 });
 
+test('Move Hunter adds one 10% material-value bonus per attacked enemy piece', () => {
+  const s = position();
+  s.board[4][0] = { type: 'r', color: 'w', moved: false };
+  s.board[4][4] = { type: 'q', color: 'b', moved: false };
+  s.board[2][2] = { type: 'b', color: 'b', moved: false };
+  s.board[6][6] = { type: 'b', color: 'w', moved: false };
+  const baseline = sandbox.api.MinMaxSearchCore.evaluateBoard(s);
+  const hunter = sandbox.api.MinMaxSearchCore.evaluateBoard(s,
+    { personalityId: 'move_hunter', side: 'w', phase: 'midgame' });
+  assert.ok(Math.abs(hunter - baseline - 0.95) < 1e-9,
+    'the attacked queen earns one bonus even though it is defended and has two attackers');
+
+  const blackPosition = position();
+  blackPosition.board[4][9] = { type: 'r', color: 'b', moved: false };
+  blackPosition.board[4][4] = { type: 'q', color: 'w', moved: false };
+  blackPosition.board[2][2] = { type: 'b', color: 'b', moved: false };
+  blackPosition.board[6][6] = { type: 'b', color: 'w', moved: false };
+  const blackBaseline = sandbox.api.MinMaxSearchCore.evaluateBoard(blackPosition);
+  const blackHunter = sandbox.api.MinMaxSearchCore.evaluateBoard(blackPosition,
+    { personalityId: 'move_hunter', side: 'b', phase: 'midgame' });
+  assert.ok(Math.abs(blackHunter - blackBaseline + 0.95) < 1e-9,
+    'Black personality bonuses must reduce the White-perspective score');
+  assert.equal(sandbox.api.MinMaxSearchCore.evaluateBoard(s), baseline,
+    'evaluation without a personality context remains unchanged');
+});
+
+test('Move Hunter attack evaluation is preserved through structured worker dispatch', async () => {
+  const workerBlobs = new Map();
+  const previousCreateObjectURL = sandbox.URL.createObjectURL;
+  const previousRevokeObjectURL = sandbox.URL.revokeObjectURL;
+  const previousWorker = sandbox.Worker;
+  const previousWindowWorker = sandbox.window.Worker;
+  let workerContext = null;
+
+  class ExecutingWorker {
+    constructor(url) {
+      this.url = url;
+      this.onmessage = null;
+    }
+    async postMessage(data) {
+      const workerSource = await workerBlobs.get(this.url).text();
+      let response = null;
+      workerContext = {
+        postMessage(message) { response = message; },
+        setTimeout(callback) { callback(); return 1; }
+      };
+      vm.createContext(workerContext);
+      vm.runInContext(workerSource + '\nglobalThis.__moveHunterEvaluate = MinMaxSearchCore.evaluateBoard;', workerContext,
+        { filename: 'ai-worker.js' });
+      await workerContext.onmessage({ data });
+      if (this.onmessage) this.onmessage({ data: response });
+      return response;
+    }
+    terminate() {}
+  }
+
+  sandbox.URL.createObjectURL = blob => {
+    const url = `blob:move-hunter-worker-${workerBlobs.size}`;
+    workerBlobs.set(url, blob);
+    return url;
+  };
+  sandbox.URL.revokeObjectURL = () => {};
+  sandbox.Worker = ExecutingWorker;
+  sandbox.window.Worker = ExecutingWorker;
+  sandbox.api.resetAIWorker();
+
+  try {
+    const worker = ensureAIWorker();
+    const s = position();
+    s.board[4][0] = { type: 'r', color: 'w', moved: false };
+    s.board[4][4] = { type: 'q', color: 'b', moved: false };
+    s.board[2][2] = { type: 'b', color: 'b', moved: false };
+    s.board[6][6] = { type: 'b', color: 'w', moved: false };
+    const contractRequest = EngineContract.createRequest({
+      requestId: 'move-hunter-worker-dispatch',
+      generation: 301,
+      engineId: 'minmax_legacy',
+      position: s,
+      limits: { depth: 1, timeMs: 1000 },
+      config: { strength: 'medium', settings: {}, personalityId: 'move_hunter', phase: 'midgame' }
+    });
+
+    const response = await new Promise(resolve => {
+      worker.onmessage = event => resolve(event.data);
+      worker.postMessage({ id: 301, contractRequest });
+    });
+
+    assert.equal(response.id, 301);
+    assert.equal(response.result.status, EngineContract.statuses.COMPLETED,
+      JSON.stringify(response.result));
+    assert.ok(response.result.move, 'worker dispatch should return a legal search move');
+    assert.ok(allLegalState(s).some(move => JSON.stringify(move) === JSON.stringify(response.result.move)));
+
+    const baseline = workerContext.__moveHunterEvaluate(s);
+    const hunter = workerContext.__moveHunterEvaluate(s,
+      { personalityId: 'move_hunter', side: 'w', phase: 'midgame' });
+    assert.ok(Math.abs(hunter - baseline - 0.95) < 1e-9,
+      'the serialized worker MinMax core must receive attacked() and award the queen target bonus');
+
+    const mainThreadBaseline = sandbox.api.MinMaxSearchCore.evaluateBoard(s);
+    assert.ok(Math.abs(mainThreadBaseline - baseline) < 1e-9,
+      'main-thread Default evaluation must match the worker Default evaluation');
+    assert.equal(sandbox.api.enginePlugins.get('mcts').supportedPersonalities.includes('move_hunter'), false,
+      'MCTS must remain unaffected and must not advertise Move Hunter');
+  } finally {
+    sandbox.api.resetAIWorker();
+    sandbox.URL.createObjectURL = previousCreateObjectURL;
+    sandbox.URL.revokeObjectURL = previousRevokeObjectURL;
+    sandbox.Worker = previousWorker;
+    sandbox.window.Worker = previousWindowWorker;
+  }
+});
+
+test('MinMax contract accepts Move Hunter in midgame and rejects it in other phases', () => {
+  const makeRequest = phase => EngineContract.createRequest({
+    requestId: 'move-hunter-' + phase,
+    generation: 1,
+    engineId: 'minmax_legacy',
+    position: position(),
+    limits: { depth: 1, timeMs: 1000 },
+    config: { strength: 'medium', settings: {}, personalityId: 'move_hunter', phase }
+  });
+  const validRequest = makeRequest('midgame');
+  const validResult = sandbox.api.MinMaxLegacy.search(validRequest);
+  assert.equal(validResult.status, EngineContract.statuses.COMPLETED, JSON.stringify(validResult));
+
+  const invalidResult = sandbox.api.MinMaxLegacy.search(makeRequest('opening'));
+  assert.equal(invalidResult.status, EngineContract.statuses.FAILED);
+  assert.equal(invalidResult.error.code, 'UNSUPPORTED_PERSONALITY');
+});
+
 test('MinMax returns a legal move without mutating its input', () => {
   const s = position();
   s.board[6][0] = { type: 'r', color: 'w', moved: false };
@@ -1226,11 +1357,11 @@ test('engine configuration defaults cover every side and phase independently', (
   const config = sandbox.api.getEngineConfiguration();
   assert.equal(config.schemaVersion, 1);
   assert.equal(config.presetId, 'balanced');
-  assert.deepEqual(Object.keys(sandbox.api.PERSONALITY_PROFILES), ['default']);
+  assert.deepEqual(Object.keys(sandbox.api.PERSONALITY_PROFILES), ['default', 'move_hunter']);
   assert.equal(sandbox.api.PERSONALITY_PROFILES.default.name, 'Default');
-  for (const engineId of ['minmax_legacy', 'mcts']) {
-    assert.deepEqual(Array.from(sandbox.api.enginePlugins.get(engineId).supportedPersonalities), ['default']);
-  }
+  assert.deepEqual(Array.from(sandbox.api.enginePlugins.get('minmax_legacy').supportedPersonalities), ['default', 'move_hunter']);
+  assert.deepEqual(Array.from(sandbox.api.enginePlugins.get('mcts').supportedPersonalities), ['default']);
+  assert.deepEqual(Array.from(sandbox.api.PERSONALITY_PROFILES.move_hunter.phases), ['midgame']);
   for (const side of ['white', 'black']) {
     for (const phase of ['opening', 'midgame', 'endgame']) {
       assert.equal(JSON.stringify(config.sides[side].phases[phase]), JSON.stringify({
@@ -1238,6 +1369,34 @@ test('engine configuration defaults cover every side and phase independently', (
       }));
     }
   }
+});
+
+test('Move Hunter is restricted to MinMax midgame and reaches AI search configuration', () => {
+  const config = sandbox.api.getEngineConfiguration();
+  config.sides.white.phases.midgame.personalityId = 'move_hunter';
+  sandbox.api.setEngineConfiguration(config);
+  const assignment = sandbox.api.getEngineAssignment('w', 'midgame');
+  assert.equal(assignment.personalityId, 'move_hunter');
+  assert.ok(mockElement('engineAssignments').innerHTML.includes('data-setting="personalityId"'));
+
+  const invalidOpening = sandbox.api.getEngineConfiguration();
+  invalidOpening.sides.white.phases.opening.personalityId = 'move_hunter';
+  assert.throws(() => sandbox.api.validateEngineConfiguration(invalidOpening), error =>
+    error.code === 'UNSUPPORTED_PERSONALITY' && /does not support personality profile move_hunter/.test(error.message));
+
+  const invalidMcts = sandbox.api.getEngineConfiguration();
+  invalidMcts.sides.black.phases.midgame.engineId = 'mcts';
+  invalidMcts.sides.black.phases.midgame.personalityId = 'move_hunter';
+  assert.throws(() => sandbox.api.validateEngineConfiguration(invalidMcts), error =>
+    error.code === 'UNSUPPORTED_PERSONALITY');
+
+  const current = position();
+  for (let i = 0; i < 15; i++) current.board[2 + Math.floor(i / 10)][i % 10] = { type: 'p', color: i % 2 ? 'b' : 'w', moved: false };
+  mockElement('modeSelect').value = 'ai';
+  sandbox.api.setState(current);
+  const engineConfig = sandbox.api.getEngineConfig('w');
+  assert.equal(engineConfig.phase, 'midgame');
+  assert.equal(engineConfig.personalityId, 'move_hunter');
 });
 
 test('side and phase assignments accept mixed engines, strengths, and independent advanced settings', () => {
