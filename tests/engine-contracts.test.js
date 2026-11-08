@@ -2030,7 +2030,7 @@ test('legacy saves may omit optional state fields, but supplied invalid values a
   assert.equal(imported.state.setupId, null, 'legacy saves have no reliable record of the selected starting setup');
   assert.equal(JSON.stringify(imported.historyMoveLogs), JSON.stringify([['legacy log']]));
 });
- 
+
 test('new games receive explicit variant and setup identity', () => {
   assert.deepEqual(JSON.parse(JSON.stringify(sandbox.api.createGameIdentity('edges'))), {
     variant: { id: 'jester-moat', version: 1 }, setupId: 'edges'
@@ -2083,6 +2083,7 @@ test('legacy save files without history log snapshots remain importable', () => 
 
 test('engine contract creates an isolated immutable request snapshot', () => {
   const s = position();
+  Object.assign(s, sandbox.api.createGameIdentity('center'));
   s.board[6][0] = { type: 'r', color: 'w', moved: false };
   const request = sandbox.api.EngineContract.createRequest({
     requestId: 'contract-1', generation: 7, engineId: 'minmax_legacy',
@@ -2091,6 +2092,8 @@ test('engine contract creates an isolated immutable request snapshot', () => {
   s.board[6][0].type = 'q';
   assert.equal(request.protocolVersion, 1);
   assert.equal(request.position.board[6][0].type, 'r');
+  assert.deepEqual(JSON.parse(JSON.stringify(request.position.variant)), { id: 'jester-moat', version: 1 });
+  assert.equal(request.position.setupId, 'center');
   assert.equal(Object.isFrozen(request), true);
   assert.equal(Object.isFrozen(request.position.board[6][0]), true);
   assert.equal(Object.isFrozen(request.limits), true);
