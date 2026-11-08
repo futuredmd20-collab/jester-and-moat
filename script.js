@@ -1619,7 +1619,7 @@ const EngineContract = createEngineContract();
 const ENGINE_PROTOCOL_VERSION = EngineContract.version;
 const ENGINE_RESULT_STATUS = EngineContract.statuses;
 const ENGINE_ERROR_CODES = EngineContract.errorCodes;
-const MinMaxSearchCore = MinMaxSearchCoreFactory({ clone, other, applyRaw, allLegalState, inCheck, getJesterValue, EngineContract });
+const MinMaxSearchCore = MinMaxSearchCoreFactory({ clone, other, applyRaw, allLegalState, inCheck, attacked, getJesterValue, EngineContract });
 const MinMaxLegacy = { id: 'minmax_legacy', search: ${MinMaxLegacy.search.toString()} };
 // MCTS constants must be defined inside the serialized worker scope too.
 const MCTS_LEVELS = {
