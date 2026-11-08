@@ -239,6 +239,93 @@ test('Move Hunter adds one 10% material-value bonus per attacked enemy piece', (
     'evaluation without a personality context remains unchanged');
 });
 
+test('Move Hunter attack evaluation is preserved through structured worker dispatch', async () => {
+  const workerBlobs = new Map();
+  const previousCreateObjectURL = sandbox.URL.createObjectURL;
+  const previousRevokeObjectURL = sandbox.URL.revokeObjectURL;
+  const previousWorker = sandbox.Worker;
+  const previousWindowWorker = sandbox.window.Worker;
+  let workerContext = null;
+
+  class ExecutingWorker {
+    constructor(url) {
+      this.url = url;
+      this.onmessage = null;
+    }
+    async postMessage(data) {
+      const workerSource = await workerBlobs.get(this.url).text();
+      let response = null;
+      workerContext = {
+        postMessage(message) { response = message; },
+        setTimeout(callback) { callback(); return 1; }
+      };
+      vm.createContext(workerContext);
+      vm.runInContext(workerSource + '\nglobalThis.__moveHunterEvaluate = MinMaxSearchCore.evaluateBoard;', workerContext,
+        { filename: 'ai-worker.js' });
+      await workerContext.onmessage({ data });
+      if (this.onmessage) this.onmessage({ data: response });
+      return response;
+    }
+    terminate() {}
+  }
+
+  sandbox.URL.createObjectURL = blob => {
+    const url = `blob:move-hunter-worker-${workerBlobs.size}`;
+    workerBlobs.set(url, blob);
+    return url;
+  };
+  sandbox.URL.revokeObjectURL = () => {};
+  sandbox.Worker = ExecutingWorker;
+  sandbox.window.Worker = ExecutingWorker;
+  sandbox.api.resetAIWorker();
+
+  try {
+    const worker = ensureAIWorker();
+    const s = position();
+    s.board[4][0] = { type: 'r', color: 'w', moved: false };
+    s.board[4][4] = { type: 'q', color: 'b', moved: false };
+    s.board[2][2] = { type: 'b', color: 'b', moved: false };
+    s.board[6][6] = { type: 'b', color: 'w', moved: false };
+    const contractRequest = EngineContract.createRequest({
+      requestId: 'move-hunter-worker-dispatch',
+      generation: 301,
+      engineId: 'minmax_legacy',
+      position: s,
+      limits: { depth: 1, timeMs: 1000 },
+      config: { strength: 'medium', settings: {}, personalityId: 'move_hunter', phase: 'midgame' }
+    });
+
+    const response = await new Promise(resolve => {
+      worker.onmessage = event => resolve(event.data);
+      worker.postMessage({ id: 301, contractRequest });
+    });
+
+    assert.equal(response.id, 301);
+    assert.equal(response.result.status, EngineContract.statuses.COMPLETED,
+      JSON.stringify(response.result));
+    assert.ok(response.result.move, 'worker dispatch should return a legal search move');
+    assert.ok(allLegalState(s).some(move => JSON.stringify(move) === JSON.stringify(response.result.move)));
+
+    const baseline = workerContext.__moveHunterEvaluate(s);
+    const hunter = workerContext.__moveHunterEvaluate(s,
+      { personalityId: 'move_hunter', side: 'w', phase: 'midgame' });
+    assert.ok(Math.abs(hunter - baseline - 0.95) < 1e-9,
+      'the serialized worker MinMax core must receive attacked() and award the queen target bonus');
+
+    const mainThreadBaseline = sandbox.api.MinMaxSearchCore.evaluateBoard(s);
+    assert.equal(sandbox.api.MinMaxSearchCore.evaluateBoard(s), mainThreadBaseline,
+      'main-thread Default evaluation must remain unchanged');
+    assert.equal(sandbox.api.enginePlugins.get('mcts').supportedPersonalities.includes('move_hunter'), false,
+      'MCTS must remain unaffected and must not advertise Move Hunter');
+  } finally {
+    sandbox.api.resetAIWorker();
+    sandbox.URL.createObjectURL = previousCreateObjectURL;
+    sandbox.URL.revokeObjectURL = previousRevokeObjectURL;
+    sandbox.Worker = previousWorker;
+    sandbox.window.Worker = previousWindowWorker;
+  }
+});
+
 test('MinMax contract accepts Move Hunter in midgame and rejects it in other phases', () => {
   const makeRequest = phase => EngineContract.createRequest({
     requestId: 'move-hunter-' + phase,
