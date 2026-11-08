@@ -85,7 +85,7 @@ const sandbox = {
 vm.createContext(sandbox);
 vm.runInContext(minmax, sandbox);
 vm.runInContext(source.slice(0, boundary) + `
-globalThis.api = { EngineContract, MinMaxLegacy, cancelActiveAIRequest, setActiveAIForTest(worker, request) { aiWorker = worker; pendingAIRequest = request; aiRequestId = request.id; isAIThinking = true; }, getActiveAIForTest() { return { worker: aiWorker, request: pendingAIRequest, thinking: isAIThinking, id: aiRequestId }; }, allLegalState, inCheck, findLegalMoveMatch, MinMaxSearchCore, getBestMove: MinMaxSearchCore.getBestMove, getBestMoveAsync: MinMaxSearchCore.getBestMoveAsync, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout); aiWorkerTimeout = null; if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; gameOver = false; gameOverMessage = ''; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getEngineConfiguration() { return engineCopy(engineConfiguration); }, setEngineConfiguration(config) { engineConfiguration = validateEngineConfiguration(config); updateEngineConfigUI(); }, validateEngineConfiguration, getEngineAssignment, applyEnginePreset, isAIMode, updateModeUI, stepNextMove, toggleAutoPlay, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, applyLoadedGame, resumeLoadedGamePlayback, getAutoPlayForTest() { return autoPlayInterval; }, stopAutoPlayForTest: stopAutoPlay, ENGINE_PHASES, debugLogger, DebugLogger, status };
+globalThis.api = { GAME_VARIANT, GAME_SETUP_IDS, createGameIdentity, EngineContract, MinMaxLegacy, cancelActiveAIRequest, setActiveAIForTest(worker, request) { aiWorker = worker; pendingAIRequest = request; aiRequestId = request.id; isAIThinking = true; }, getActiveAIForTest() { return { worker: aiWorker, request: pendingAIRequest, thinking: isAIThinking, id: aiRequestId }; }, allLegalState, inCheck, findLegalMoveMatch, MinMaxSearchCore, getBestMove: MinMaxSearchCore.getBestMove, getBestMoveAsync: MinMaxSearchCore.getBestMoveAsync, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout); aiWorkerTimeout = null; if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; gameOver = false; gameOverMessage = ''; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getEngineConfiguration() { return engineCopy(engineConfiguration); }, setEngineConfiguration(config) { engineConfiguration = validateEngineConfiguration(config); updateEngineConfigUI(); }, validateEngineConfiguration, getEngineAssignment, applyEnginePreset, isAIMode, updateModeUI, stepNextMove, toggleAutoPlay, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, applyLoadedGame, resumeLoadedGamePlayback, getAutoPlayForTest() { return autoPlayInterval; }, stopAutoPlayForTest: stopAutoPlay, ENGINE_PHASES, debugLogger, DebugLogger, status };
 `, sandbox, { filename: 'script.js' });
 vm.runInContext(mcts, sandbox, { filename: 'engines/mcts-engine.js' });
 // The app's HTML loads the MCTS module before script.js; register its plugin here
@@ -118,6 +118,7 @@ function position() {
   board[7][4] = { type: 'k', color: 'w', moved: false };
   board[0][4] = { type: 'k', color: 'b', moved: false };
   return {
+    variant: { id: 'jester-moat', version: 1 }, setupId: null,
     board, turn: 'w', ply: 12, ep: null, moats: { w: null, b: null },
     moatDestroyed: { w: false, b: false }, hasPlacedMoat: { w: false, b: false },
     moveCounts: { w: 0, b: 0 }, phase: 'normal', captured: { w: [], b: [] },
@@ -2020,14 +2021,50 @@ test('save import rejects invalid provided phase, clocks, and coordinates instea
 
 test('legacy saves may omit optional state fields, but supplied invalid values are rejected', () => {
   const state = position();
-  for (const field of ['phase','ply','ep','moats','moatDestroyed','hasPlacedMoat','moveCounts','captured','halfmoveClock','positionHistory','clocks']) delete state[field];
+  for (const field of ['variant','setupId','phase','ply','ep','moats','moatDestroyed','hasPlacedMoat','moveCounts','captured','halfmoveClock','positionHistory','clocks']) delete state[field];
   const legacy = { state, history: [state], moveLog: ['legacy log'] };
   const imported = parseGameData(legacy, 180);
   assert.equal(imported.state.phase, 'normal');
   assert.equal(imported.state.ply, 0);
   assert.equal(imported.state.clocks.w, 180);
+  assert.deepEqual(JSON.parse(JSON.stringify(imported.state.variant)), { id: 'jester-moat', version: 1 });
+  assert.equal(imported.state.setupId, null, 'legacy saves have no reliable record of the selected starting setup');
   assert.equal(JSON.stringify(imported.historyMoveLogs), JSON.stringify([['legacy log']]));
 });
+
+test('new games receive explicit variant and setup identity', () => {
+  assert.deepEqual(JSON.parse(JSON.stringify(sandbox.api.createGameIdentity('edges'))), {
+    variant: { id: 'jester-moat', version: 1 }, setupId: 'edges'
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(sandbox.api.createGameIdentity('center'))), {
+    variant: { id: 'jester-moat', version: 1 }, setupId: 'center'
+  });
+  assert.equal(sandbox.api.createGameIdentity('unknown').setupId, null);
+});
+
+test('variant identity and setup ID survive save/load roundtrips', () => {
+  const state = position();
+  Object.assign(state, sandbox.api.createGameIdentity('center'));
+  const imported = parseGameData({ state, history: [state], moveLog: [], historyMoveLogs: [[]] });
+  assert.deepEqual(JSON.parse(JSON.stringify(imported.state.variant)), { id: 'jester-moat', version: 1 });
+  assert.equal(imported.state.setupId, 'center');
+  assert.equal(imported.history[0].setupId, 'center');
+});
+
+test('save import rejects unsupported variant identities and setup IDs', () => {
+  const unsupportedVariant = position();
+  unsupportedVariant.variant = { id: 'other-game', version: 1 };
+  assert.throws(() => parseGameData({
+    state: unsupportedVariant, history: [unsupportedVariant], moveLog: [], historyMoveLogs: [[]]
+  }), /unsupported game variant/i);
+
+  const unsupportedSetup = position();
+  unsupportedSetup.setupId = 'unknown-setup';
+  assert.throws(() => parseGameData({
+    state: unsupportedSetup, history: [unsupportedSetup], moveLog: [], historyMoveLogs: [[]]
+  }), /invalid game setup id/i);
+});
+
 
 test('save import normalizes the latest history clocks to the current saved clocks', () => {
   const state = position(); state.clocks = { w: 240, b: 300 };
@@ -2047,6 +2084,7 @@ test('legacy save files without history log snapshots remain importable', () => 
 
 test('engine contract creates an isolated immutable request snapshot', () => {
   const s = position();
+  Object.assign(s, sandbox.api.createGameIdentity('center'));
   s.board[6][0] = { type: 'r', color: 'w', moved: false };
   const request = sandbox.api.EngineContract.createRequest({
     requestId: 'contract-1', generation: 7, engineId: 'minmax_legacy',
@@ -2055,6 +2093,8 @@ test('engine contract creates an isolated immutable request snapshot', () => {
   s.board[6][0].type = 'q';
   assert.equal(request.protocolVersion, 1);
   assert.equal(request.position.board[6][0].type, 'r');
+  assert.deepEqual(JSON.parse(JSON.stringify(request.position.variant)), { id: 'jester-moat', version: 1 });
+  assert.equal(request.position.setupId, 'center');
   assert.equal(Object.isFrozen(request), true);
   assert.equal(Object.isFrozen(request.position.board[6][0]), true);
   assert.equal(Object.isFrozen(request.limits), true);
