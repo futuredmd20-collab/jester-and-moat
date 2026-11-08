@@ -1006,6 +1006,7 @@ test('main-thread dispatch rechecks engine variant compatibility immediately bef
   let searchCalls = 0;
   const callbackIndex = scheduledCallbacks.length;
   try {
+    sandbox.api.resetAIWorker();
     engine.supportedVariants = [{ id: 'jester-moat', versions: [1] }];
     engine.search = function(request) { searchCalls++; return originalSearch.call(this, request); };
     configureEngine('white', 'endgame', 'mcts');
