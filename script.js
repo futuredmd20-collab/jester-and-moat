@@ -1190,7 +1190,8 @@ function assertEngineVariantCompatibility(engine, position, engineId = engine &&
 }
 
 function assertEnginePersonalityCompatibility(engine, personalityId = DEFAULT_PERSONALITY_ID, engineId = engine && engine.id) {
-  const profile = PERSONALITY_PROFILES[personalityId];
+  const profile = Object.prototype.hasOwnProperty.call(PERSONALITY_PROFILES, personalityId)
+    ? PERSONALITY_PROFILES[personalityId] : null;
   const supported = engine && engine.supportedPersonalities;
   if (!profile || !Array.isArray(supported) || !supported.includes(personalityId)) {
     throw Object.assign(new Error(`Engine ${engineId || 'unknown'} does not support personality profile ${personalityId || 'missing'}.`),
