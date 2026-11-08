@@ -4,7 +4,7 @@ Purpose: define the architectural investigation and staged direction for adding 
 
 ## Status
 
-**Status: Planned (2026-11-07).** This plan follows the merge of Engine Configuration (PR #138). No implementation work for the extensions below has been approved or started. The first task is to settle the shared model and boundaries before changing game code.
+**Status: In progress (2026-11-08).** Stages A and B are complete: the current extension boundaries were mapped, and the minimal variant model was agreed. The existing game is now represented by explicit `jester-moat` v1 identity (PR #140, merged). Stage C engine/variant compatibility is being implemented on `feat/engine-variant-compatibility`; its checks and verification are not yet merged. Later personality and alternative-board work remains unstarted.
 
 ## Goal
 
@@ -69,13 +69,17 @@ Acceptance gate: the existing 10×8 game can be represented without changing its
 
 ### C. Add engine/variant compatibility to the engine boundary
 
-Extend the current static engine metadata and validation only as required by the variant model. Define how engines declare:
+Extend the current static engine metadata and validation only as required by the variant model. The current implementation declares supported variant IDs with explicit supported versions (`supportedVariants`); keep this declaration small and engine-owned. Variant identity remains in the canonical position snapshot, not duplicated in protocol request metadata.
+
+Progress: MinMax and MCTS declare support for `jester-moat` v1. Configuration validation and pre-search checks reject unsupported combinations with `UNSUPPORTED_VARIANT`; the worker independently checks the snapshot before dispatch. The current task branch is pending automated verification and review.
+
+Define how engines declare:
 - Supported variant IDs or rule capabilities.
 - Supported search phases, if phase support remains engine-specific.
 - Strength profiles, settings schemas, and optional capabilities.
 - Any genuine limitations relevant to dispatch.
 
-Validate compatibility both when configuring an assignment and immediately before dispatch. Keep protocol v1's safety and lifecycle semantics. Decide explicitly whether the variant identity belongs in the protocol position snapshot, request metadata, or both; do not duplicate inconsistent sources of truth.
+Validate compatibility both when configuring an assignment and immediately before dispatch. Keep protocol v1's safety and lifecycle semantics. Variant identity belongs in the canonical protocol position snapshot; do not duplicate it in request metadata.
 
 Acceptance gate: MinMax and MCTS continue to pass the existing contract suite for the current variant, and incompatible engine/variant combinations are rejected with stable errors.
 
@@ -143,4 +147,5 @@ Browser/mobile verification must be recorded separately from automated tests and
 
 ## Change log
 
+- **2026-11-08:** Stages A and B completed. PR #140 added the explicit `jester-moat` v1 identity baseline and was merged after automated and user-reported PWA verification. Stage C compatibility work is in progress on `feat/engine-variant-compatibility`; no later extension stage has started.
 - **2026-11-07:** Created after Engine Configuration PR #138 merged. Records a planning direction only; no extension implementation is authorized by this document.

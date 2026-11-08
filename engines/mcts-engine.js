@@ -284,6 +284,7 @@ function mctsEngine(level) {
     id: 'mcts',
     name: 'MCTS',
     phases: ['opening', 'midgame', 'endgame'],
+    supportedVariants: [{ id: 'jester-moat', versions: [1] }],
     capabilities: ['playouts', 'capDepth', 'temperature', 'timeBudgetMs'],
     strength: cfg,
     strengths: {

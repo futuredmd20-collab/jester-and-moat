@@ -39,6 +39,7 @@ The separate engine-strength calibration runner has a short smoke test and a ful
 - Worker requests carry engine-specific search budgets; worker results and main-thread fallback log engine, side, phase, request identity, elapsed time, and whether the search reached its budget. Main-thread retries are capped at 2 seconds.
 - Unknown worker engine selectors return an explicit protocol error.
 - Engine configuration uses a versioned schema with six independent side × phase assignments, common Easy/Medium/Hard levels, and editable presets.
+- MinMax and MCTS declare supported variant IDs and versions; configuration validation, main-thread dispatch, and structured worker dispatch reject unsupported variant IDs or versions with the stable `UNSUPPORTED_VARIANT` error.
 - MinMax and MCTS expose engine-specific strength profiles and Advanced setting schemas; Advanced overrides win, while unknown engines, unsupported settings, invalid types, and out-of-range values are rejected.
 - Effective engine settings are passed through protocol-v1 `config` to worker and main-thread searches; main-thread fallback budgets remain capped.
 - New configuration persists and restores; old or malformed `engineConfig` shapes reset to defaults without migration.

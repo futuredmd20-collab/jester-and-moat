@@ -94,7 +94,8 @@ sandbox.api.enginePlugins.set('mcts', sandbox.mctsEngine(2));
 sandbox.api.updateEngineConfigUI();
 const canonicalEngineMetadata = new Map(['minmax_legacy', 'mcts'].map(engineId => {
   const engine = sandbox.api.enginePlugins.get(engineId);
-  return [engineId, { capabilities: engine.capabilities, strengths: engine.strengths, settings: engine.settings }];
+  return [engineId, { capabilities: engine.capabilities, strengths: engine.strengths, settings: engine.settings,
+    supportedVariants: engine.supportedVariants }];
 }));
 
 function engineMetadata(engineId) {
@@ -103,7 +104,8 @@ function engineMetadata(engineId) {
     id: engineId,
     capabilities: metadata.capabilities,
     strengths: metadata.strengths,
-    settings: metadata.settings
+    settings: metadata.settings,
+    supportedVariants: metadata.supportedVariants
   };
 }
 
@@ -994,6 +996,42 @@ test('initial moat placement starts after four moves per side and completes for 
 });
 
 
+test('main-thread dispatch rechecks engine variant compatibility immediately before search', () => {
+  const engine = sandbox.api.enginePlugins.get('mcts');
+  const originalVariants = engine.supportedVariants;
+  const originalSearch = engine.search;
+  const originalConfig = sandbox.api.getEngineConfiguration();
+  const previousWorker = sandbox.Worker;
+  const previousWindowWorker = sandbox.window.Worker;
+  let searchCalls = 0;
+  const callbackIndex = scheduledCallbacks.length;
+  try {
+    sandbox.api.resetAIWorker();
+    engine.supportedVariants = [{ id: 'jester-moat', versions: [1] }];
+    engine.search = function(request) { searchCalls++; return originalSearch.call(this, request); };
+    configureEngine('white', 'endgame', 'mcts');
+    sandbox.api.setState(position());
+    mockElement('modeSelect').value = 'ai';
+    sandbox.Worker = undefined;
+    sandbox.window.Worker = undefined;
+    sandbox.api.aiMove();
+    assert.equal(scheduledCallbacks.length, callbackIndex + 1, 'main-thread search should be scheduled');
+    engine.supportedVariants = [];
+    scheduledCallbacks[callbackIndex]();
+    assert.equal(searchCalls, 0, 'incompatible engine must be rejected before search');
+    assert.match(mockElement('status').textContent, /does not support variant jester-moat v1/);
+    assert.equal(sandbox.api.getActiveAIForTest().thinking, false);
+  } finally {
+    engine.supportedVariants = originalVariants;
+    engine.search = originalSearch;
+    sandbox.api.setEngineConfiguration(originalConfig);
+    sandbox.api.resetAIWorker();
+    sandbox.Worker = previousWorker;
+    sandbox.window.Worker = previousWindowWorker;
+    scheduledCallbacks.splice(callbackIndex);
+  }
+});
+
 test('worker dispatches MinMax and returns a legal move', async () => {
   const workerBlobs = new Map();
   sandbox.URL.createObjectURL = blob => {
@@ -1113,6 +1151,61 @@ test('worker reports unsupported engine selectors explicitly', async () => {
   assert.match(response.error, /Unsupported worker function: unknownEngine/);
 });
 
+test('structured worker dispatch rejects unsupported variant identities with a stable error', async () => {
+  const workerBlobs = new Map();
+  const previousCreateObjectURL = sandbox.URL.createObjectURL;
+  const previousRevokeObjectURL = sandbox.URL.revokeObjectURL;
+  const previousWorker = sandbox.Worker;
+  const previousWindowWorker = sandbox.window.Worker;
+  sandbox.URL.createObjectURL = blob => {
+    const url = `blob:unsupported-variant-${workerBlobs.size}`;
+    workerBlobs.set(url, blob);
+    return url;
+  };
+  sandbox.URL.revokeObjectURL = () => {};
+  sandbox.Worker = class {
+    constructor(url) { this.url = url; this.onmessage = null; this.onerror = null; }
+    async postMessage(data) {
+      const source = await workerBlobs.get(this.url).text();
+      let response;
+      const workerContext = { postMessage(message) { response = message; }, setTimeout(callback) { callback(); return 1; } };
+      vm.createContext(workerContext);
+      vm.runInContext(source, workerContext, { filename: 'ai-worker.js' });
+      await workerContext.onmessage({ data });
+      if (this.onmessage) this.onmessage({ data: response });
+      return response;
+    }
+    terminate() {}
+  };
+  sandbox.window.Worker = sandbox.Worker;
+  sandbox.api.resetAIWorker();
+  try {
+    const worker = ensureAIWorker();
+    for (const engineId of ['minmax_legacy', 'mcts']) {
+      const requestId = engineId === 'mcts' ? 202 : 201;
+      const unsupportedPosition = position();
+      unsupportedPosition.variant = { id: 'unregistered-variant', version: 1 };
+      const request = EngineContract.createRequest({ requestId, generation: requestId, engineId,
+        position: unsupportedPosition, limits: { depth: 1, timeMs: 1000 },
+        config: { strength: 'medium', settings: {} } });
+      const response = await new Promise(resolve => {
+        worker.onmessage = event => resolve(event.data);
+        worker.postMessage({ id: requestId, contractRequest: request });
+      });
+      assert.equal(response.id, requestId);
+      assert.equal(response.result.status, 'failed');
+      assert.equal(response.result.error.code, 'UNSUPPORTED_VARIANT');
+      assert.match(response.result.error.message, /does not support variant unregistered-variant v1/);
+    }
+  } finally {
+    sandbox.api.resetAIWorker();
+    sandbox.URL.createObjectURL = previousCreateObjectURL;
+    sandbox.URL.revokeObjectURL = previousRevokeObjectURL;
+    sandbox.Worker = previousWorker;
+    sandbox.window.Worker = previousWindowWorker;
+  }
+});
+
 
 test('engine configuration defaults cover every side and phase independently', () => {
   sandbox.api.applyEnginePreset('balanced');
@@ -1154,6 +1247,24 @@ test('side and phase assignments accept mixed engines, strengths, and independen
   assert.equal(blackEndgame.settings.temperature, 0.7);
   assert.equal(blackEndgame.settings.playouts, 200);
   assert.equal(sandbox.api.getEngineAssignment('b', 'opening').engine.id, 'minmax_legacy');
+});
+
+test('engine configuration rejects engines that do not declare support for the active variant', () => {
+  const engine = sandbox.api.enginePlugins.get('mcts');
+  const original = engine.supportedVariants;
+  try {
+    engine.supportedVariants = [];
+    const config = sandbox.api.getEngineConfiguration();
+    config.sides.white.phases.opening.engineId = 'mcts';
+    assert.throws(() => sandbox.api.validateEngineConfiguration(config), error =>
+      error.code === 'UNSUPPORTED_VARIANT' && /mcts does not support variant jester-moat v1/.test(error.message));
+  } finally {
+    engine.supportedVariants = original;
+  }
+  const wrongVersion = sandbox.api.getEngineConfiguration();
+  assert.throws(() => sandbox.api.validateEngineConfiguration(wrongVersion,
+    { variant: { id: 'jester-moat', version: 2 } }), error =>
+    error.code === 'UNSUPPORTED_VARIANT' && /jester-moat v2/.test(error.message));
 });
 
 test('engine configuration rejects unknown engines, unsupported settings, and out-of-range values', () => {
