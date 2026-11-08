@@ -1595,7 +1595,7 @@ function ensureAIWorker() {
   const engineFunctions = [clone, inside, other, pieceAt, getMoatCells, isMoatCell, checkMoatDestructionState, attacked, kingPos, inCheck, pseudoMoves, applyRaw, cloneForMoveLegality, legalMovesFromState, allLegalState, getJesterValue, evaluateBoard, minimax, getBestMove, MinMaxSearchCoreFactory];
   // MCTS helpers live in engines/mcts-engine.js. Serialize them only when that module loaded.
   if (typeof mctsGetMove === 'function' && typeof mctsSearch === 'function') {
-    engineFunctions.push(mctsLevelFor, mctsApplyMove, mctsPlayout, mctsNode, mctsUctChild, mctsSearch, mctsSearchAsync, mctsGetMove, mctsEngine);
+    engineFunctions.push(mctsLevelFor, mctsApplyMove, mctsEvaluateBoard, mctsPlayout, mctsNode, mctsUctChild, mctsSearch, mctsSearchAsync, mctsGetMove, mctsEngine);
   }
   const workerEngineSettingsSchemas = getEngineSettingsSchemas();
   const workerEngineMetadata = Object.fromEntries(Array.from(enginePlugins.entries()).map(([id, engine]) =>
@@ -1659,7 +1659,10 @@ onmessage = async function(event) {
       let result;
       if (request.engineId === 'mcts') {
         const mctsConfig = Object.assign({}, MCTS_LEVELS[mctsLevelFor(request.limits && request.limits.depth)],
-          validatedConfig.settings || {});
+          validatedConfig.settings || {}, {
+            personalityId: validatedConfig.personalityId,
+            phase: validatedConfig.phase
+          });
         if (request.limits && request.limits.timeMs > 0) mctsConfig.timeBudgetMs = request.limits.timeMs;
         const outcome = await mctsSearchAsync(
           clone(request.position), mctsConfig,
