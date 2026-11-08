@@ -264,7 +264,7 @@
         const move = getBestMove(clone(position), depth, shouldStop, evaluationContext);
         return EngineContract.completed(request, move, { timedOut: shouldStop() });
       } catch (error) {
-        return EngineContract.failed(request, EngineContract.errorCodes.SEARCH_FAILED, error && error.message || error);
+        return EngineContract.failed(request, error && error.code || EngineContract.errorCodes.SEARCH_FAILED, error && error.message || error);
       }
     }
 
