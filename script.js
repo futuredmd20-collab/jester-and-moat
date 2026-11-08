@@ -1031,7 +1031,7 @@ const ENGINE_RESULT_STATUS = Object.freeze({
 });
 const ENGINE_ERROR_CODES = Object.freeze({
   INVALID_REQUEST: 'INVALID_REQUEST', INVALID_POSITION: 'INVALID_POSITION',
-  INVALID_CONFIG: 'INVALID_CONFIG', INVALID_MOVE: 'INVALID_MOVE',
+  INVALID_CONFIG: 'INVALID_CONFIG', INVALID_MOVE: 'INVALID_MOVE', UNSUPPORTED_VARIANT: 'UNSUPPORTED_VARIANT',
   SEARCH_FAILED: 'SEARCH_FAILED', CANCELLED: 'CANCELLED'
 });
 function engineDeepFreeze(value) {
@@ -1148,6 +1148,7 @@ const MinMaxLegacy = {
   id: 'minmax_legacy',
   name: 'MinMax',
   phases: [ENGINE_PHASES.OPENING, ENGINE_PHASES.MIDGAME, ENGINE_PHASES.ENDGAME],
+  supportedVariants: [{ id: 'jester-moat', versions: [1] }],
   capabilities: ['depth', 'timeMs'],
   strengths: {
     easy: { depth: 1, timeMs: 3000 },
@@ -1161,6 +1162,19 @@ const MinMaxLegacy = {
   strength: 'default',
   search: function(request) { return MinMaxSearchCore.search(request); },
 };
+
+function assertEngineVariantCompatibility(engine, position, engineId = engine && engine.id) {
+  const variant = position && position.variant;
+  const supported = engine && engine.supportedVariants;
+  const compatible = variant && Array.isArray(supported) && supported.some(entry =>
+    entry && entry.id === variant.id && Array.isArray(entry.versions) && entry.versions.includes(variant.version));
+  if (!compatible) {
+    const label = variant && variant.id ? `${variant.id} v${variant.version}` : 'missing variant identity';
+    throw Object.assign(new Error(`Engine ${engineId || 'unknown'} does not support variant ${label}.`),
+      { code: ENGINE_ERROR_CODES.UNSUPPORTED_VARIANT });
+  }
+  return true;
+}
 
 /* Plugin System: Engine Registry */
 const enginePlugins = new Map();
@@ -1240,7 +1254,7 @@ function getEngineSettingsSchemas() {
   return Object.fromEntries(Array.from(enginePlugins.entries()).map(([id, engine]) => [id, engine.settings || {}]));
 }
 
-function validateEngineConfiguration(value) {
+function validateEngineConfiguration(value, position = null) {
   if (!engineHasOnlyKeys(value, ['schemaVersion', 'presetId', 'sides']) ||
       value.schemaVersion !== ENGINE_CONFIG_SCHEMA_VERSION ||
       !(value.presetId === null || Object.prototype.hasOwnProperty.call(ENGINE_PRESETS, value.presetId)) ||
@@ -1263,6 +1277,8 @@ function validateEngineConfiguration(value) {
           !ENGINE_STRENGTHS.includes(assignment.strength) ||
           !enginePlugins.get(assignment.engineId).phases.includes(phase))
         throw new Error('Invalid ' + side + ' ' + phase + ' engine assignment.');
+      const targetPosition = position || (state && state.variant ? state : { variant: GAME_VARIANT });
+      assertEngineVariantCompatibility(enginePlugins.get(assignment.engineId), targetPosition, assignment.engineId);
       const advanced = validateEngineSettingsAgainstSchema(assignment.engineId, assignment.advanced || {}, schemas);
       normalized.sides[side].phases[phase] = {
         engineId: assignment.engineId,
@@ -1281,6 +1297,7 @@ function getEngineAssignment(side, phase) {
   if (!assignment) throw new Error('Unknown engine assignment: ' + side + ' / ' + phase);
   const engine = enginePlugins.get(assignment.engineId);
   if (!engine) throw new Error('Unknown engine: ' + assignment.engineId);
+  assertEngineVariantCompatibility(engine, state && state.variant ? state : { variant: GAME_VARIANT }, assignment.engineId);
   const profile = engine.strengths && engine.strengths[assignment.strength];
   if (!profile) throw new Error(engine.name + ' does not support ' + assignment.strength + ' strength.');
   const settings = Object.assign({}, profile, assignment.advanced);
@@ -1517,12 +1534,16 @@ function ensureAIWorker() {
     engineFunctions.push(mctsLevelFor, mctsApplyMove, mctsPlayout, mctsNode, mctsUctChild, mctsSearch, mctsSearchAsync, mctsGetMove, mctsEngine);
   }
   const workerEngineSettingsSchemas = getEngineSettingsSchemas();
+  const workerEngineMetadata = Object.fromEntries(Array.from(enginePlugins.entries()).map(([id, engine]) =>
+    [id, { id, supportedVariants: engine.supportedVariants || [] }]));
   const workerSource = `"use strict";
 const ENGINE_STRENGTHS = ['easy', 'medium', 'hard'];
 const ENGINE_SETTINGS_SCHEMAS = ${JSON.stringify(workerEngineSettingsSchemas)};
+const WORKER_ENGINE_METADATA = ${JSON.stringify(workerEngineMetadata)};
 ${engineHasOnlyKeys.toString()}
 ${validateEngineSettingsAgainstSchema.toString()}
 ${validateEngineRequestConfig.toString()}
+${assertEngineVariantCompatibility.toString()}
 const ROWS = 8, COLS = 10;
 const DIRS = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
 function engineCopy(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
@@ -1563,6 +1584,7 @@ onmessage = async function(event) {
       state = clone(request.position);
       if (!['minmax_legacy', 'mcts'].includes(request.engineId))
         throw new Error('Unsupported structured engine selector.');
+      assertEngineVariantCompatibility(WORKER_ENGINE_METADATA[request.engineId], request.position, request.engineId);
       const validatedConfig = validateEngineRequestConfig(request.engineId, request.config, ENGINE_SETTINGS_SCHEMAS);
       const control = { cancelled: false };
       const key = String(request.requestId);
@@ -1634,7 +1656,7 @@ onmessage = async function(event) {
         engineId: request.engineId,
         status: 'failed',
         move: null,
-        error: { code: 'SEARCH_FAILED', message: String(error && error.message || error), details: null }
+        error: { code: error && error.code || 'SEARCH_FAILED', message: String(error && error.message || error), details: null }
       }});
     } else postMessage({ id: data.id, error: String(error && error.message || error) });
   }
@@ -1788,6 +1810,7 @@ function runAIOnMainThread(request) {
 
     let bestMove = null;
     try {
+      assertEngineVariantCompatibility(request.engine, request.state, request.engine.id);
       if (typeof request.engine.search === 'function' && request.contractRequest) {
         const result = request.engine.search(request.contractRequest);
         if (!EngineContract.matchesRequest(result, request.contractRequest))
@@ -1885,9 +1908,23 @@ function aiMove(){
   isAIThinking = true;
   status("\u23f3 AI thinking...");
 
-  const engineConfig = getEngineConfig(state.turn);
-  if (!engineConfig) { isAIThinking = false; return; }
+  let engineConfig;
+  try {
+    engineConfig = getEngineConfig(state.turn);
+    if (!engineConfig) { isAIThinking = false; return; }
+  } catch (error) {
+    isAIThinking = false;
+    status(`AI error: ${String(error && error.message || error)}`);
+    return;
+  }
   const { engine, depth, phase, strength, settings, timeMs } = engineConfig;
+  try {
+    assertEngineVariantCompatibility(engine, state, engine.id);
+  } catch (error) {
+    isAIThinking = false;
+    status(`AI error: ${String(error && error.message || error)}`);
+    return;
+  }
   const side = state.turn === 'w' ? 'White' : 'Black';
   const engineName = engine.name || 'Unknown engine';
   const id = ++aiRequestId;
