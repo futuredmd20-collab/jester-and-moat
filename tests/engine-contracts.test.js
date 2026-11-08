@@ -271,6 +271,18 @@ test('MCTS Move Hunter uses its own attack evaluation and remains midgame-only',
 
   const engine = sandbox.api.enginePlugins.get('mcts');
   assert.ok(engine.supportedPersonalities.includes('move_hunter'));
+  const configurable = sandbox.api.getEngineConfiguration();
+  configurable.sides.white.phases.midgame.engineId = 'mcts';
+  configurable.sides.white.phases.midgame.personalityId = 'move_hunter';
+  assert.equal(sandbox.api.validateEngineConfiguration(configurable)
+    .sides.white.phases.midgame.personalityId, 'move_hunter',
+    'the existing side × phase configuration must accept MCTS Move Hunter in midgame');
+  const wrongPhase = sandbox.api.getEngineConfiguration();
+  wrongPhase.sides.white.phases.opening.engineId = 'mcts';
+  wrongPhase.sides.white.phases.opening.personalityId = 'move_hunter';
+  assert.throws(() => sandbox.api.validateEngineConfiguration(wrongPhase), error =>
+    error.code === 'UNSUPPORTED_PERSONALITY',
+    'configuration must reject MCTS Move Hunter outside midgame');
   const makeRequest = phase => EngineContract.createRequest({
     requestId: 'mcts-move-hunter-' + phase,
     generation: 1,
@@ -398,6 +410,23 @@ test('Move Hunter attack evaluation is preserved through structured worker dispa
       { personalityId: 'move_hunter', side: 'w', phase: 'midgame' });
     assert.ok(Math.abs(mctsHunter - mctsBaseline - 0.95) < 1e-9,
       'the serialized MCTS evaluator must receive attacked() and award one target bonus');
+
+    const unsupportedPhaseRequest = EngineContract.createRequest({
+      requestId: 'mcts-move-hunter-worker-opening',
+      generation: 303,
+      engineId: 'mcts',
+      position: s,
+      limits: { depth: 1, timeMs: 1000 },
+      config: { strength: 'easy', settings: { playouts: 50, capDepth: 1, temperature: 0 },
+        personalityId: 'move_hunter', phase: 'opening' }
+    });
+    const unsupportedPhaseResponse = await new Promise(resolve => {
+      worker.onmessage = event => resolve(event.data);
+      worker.postMessage({ id: 303, contractRequest: unsupportedPhaseRequest });
+    });
+    assert.equal(unsupportedPhaseResponse.result.status, EngineContract.statuses.FAILED);
+    assert.equal(unsupportedPhaseResponse.result.error.code, 'UNSUPPORTED_PERSONALITY',
+      'structured worker dispatch must reject the profile outside midgame');
   } finally {
     sandbox.api.resetAIWorker();
     sandbox.URL.createObjectURL = previousCreateObjectURL;
