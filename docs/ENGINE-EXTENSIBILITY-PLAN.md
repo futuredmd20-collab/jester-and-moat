@@ -4,7 +4,7 @@ Purpose: define the architectural investigation and staged direction for adding 
 
 ## Status
 
-**Status: In progress (2026-11-08).** Stages A–D are complete. Variant identity (PR #140), engine/variant compatibility (PR #141), and the minimal personality contract (PR #143) are merged; PR #143 passed 153 automated tests and received manual PWA approval. Stage E.4's first non-default profile, MinMax Dragjägaren (Move Hunter), is implemented on the current task branch; CI passed 156 tests and manual PWA verification is pending. Further profiles, engines, and alternative-board work remain unstarted.
+**Status: In progress (2026-11-08).** Stages A–D are complete. Variant identity (PR #140), engine/variant compatibility (PR #141), the minimal personality contract (PR #143), and the first non-default profile (PR #144) are merged. PR #144 passed 157 automated tests and received manual PWA approval. Stage E.5—personality support for further engines—remains unstarted, as do additional engines and alternative-board work.
 
 ## Goal
 
@@ -26,7 +26,7 @@ Do not build a general-purpose game framework, public plugin SDK, dynamic market
 - The current registry is a static `enginePlugins` Map. Keep registration simple unless a concrete requirement proves otherwise.
 - Variant identity is explicit: the current game is `jester-moat` v1 (PR #140).
 - MinMax and MCTS declare supported variants; configuration and pre-search checks, including worker dispatch, reject unsupported variants with `UNSUPPORTED_VARIANT` (PR #141).
-- The minimal personality contract is merged in PR #143: a global `Default` profile and engine-declared support metadata. The first non-default profile, MinMax Dragjägaren (Move Hunter), is being implemented on the current task branch for midgame only. Alternative board sizes remain unimplemented. Other illustrative profile names and behavior examples remain exploratory. See [Engine and Board Ideas](ENGINE-IDEAS.md).
+- The minimal personality contract is merged in PR #143: a global `Default` profile and engine-declared support metadata. MinMax Dragjägaren (Move Hunter) is merged in PR #144 for midgame only; MCTS remains `Default`-only. Alternative board sizes remain unimplemented. Other illustrative profile names and behavior examples remain exploratory. See [Engine and Board Ideas](ENGINE-IDEAS.md).
 - The bitboard proposal is a separate engine-internal performance investigation. It must not silently replace the canonical game-state representation.
 
 This is a baseline, not a promise that every current implementation detail is suitable for future variants. Re-inspect code and tests before each implementation stage.
@@ -114,8 +114,8 @@ Recommended implementation order after the design gates above:
 1. Represent the existing 10×8 Jester & Moat rules as the first variant, with behavior-preserving regression tests. **Complete (PR #140).**
 2. Add declared engine/variant compatibility and validation for MinMax and MCTS. **Complete (PR #141).**
 3. Implement the minimal personality contract from Stage D, including mandatory `Default`, engine-declared supported profile IDs, and explicit unsupported-profile validation. **Complete (PR #143; 153 CI tests passed; manual PWA test approved).**
-4. Add the first built-in profile to one engine and one phase, then verify its behavior in controlled positions before expanding the roster. Dragjägaren (Move Hunter) is the selected first profile; its implementation is in progress on the current task branch.
-5. Add personality support to further engines one at a time, preserving engine-owned interpretation and shared contract tests.
+4. Add the first built-in profile to one engine and one phase, then verify its behavior in controlled positions before expanding the roster. Dragjägaren (Move Hunter) is complete for MinMax midgame (PR #144; 157 automated tests passed and manual PWA verification was approved).
+5. Add personality support to further engines one at a time, preserving engine-owned interpretation and shared contract tests. This is the next planned implementation stage; choose the target engine and profile behavior explicitly before starting.
 6. Add further engines one at a time, with explicit variant/capability declarations and shared contract tests.
 7. Add a reduced board such as 5×8 only after geometry, setup, rule differences, serialization, editor, rendering, and engine compatibility have explicit designs and tests.
 
@@ -135,7 +135,7 @@ The ordering may be revised if the dependency audit demonstrates a lower-risk se
 
 **Implementation gate:** Add the profile to the shared registry, declare MinMax support, enforce its midgame-only availability in configuration and dispatch, pass personality identity through main-thread and worker requests, and cover scoring/sign/one-per-target behavior with regression tests. CI and manual PWA verification must be recorded only after completion.
 
-**Progress:** Implemented on `feat/minmax-move-hunter-personality`; GitHub Actions passed all 156 tests. Manual PWA verification remains pending.
+**Progress:** Complete. PR #144 merged the MinMax midgame implementation. GitHub Actions passed 157 tests (0 failures), including a regression test that exercises the serialized worker dispatch path and verifies the attack bonus survives worker execution. The user confirmed the behavior works in the PWA.
 
 ## Cross-cutting verification
 
@@ -176,5 +176,5 @@ Browser/mobile verification must be recorded separately from automated tests and
 
 ## Change log
 
-- **2026-11-08:** PR #143 merged Stage E.3's minimal personality contract; CI passed 153 tests and manual PWA verification was approved. Stage E.4's first non-default profile, MinMax Dragjägaren (Move Hunter), is implemented for midgame only on `feat/minmax-move-hunter-personality`; CI passed 156 tests and manual PWA verification is pending.
+- **2026-11-08:** PR #143 merged Stage E.3's minimal personality contract; CI passed 153 tests and manual PWA verification was approved. PR #144 completed Stage E.4's first non-default profile, MinMax Dragjägaren (Move Hunter), for midgame only; CI passed 157 tests and manual PWA verification was approved. The worker-dispatch regression confirms the attack bonus is preserved in the serialized worker path.
 - **2026-11-07:** Created after Engine Configuration PR #138 merged. Records a planning direction only; no extension implementation is authorized by this document.

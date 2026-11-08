@@ -4,7 +4,7 @@ Purpose: preserve exploratory ideas for future engine, board, and opponent modes
 
 ## Status
 
-The engine-personality architecture direction is agreed. Dragjägaren (Move Hunter) is the first selected profile and is being implemented for MinMax midgame on the current task branch. Other personality examples and all remaining ideas below remain exploratory unless explicitly noted.
+The engine-personality architecture direction is agreed. Dragjägaren (Move Hunter) is implemented for MinMax midgame (PR #144); its CI suite passed 157 tests and the user approved the manual PWA verification. Other personality examples and all remaining ideas below remain exploratory unless explicitly noted.
 
 ## 1. Standard Chess Opponents and Strength Measurement
 
