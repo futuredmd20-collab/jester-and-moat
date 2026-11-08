@@ -1338,7 +1338,7 @@ function getEngineAssignment(side, phase) {
   if (!engine) throw new Error('Unknown engine: ' + assignment.engineId);
   assertEngineVariantCompatibility(engine, state && state.variant ? state : { variant: GAME_VARIANT }, assignment.engineId);
   const personalityId = assignment.personalityId == null ? DEFAULT_PERSONALITY_ID : assignment.personalityId;
-  assertEnginePersonalityCompatibility(engine, personalityId, assignment.engineId);
+  assertEnginePersonalityCompatibility(engine, personalityId, assignment.engineId, phase);
   const profile = engine.strengths && engine.strengths[assignment.strength];
   if (!profile) throw new Error(engine.name + ' does not support ' + assignment.strength + ' strength.');
   const settings = Object.assign({}, profile, assignment.advanced);
