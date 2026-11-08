@@ -4,8 +4,19 @@
 (function (root) {
   function MinMaxSearchCoreFactory(dependencies) {
     const ROWS = 8, COLS = 10;
-    const { clone, other, applyRaw, allLegalState, inCheck, getJesterValue, EngineContract } = dependencies;
-    function evaluateBoard(st) {
+    const { clone, other, applyRaw, allLegalState, inCheck, attacked, getJesterValue, EngineContract } = dependencies;
+    function createEvaluationContext(position, config) {
+      const personalityId = config && config.personalityId || 'default';
+      if (personalityId === 'move_hunter') {
+        if (!config || config.phase !== 'midgame') {
+          throw Object.assign(new Error('Move Hunter is only available for the midgame phase.'),
+            { code: EngineContract.errorCodes.UNSUPPORTED_PERSONALITY });
+        }
+        return { personalityId, side: position.turn, phase: config.phase };
+      }
+      return null;
+    }
+    function evaluateBoard(st, evaluationContext = null) {
   const jesterVal = getJesterValue(st);
   const pieceValues = { p: 1.0, n: 3.0, b: 3.5, r: 5.0, q: 9.5, k: 200.0, j: jesterVal };
   let score = 0;
@@ -25,9 +36,22 @@
       else score -= total;
     }
   }
+  if (evaluationContext && evaluationContext.personalityId === 'move_hunter' && attacked) {
+    const hunterSide = evaluationContext.side;
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const target = st.board[r][c];
+        if (!target || target.color === hunterSide || target.type === 'k') continue;
+        if (attacked(r, c, hunterSide, st.board, st.moats)) {
+          const bonus = (pieceValues[target.type] || 0) * 0.10;
+          score += hunterSide === 'w' ? bonus : -bonus;
+        }
+      }
+    }
+  }
   return score;
 }
-    function minimax(st, depth, alpha, beta, isMaximizing, shouldStop = () => false) {
+    function minimax(st, depth, alpha, beta, isMaximizing, shouldStop = () => false, evaluationContext = null) {
   if (shouldStop()) return null;
   const moves = allLegalState(st, st.turn);
   const check = inCheck(st.turn, st.board, st.moats);
@@ -37,7 +61,7 @@
       if (check) return isMaximizing ? -9999 + (3 - depth) : 9999 - (3 - depth);
       return 0;
     }
-    return evaluateBoard(st);
+    return evaluateBoard(st, evaluationContext);
   }
 
   if (isMaximizing) {
@@ -52,7 +76,7 @@
       } else {
         applyRaw(nextState, m);
       }
-      const ev = minimax(nextState, depth - 1, alpha, beta, false, shouldStop);
+      const ev = minimax(nextState, depth - 1, alpha, beta, false, shouldStop, evaluationContext);
       if (ev === null) return null;
       maxEval = Math.max(maxEval, ev);
       alpha = Math.max(alpha, ev);
@@ -71,7 +95,7 @@
       } else {
         applyRaw(nextState, m);
       }
-      const ev = minimax(nextState, depth - 1, alpha, beta, true, shouldStop);
+      const ev = minimax(nextState, depth - 1, alpha, beta, true, shouldStop, evaluationContext);
       if (ev === null) return null;
       minEval = Math.min(minEval, ev);
       beta = Math.min(beta, ev);
@@ -80,7 +104,7 @@
     return minEval;
   }
 }
-    function getBestMove(st, depth, shouldStop = () => false) {
+    function getBestMove(st, depth, shouldStop = () => false, evaluationContext = null) {
   const moves = allLegalState(st, st.turn);
   if (!moves.length) return null;
 
@@ -101,7 +125,7 @@
       applyRaw(nextState, m);
     }
 
-    const ev = minimax(nextState, depth - 1, -Infinity, Infinity, !isMax, shouldStop);
+    const ev = minimax(nextState, depth - 1, -Infinity, Infinity, !isMax, shouldStop, evaluationContext);
     if (ev === null) break;
     if (isMax) {
       if (ev > bestEval) { bestEval = ev; bestMove = m; }
@@ -111,7 +135,7 @@
   }
   return bestMove;
 }
-    async function getBestMoveAsync(st, depth, shouldCancel = () => false, yieldControl = () => new Promise(resolve => setTimeout(resolve, 0)), shouldStop = () => false) {
+    async function getBestMoveAsync(st, depth, shouldCancel = () => false, yieldControl = () => new Promise(resolve => setTimeout(resolve, 0)), shouldStop = () => false, evaluationContext = null) {
   const moves = allLegalState(st, st.turn);
   if (!moves.length) return { move: null, cancelled: false };
   let bestMove = moves[0];
@@ -138,7 +162,7 @@
         if (check) return maximizing ? -9999 + (3 - remainingDepth) : 9999 - (3 - remainingDepth);
         return 0;
       }
-      return evaluateBoard(nodeState);
+      return evaluateBoard(nodeState, evaluationContext);
     }
 
     let best = maximizing ? -Infinity : Infinity;
@@ -211,9 +235,10 @@
       }
       const config = request.config;
       if (config != null && (!config || typeof config !== 'object' || Array.isArray(config) ||
-          Object.keys(config).some(key => !['strength', 'settings', 'personalityId'].includes(key)) ||
+          Object.keys(config).some(key => !['strength', 'settings', 'personalityId', 'phase'].includes(key)) ||
           (config.strength != null && !['easy', 'medium', 'hard'].includes(config.strength)) ||
-          (config.personalityId != null && typeof config.personalityId !== 'string'))) {
+          (config.personalityId != null && typeof config.personalityId !== 'string') ||
+          (config.phase != null && !['opening', 'midgame', 'endgame'].includes(config.phase)))) {
         return EngineContract.failed(request, EngineContract.errorCodes.INVALID_CONFIG, 'MinMax received unsupported configuration.');
       }
       const settings = config && config.settings;
@@ -235,14 +260,15 @@
           ? request.limits.timeMs : configuredTimeMs;
         const deadline = timeMs > 0 ? Date.now() + timeMs : Infinity;
         const shouldStop = () => Date.now() >= deadline;
-        const move = getBestMove(clone(position), depth, shouldStop);
+        const evaluationContext = createEvaluationContext(position, config);
+        const move = getBestMove(clone(position), depth, shouldStop, evaluationContext);
         return EngineContract.completed(request, move, { timedOut: shouldStop() });
       } catch (error) {
         return EngineContract.failed(request, EngineContract.errorCodes.SEARCH_FAILED, error && error.message || error);
       }
     }
 
-    return Object.freeze({ evaluateBoard, minimax, getBestMove, getBestMoveAsync, search });
+    return Object.freeze({ evaluateBoard, minimax, getBestMove, getBestMoveAsync, createEvaluationContext, search });
   }
   root.MinMaxSearchCoreFactory = MinMaxSearchCoreFactory;
 })(globalThis);
