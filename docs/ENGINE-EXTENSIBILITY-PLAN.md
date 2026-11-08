@@ -4,7 +4,7 @@ Purpose: define the architectural investigation and staged direction for adding 
 
 ## Status
 
-**Status: In progress (2026-11-08).** Stages A–D and E.4 are complete. Variant identity (PR #140), engine/variant compatibility (PR #141), the minimal personality contract (PR #143), and MinMax Dragjägaren (PR #144) are merged. Stage E.5 is being implemented on `feat/mcts-move-hunter-personality`: MCTS support for the existing Dragjägaren profile. Automated CI and manual PWA verification are pending. Additional engines and alternative-board work remain unstarted.
+**Status: In progress (2026-11-08).** Stages A–D and E.4 are complete. Variant identity (PR #140), engine/variant compatibility (PR #141), the minimal personality contract (PR #143), and MinMax Dragjägaren (PR #144) are merged. Stage E.5 is implemented on `feat/mcts-move-hunter-personality`: MCTS support for the existing Dragjägaren profile. PR #146's GitHub Actions suite passed 158 tests (0 failures); manual PWA verification remains pending. Additional engines and alternative-board work remain unstarted.
 
 ## Goal
 
@@ -115,7 +115,7 @@ Recommended implementation order after the design gates above:
 2. Add declared engine/variant compatibility and validation for MinMax and MCTS. **Complete (PR #141).**
 3. Implement the minimal personality contract from Stage D, including mandatory `Default`, engine-declared supported profile IDs, and explicit unsupported-profile validation. **Complete (PR #143; 153 CI tests passed; manual PWA test approved).**
 4. Add the first built-in profile to one engine and one phase, then verify its behavior in controlled positions before expanding the roster. Dragjägaren (Move Hunter) is complete for MinMax midgame (PR #144; 157 automated tests passed and manual PWA verification was approved).
-5. Add personality support to further engines one at a time, preserving engine-owned interpretation and shared contract tests. **Current task:** add the existing Dragjägaren profile to MCTS for midgame only (implementation on `feat/mcts-move-hunter-personality`; CI and PWA verification pending).
+5. Add personality support to further engines one at a time, preserving engine-owned interpretation and shared contract tests. **Complete in PR #146:** add the existing Dragjägaren profile to MCTS for midgame only. GitHub Actions passed 158 tests (0 failures); manual PWA verification remains pending.
 6. Add further engines one at a time, with explicit variant/capability declarations and shared contract tests.
 7. Add a reduced board such as 5×8 only after geometry, setup, rule differences, serialization, editor, rendering, and engine compatibility have explicit designs and tests.
 
@@ -150,7 +150,7 @@ The ordering may be revised if the dependency audit demonstrates a lower-risk se
 
 **Implementation gate:** Cover White/Black scoring, defended and multiply-attacked targets, king exclusion, midgame-only validation, unchanged Default evaluation, and structured worker dispatch. Record CI and manual PWA verification only after they actually pass.
 
-**Progress:** Implemented on `feat/mcts-move-hunter-personality`. Automated CI and manual PWA verification are pending.
+**Progress:** Implemented on `feat/mcts-move-hunter-personality` (PR #146). GitHub Actions passed 158 tests (0 failures), including the MCTS worker-dispatch and phase-rejection coverage. Manual PWA verification remains pending.
 
 ## Cross-cutting verification
 
@@ -191,5 +191,5 @@ Browser/mobile verification must be recorded separately from automated tests and
 
 ## Change log
 
-- **2026-11-08:** PR #143 merged Stage E.3's minimal personality contract; CI passed 153 tests and manual PWA verification was approved. PR #144 completed Stage E.4's first non-default profile, MinMax Dragjägaren (Move Hunter), for midgame only; CI passed 157 tests and manual PWA verification was approved. E.5 adds the existing profile to MCTS on `feat/mcts-move-hunter-personality`; CI and PWA verification are pending.
+- **2026-11-08:** PR #143 merged Stage E.3's minimal personality contract; CI passed 153 tests and manual PWA verification was approved. PR #144 completed Stage E.4's first non-default profile, MinMax Dragjägaren (Move Hunter), for midgame only; CI passed 157 tests and manual PWA verification was approved. E.5 adds the existing profile to MCTS on `feat/mcts-move-hunter-personality`; PR #146's CI passed 158 tests (0 failures), and manual PWA verification remains pending.
 - **2026-11-07:** Created after Engine Configuration PR #138 merged. Records a planning direction only; no extension implementation is authorized by this document.
