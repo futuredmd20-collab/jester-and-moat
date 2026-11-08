@@ -1305,6 +1305,20 @@ test('main-thread engine search rejects unsupported personality profiles', () =>
   }
 });
 
+test('MinMax treats a null request config as the default personality', () => {
+  const request = EngineContract.createRequest({
+    requestId: 'null-config-default-personality',
+    generation: 1,
+    engineId: 'minmax_legacy',
+    position: position(),
+    limits: { depth: 1, timeMs: 1000 },
+    config: null
+  });
+  const result = sandbox.api.enginePlugins.get('minmax_legacy').search(request);
+  assert.equal(result.status, EngineContract.statuses.COMPLETED);
+  assert.ok(result.move);
+});
+
 test('engine configuration rejects engines that do not declare support for the active variant', () => {
   const engine = sandbox.api.enginePlugins.get('mcts');
   const original = engine.supportedVariants;
