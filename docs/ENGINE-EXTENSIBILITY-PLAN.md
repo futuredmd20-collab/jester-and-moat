@@ -113,7 +113,7 @@ Recommended implementation order after the design gates above:
 
 1. Represent the existing 10×8 Jester & Moat rules as the first variant, with behavior-preserving regression tests. **Complete (PR #140).**
 2. Add declared engine/variant compatibility and validation for MinMax and MCTS. **Complete (PR #141).**
-3. Implement the minimal personality contract from Stage D, including mandatory `Default`, engine-declared supported profile IDs, and explicit unsupported-profile validation. **Implemented on the current task branch; automated CI passed (152 tests), PWA verification pending.**
+3. Implement the minimal personality contract from Stage D, including mandatory `Default`, engine-declared supported profile IDs, and explicit unsupported-profile validation. **Complete (PR #143; 153 CI tests passed; manual PWA test approved).**
 4. Add the first built-in profile to one engine and one phase, then verify its behavior in controlled positions before expanding the roster. Dragjägaren (Move Hunter) is the selected first profile; its implementation is in progress on the current task branch.
 5. Add personality support to further engines one at a time, preserving engine-owned interpretation and shared contract tests.
 6. Add further engines one at a time, with explicit variant/capability declarations and shared contract tests.
