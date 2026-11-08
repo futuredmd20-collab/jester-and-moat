@@ -118,6 +118,7 @@ function position() {
   board[7][4] = { type: 'k', color: 'w', moved: false };
   board[0][4] = { type: 'k', color: 'b', moved: false };
   return {
+    variant: { id: 'jester-moat', version: 1 }, setupId: null,
     board, turn: 'w', ply: 12, ep: null, moats: { w: null, b: null },
     moatDestroyed: { w: false, b: false }, hasPlacedMoat: { w: false, b: false },
     moveCounts: { w: 0, b: 0 }, phase: 'normal', captured: { w: [], b: [] },
@@ -2020,7 +2021,7 @@ test('save import rejects invalid provided phase, clocks, and coordinates instea
 
 test('legacy saves may omit optional state fields, but supplied invalid values are rejected', () => {
   const state = position();
-  for (const field of ['phase','ply','ep','moats','moatDestroyed','hasPlacedMoat','moveCounts','captured','halfmoveClock','positionHistory','clocks']) delete state[field];
+  for (const field of ['variant','setupId','phase','ply','ep','moats','moatDestroyed','hasPlacedMoat','moveCounts','captured','halfmoveClock','positionHistory','clocks']) delete state[field];
   const legacy = { state, history: [state], moveLog: ['legacy log'] };
   const imported = parseGameData(legacy, 180);
   assert.equal(imported.state.phase, 'normal');
