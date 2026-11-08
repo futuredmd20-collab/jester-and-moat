@@ -239,6 +239,24 @@ test('Move Hunter adds one 10% material-value bonus per attacked enemy piece', (
     'evaluation without a personality context remains unchanged');
 });
 
+test('MinMax contract accepts Move Hunter in midgame and rejects it in other phases', () => {
+  const makeRequest = phase => EngineContract.createRequest({
+    requestId: 'move-hunter-' + phase,
+    generation: 1,
+    engineId: 'minmax_legacy',
+    position: position(),
+    limits: { depth: 1, timeMs: 1000 },
+    config: { strength: 'medium', settings: {}, personalityId: 'move_hunter', phase }
+  });
+  const validRequest = makeRequest('midgame');
+  const validResult = sandbox.api.MinMaxLegacy.search(validRequest);
+  assert.equal(validResult.status, EngineContract.statuses.COMPLETED, JSON.stringify(validResult));
+
+  const invalidResult = sandbox.api.MinMaxLegacy.search(makeRequest('opening'));
+  assert.equal(invalidResult.status, EngineContract.statuses.FAILED);
+  assert.equal(invalidResult.error.code, 'UNSUPPORTED_PERSONALITY');
+});
+
 test('MinMax returns a legal move without mutating its input', () => {
   const s = position();
   s.board[6][0] = { type: 'r', color: 'w', moved: false };
