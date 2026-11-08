@@ -211,8 +211,9 @@
       }
       const config = request.config;
       if (config != null && (!config || typeof config !== 'object' || Array.isArray(config) ||
-          Object.keys(config).some(key => !['strength', 'settings'].includes(key)) ||
-          (config.strength != null && !['easy', 'medium', 'hard'].includes(config.strength)))) {
+          Object.keys(config).some(key => !['strength', 'settings', 'personalityId'].includes(key)) ||
+          (config.strength != null && !['easy', 'medium', 'hard'].includes(config.strength)) ||
+          (config.personalityId != null && typeof config.personalityId !== 'string'))) {
         return EngineContract.failed(request, EngineContract.errorCodes.INVALID_CONFIG, 'MinMax received unsupported configuration.');
       }
       const settings = config && config.settings;
