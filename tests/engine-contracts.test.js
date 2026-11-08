@@ -1499,6 +1499,7 @@ test('Move Hunter is restricted to midgame for MinMax and MCTS and reaches AI se
   validMcts.sides.black.phases.midgame.personalityId = 'move_hunter';
   const validatedMcts = sandbox.api.validateEngineConfiguration(validMcts);
   assert.equal(validatedMcts.sides.black.phases.midgame.personalityId, 'move_hunter');
+  sandbox.api.setEngineConfiguration(validMcts);
   assert.equal(sandbox.api.getEngineAssignment('b', 'midgame').engine.id, 'mcts');
 
   const invalidMcts = sandbox.api.getEngineConfiguration();
