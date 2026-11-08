@@ -313,8 +313,8 @@ test('Move Hunter attack evaluation is preserved through structured worker dispa
       'the serialized worker MinMax core must receive attacked() and award the queen target bonus');
 
     const mainThreadBaseline = sandbox.api.MinMaxSearchCore.evaluateBoard(s);
-    assert.equal(sandbox.api.MinMaxSearchCore.evaluateBoard(s), mainThreadBaseline,
-      'main-thread Default evaluation must remain unchanged');
+    assert.ok(Math.abs(mainThreadBaseline - baseline) < 1e-9,
+      'main-thread Default evaluation must match the worker Default evaluation');
     assert.equal(sandbox.api.enginePlugins.get('mcts').supportedPersonalities.includes('move_hunter'), false,
       'MCTS must remain unaffected and must not advertise Move Hunter');
   } finally {
