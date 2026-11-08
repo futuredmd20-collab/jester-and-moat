@@ -79,7 +79,7 @@ Define how engines declare:
 - Strength profiles, settings schemas, and optional capabilities.
 - Any genuine limitations relevant to dispatch.
 
-Validate compatibility both when configuring an assignment and immediately before dispatch. Keep protocol v1's safety and lifecycle semantics. Decide explicitly whether the variant identity belongs in the protocol position snapshot, request metadata, or both; do not duplicate inconsistent sources of truth.
+Validate compatibility both when configuring an assignment and immediately before dispatch. Keep protocol v1's safety and lifecycle semantics. Variant identity belongs in the canonical protocol position snapshot; do not duplicate it in request metadata.
 
 Acceptance gate: MinMax and MCTS continue to pass the existing contract suite for the current variant, and incompatible engine/variant combinations are rejected with stable errors.
 
