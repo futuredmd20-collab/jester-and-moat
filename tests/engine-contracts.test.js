@@ -1288,6 +1288,23 @@ test('engine configuration rejects unsupported personality profiles explicitly',
     error.code === 'UNSUPPORTED_PERSONALITY' && /personality profile aggressive/.test(error.message));
 });
 
+test('main-thread engine search rejects unsupported personality profiles', () => {
+  for (const engineId of ['minmax_legacy', 'mcts']) {
+    const request = EngineContract.createRequest({
+      requestId: 'unsupported-personality-' + engineId,
+      generation: 1,
+      engineId,
+      position: position(),
+      limits: { depth: 1, timeMs: 1000 },
+      config: { strength: 'medium', settings: {}, personalityId: 'aggressive' }
+    });
+    const result = sandbox.api.enginePlugins.get(engineId).search(request);
+    assert.equal(result.status, EngineContract.statuses.FAILED);
+    assert.equal(result.error.code, 'UNSUPPORTED_PERSONALITY');
+    assert.match(result.error.message, /does not support personality profile aggressive/);
+  }
+});
+
 test('engine configuration rejects engines that do not declare support for the active variant', () => {
   const engine = sandbox.api.enginePlugins.get('mcts');
   const original = engine.supportedVariants;
