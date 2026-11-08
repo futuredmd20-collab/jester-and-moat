@@ -4,7 +4,7 @@ Purpose: preserve exploratory ideas for future engine, board, and opponent modes
 
 ## Status
 
-All items below are **idea-stage only**. No implementation, API choice, technical design, prioritization, or delivery commitment has been approved. Revisit an item only when it is explicitly selected for further investigation.
+All items below remain exploratory unless explicitly noted. The engine-personality architecture direction has been agreed and is recorded in the Engine Extensibility Plan; no personality implementation, profile roster, or specific engine behavior has been approved. The other ideas remain at idea stage. Revisit an item only when it is explicitly selected for further investigation.
 
 ## 1. Standard Chess Opponents and Strength Measurement
 
@@ -27,9 +27,15 @@ This could become a separate play mode or an experimental environment for engine
 
 ## 3. Engine Personalities — Future Extension
 
-Explore a personality layer that adjusts how an engine plays without requiring a separate search engine for every personality. Ideally, personality choices could be used with either MinMax or MCTS, subject to what their implementations support.
+Explore a personality layer that adjusts how an engine plays without requiring a separate search engine for every personality. The agreed design direction is:
 
-**Relationship to the configuration and extensibility plans:** [Engine Configuration Plan](ENGINE-CONFIGURATION-PLAN.md) records the completed engine and strength assignment per side and phase. [Engine Extensibility Plan](ENGINE-EXTENSIBILITY-PLAN.md) defines the proposed architecture and staged investigation for a reusable personality layer. This idea entry remains the home for personality examples and behavior ideas; no personality roster or implementation is approved.
+- Named, reusable global style profiles, selected independently per side × phase.
+- Engine-declared profile support; each engine interprets a supported profile using its own behavior and algorithms.
+- A mandatory `Default` profile supported by every engine. Unsupported non-default selections are rejected, not silently replaced.
+- Personality selections are part of presets and saved custom configurations. Presets remain editable.
+- Built-in profiles only in the first version; no user-created profiles or shared numeric style dimensions initially.
+
+See [Engine Extensibility Plan](ENGINE-EXTENSIBILITY-PLAN.md) for the complete design decisions, acceptance gate, and implementation sequence. The names and behavior examples below remain illustrative only; they are not an approved profile roster.
 
 Illustrative personalities:
 - **Dragjägaren (Move Hunter):** emphasizes checks, threats, and tactical opportunities.
@@ -40,19 +46,13 @@ Illustrative personalities:
 - **Berserken (Berserker):** seeks aggressive attacks and may accept sacrifices.
 - **Opportunisten (Opportunist):** looks for weaknesses and mistakes to exploit.
 
-Potential tuning dimensions:
-- Positional evaluation weights.
-- Move preferences when candidate moves are similarly strong.
-- Risk tolerance.
-- Search allocation or exploration preferences, where appropriate.
-
-A future design should distinguish personality from basic playing competence: a style preference should not automatically make an engine overlook an obvious win or choose a clearly losing move. The examples are illustrative, not a finalized personality roster.
+A future design should distinguish personality from basic playing competence: a style preference should not automatically make an engine overlook an obvious win or choose a clearly losing move.
 
 ## Relationship Between the Ideas
 
 These are separate but potentially complementary tracks:
 - Standard chess concerns a different ruleset and opponent environment.
 - Alternative boards concern board geometry and/or starting configurations.
-- Personalities concern playing style layered over an engine and may later extend the per-side/per-phase configuration described in the Engine Configuration Plan.
+- Personalities concern playing style layered over an engine and extend the per-side/per-phase configuration described in the Engine Configuration Plan.
 
 They should not be treated as dependencies of one another. No work should begin from this document alone; select and scope an idea explicitly first.
