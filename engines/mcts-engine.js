@@ -285,6 +285,7 @@ function mctsEngine(level) {
     name: 'MCTS',
     phases: ['opening', 'midgame', 'endgame'],
     supportedVariants: [{ id: 'jester-moat', versions: [1] }],
+    supportedPersonalities: [DEFAULT_PERSONALITY_ID],
     capabilities: ['playouts', 'capDepth', 'temperature', 'timeBudgetMs'],
     strength: cfg,
     strengths: {
@@ -304,9 +305,15 @@ function mctsEngine(level) {
       try {
         var config = request.config;
         if (config != null && (!config || typeof config !== 'object' || Array.isArray(config) ||
-            Object.keys(config).some(function (key) { return !['strength', 'settings'].includes(key); }) ||
+            Object.keys(config).some(function (key) { return !['strength', 'settings', 'personalityId'].includes(key); }) ||
             (config.strength != null && !['easy', 'medium', 'hard'].includes(config.strength)))) {
           return EngineContract.failed(request, 'INVALID_CONFIG', 'MCTS received unsupported configuration.');
+        }
+        var personalityId = config && config.personalityId != null ? config.personalityId : DEFAULT_PERSONALITY_ID;
+        if (!Object.prototype.hasOwnProperty.call(PERSONALITY_PROFILES, personalityId) || !Array.isArray(this.supportedPersonalities) ||
+            !this.supportedPersonalities.includes(personalityId)) {
+          return EngineContract.failed(request, 'UNSUPPORTED_PERSONALITY',
+            'Engine ' + this.id + ' does not support personality profile ' + (personalityId || 'missing') + '.');
         }
         var searchLevel = mctsLevelFor(request.limits && request.limits.depth);
         var settings = config && config.settings;

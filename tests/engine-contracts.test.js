@@ -85,7 +85,7 @@ const sandbox = {
 vm.createContext(sandbox);
 vm.runInContext(minmax, sandbox);
 vm.runInContext(source.slice(0, boundary) + `
-globalThis.api = { GAME_VARIANT, GAME_SETUP_IDS, createGameIdentity, EngineContract, MinMaxLegacy, cancelActiveAIRequest, setActiveAIForTest(worker, request) { aiWorker = worker; pendingAIRequest = request; aiRequestId = request.id; isAIThinking = true; }, getActiveAIForTest() { return { worker: aiWorker, request: pendingAIRequest, thinking: isAIThinking, id: aiRequestId }; }, allLegalState, inCheck, findLegalMoveMatch, MinMaxSearchCore, getBestMove: MinMaxSearchCore.getBestMove, getBestMoveAsync: MinMaxSearchCore.getBestMoveAsync, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout); aiWorkerTimeout = null; if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; gameOver = false; gameOverMessage = ''; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getEngineConfiguration() { return engineCopy(engineConfiguration); }, setEngineConfiguration(config) { engineConfiguration = validateEngineConfiguration(config); updateEngineConfigUI(); }, validateEngineConfiguration, getEngineAssignment, applyEnginePreset, isAIMode, updateModeUI, stepNextMove, toggleAutoPlay, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, applyLoadedGame, resumeLoadedGamePlayback, getAutoPlayForTest() { return autoPlayInterval; }, stopAutoPlayForTest: stopAutoPlay, ENGINE_PHASES, debugLogger, DebugLogger, status };
+globalThis.api = { GAME_VARIANT, GAME_SETUP_IDS, createGameIdentity, EngineContract, PERSONALITY_PROFILES, DEFAULT_PERSONALITY_ID, assertEnginePersonalityCompatibility, MinMaxLegacy, cancelActiveAIRequest, setActiveAIForTest(worker, request) { aiWorker = worker; pendingAIRequest = request; aiRequestId = request.id; isAIThinking = true; }, getActiveAIForTest() { return { worker: aiWorker, request: pendingAIRequest, thinking: isAIThinking, id: aiRequestId }; }, allLegalState, inCheck, findLegalMoveMatch, MinMaxSearchCore, getBestMove: MinMaxSearchCore.getBestMove, getBestMoveAsync: MinMaxSearchCore.getBestMoveAsync, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout); aiWorkerTimeout = null; if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; gameOver = false; gameOverMessage = ''; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getEngineConfiguration() { return engineCopy(engineConfiguration); }, setEngineConfiguration(config) { engineConfiguration = validateEngineConfiguration(config); updateEngineConfigUI(); }, validateEngineConfiguration, getEngineAssignment, applyEnginePreset, isAIMode, updateModeUI, stepNextMove, toggleAutoPlay, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, applyLoadedGame, resumeLoadedGamePlayback, getAutoPlayForTest() { return autoPlayInterval; }, stopAutoPlayForTest: stopAutoPlay, ENGINE_PHASES, debugLogger, DebugLogger, status };
 `, sandbox, { filename: 'script.js' });
 vm.runInContext(mcts, sandbox, { filename: 'engines/mcts-engine.js' });
 // The app's HTML loads the MCTS module before script.js; register its plugin here
@@ -95,7 +95,7 @@ sandbox.api.updateEngineConfigUI();
 const canonicalEngineMetadata = new Map(['minmax_legacy', 'mcts'].map(engineId => {
   const engine = sandbox.api.enginePlugins.get(engineId);
   return [engineId, { capabilities: engine.capabilities, strengths: engine.strengths, settings: engine.settings,
-    supportedVariants: engine.supportedVariants }];
+    supportedVariants: engine.supportedVariants, supportedPersonalities: engine.supportedPersonalities }];
 }));
 
 function engineMetadata(engineId) {
@@ -105,7 +105,8 @@ function engineMetadata(engineId) {
     capabilities: metadata.capabilities,
     strengths: metadata.strengths,
     settings: metadata.settings,
-    supportedVariants: metadata.supportedVariants
+    supportedVariants: metadata.supportedVariants,
+    supportedPersonalities: metadata.supportedPersonalities
   };
 }
 
@@ -1197,6 +1198,19 @@ test('structured worker dispatch rejects unsupported variant identities with a s
       assert.equal(response.result.error.code, 'UNSUPPORTED_VARIANT');
       assert.match(response.result.error.message, /does not support variant unregistered-variant v1/);
     }
+    for (const engineId of ['minmax_legacy', 'mcts']) {
+      const requestId = engineId === 'mcts' ? 204 : 203;
+      const request = EngineContract.createRequest({ requestId, generation: requestId, engineId,
+        position: position(), limits: { depth: 1, timeMs: 1000 },
+        config: { strength: 'medium', settings: {}, personalityId: 'aggressive' } });
+      const response = await new Promise(resolve => {
+        worker.onmessage = event => resolve(event.data);
+        worker.postMessage({ id: requestId, contractRequest: request });
+      });
+      assert.equal(response.result.status, 'failed');
+      assert.equal(response.result.error.code, 'UNSUPPORTED_PERSONALITY');
+      assert.match(response.result.error.message, /does not support personality profile aggressive/);
+    }
   } finally {
     sandbox.api.resetAIWorker();
     sandbox.URL.createObjectURL = previousCreateObjectURL;
@@ -1212,10 +1226,15 @@ test('engine configuration defaults cover every side and phase independently', (
   const config = sandbox.api.getEngineConfiguration();
   assert.equal(config.schemaVersion, 1);
   assert.equal(config.presetId, 'balanced');
+  assert.deepEqual(Object.keys(sandbox.api.PERSONALITY_PROFILES), ['default']);
+  assert.equal(sandbox.api.PERSONALITY_PROFILES.default.name, 'Default');
+  for (const engineId of ['minmax_legacy', 'mcts']) {
+    assert.deepEqual(Array.from(sandbox.api.enginePlugins.get(engineId).supportedPersonalities), ['default']);
+  }
   for (const side of ['white', 'black']) {
     for (const phase of ['opening', 'midgame', 'endgame']) {
       assert.equal(JSON.stringify(config.sides[side].phases[phase]), JSON.stringify({
-        engineId: 'minmax_legacy', strength: 'medium', advanced: {}
+        engineId: 'minmax_legacy', strength: 'medium', personalityId: 'default', advanced: {}
       }));
     }
   }
@@ -1238,6 +1257,8 @@ test('side and phase assignments accept mixed engines, strengths, and independen
   const whiteMidgame = sandbox.api.getEngineAssignment('w', 'midgame');
   const blackEndgame = sandbox.api.getEngineAssignment('b', 'endgame');
   assert.equal(whiteOpening.engine.id, 'mcts');
+  assert.equal(whiteOpening.personalityId, 'default');
+  assert.equal(whiteOpening.personality.name, 'Default');
   assert.equal(whiteOpening.strength, 'hard');
   assert.equal(whiteOpening.settings.playouts, 3000);
   assert.equal(whiteOpening.settings.capDepth, 18);
@@ -1247,6 +1268,55 @@ test('side and phase assignments accept mixed engines, strengths, and independen
   assert.equal(blackEndgame.settings.temperature, 0.7);
   assert.equal(blackEndgame.settings.playouts, 200);
   assert.equal(sandbox.api.getEngineAssignment('b', 'opening').engine.id, 'minmax_legacy');
+});
+
+test('engine configuration rejects unsupported personality profiles explicitly', () => {
+  const engine = sandbox.api.enginePlugins.get('mcts');
+  const original = engine.supportedPersonalities;
+  try {
+    engine.supportedPersonalities = [];
+    const config = sandbox.api.getEngineConfiguration();
+    config.sides.white.phases.opening.engineId = 'mcts';
+    assert.throws(() => sandbox.api.validateEngineConfiguration(config), error =>
+      error.code === 'UNSUPPORTED_PERSONALITY' && /mcts does not support personality profile default/.test(error.message));
+  } finally {
+    engine.supportedPersonalities = original;
+  }
+  const unknownProfile = sandbox.api.getEngineConfiguration();
+  unknownProfile.sides.black.phases.endgame.personalityId = 'aggressive';
+  assert.throws(() => sandbox.api.validateEngineConfiguration(unknownProfile), error =>
+    error.code === 'UNSUPPORTED_PERSONALITY' && /personality profile aggressive/.test(error.message));
+});
+
+test('main-thread engine search rejects unsupported personality profiles', () => {
+  for (const engineId of ['minmax_legacy', 'mcts']) {
+    const request = EngineContract.createRequest({
+      requestId: 'unsupported-personality-' + engineId,
+      generation: 1,
+      engineId,
+      position: position(),
+      limits: { depth: 1, timeMs: 1000 },
+      config: { strength: 'medium', settings: {}, personalityId: 'aggressive' }
+    });
+    const result = sandbox.api.enginePlugins.get(engineId).search(request);
+    assert.equal(result.status, EngineContract.statuses.FAILED);
+    assert.equal(result.error.code, 'UNSUPPORTED_PERSONALITY');
+    assert.match(result.error.message, /does not support personality profile aggressive/);
+  }
+});
+
+test('MinMax treats a null request config as the default personality', () => {
+  const request = EngineContract.createRequest({
+    requestId: 'null-config-default-personality',
+    generation: 1,
+    engineId: 'minmax_legacy',
+    position: position(),
+    limits: { depth: 1, timeMs: 1000 },
+    config: null
+  });
+  const result = sandbox.api.enginePlugins.get('minmax_legacy').search(request);
+  assert.equal(result.status, EngineContract.statuses.COMPLETED);
+  assert.ok(result.move);
 });
 
 test('engine configuration rejects engines that do not declare support for the active variant', () => {
@@ -1330,9 +1400,13 @@ test('new configuration persists and restores; old or malformed saved shapes res
   const saved = JSON.parse(storedValues.get('engineConfig'));
   assert.equal(saved.schemaVersion, 1);
   assert.equal(saved.sides.white.phases.opening.engineId, 'mcts');
+  assert.equal(saved.sides.white.phases.opening.personalityId, 'default');
 
+  delete saved.sides.white.phases.opening.personalityId;
+  storedValues.set('engineConfig', JSON.stringify(saved));
   sandbox.api.loadEngineConfig();
   assert.equal(sandbox.api.getEngineAssignment('w', 'opening').engine.id, 'mcts');
+  assert.equal(sandbox.api.getEngineAssignment('w', 'opening').personalityId, 'default');
   assert.equal(sandbox.api.getEngineAssignment('w', 'opening').settings.playouts, 2500);
 
   storedValues.set('engineConfig', JSON.stringify({ whiteEngine: 'mcts', whitePhase: 'opening' }));
