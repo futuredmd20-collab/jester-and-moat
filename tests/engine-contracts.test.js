@@ -222,7 +222,7 @@ test('Move Hunter adds one 10% material-value bonus per attacked enemy piece', (
   const baseline = sandbox.api.MinMaxSearchCore.evaluateBoard(s);
   const hunter = sandbox.api.MinMaxSearchCore.evaluateBoard(s,
     { personalityId: 'move_hunter', side: 'w', phase: 'midgame' });
-  assert.equal(hunter - baseline, 0.95,
+  assert.ok(Math.abs(hunter - baseline - 0.95) < 1e-9,
     'the attacked queen earns one bonus even though it is defended and has two attackers');
 
   const blackPosition = position();
@@ -233,7 +233,7 @@ test('Move Hunter adds one 10% material-value bonus per attacked enemy piece', (
   const blackBaseline = sandbox.api.MinMaxSearchCore.evaluateBoard(blackPosition);
   const blackHunter = sandbox.api.MinMaxSearchCore.evaluateBoard(blackPosition,
     { personalityId: 'move_hunter', side: 'b', phase: 'midgame' });
-  assert.equal(blackHunter - blackBaseline, -0.95,
+  assert.ok(Math.abs(blackHunter - blackBaseline + 0.95) < 1e-9,
     'Black personality bonuses must reduce the White-perspective score');
   assert.equal(sandbox.api.MinMaxSearchCore.evaluateBoard(s), baseline,
     'evaluation without a personality context remains unchanged');
@@ -1304,7 +1304,7 @@ test('Move Hunter is restricted to MinMax midgame and reaches AI search configur
     error.code === 'UNSUPPORTED_PERSONALITY');
 
   const current = position();
-  for (let i = 0; i < 15; i++) current.board[2][i % 10] = { type: 'p', color: i % 2 ? 'b' : 'w', moved: false };
+  for (let i = 0; i < 15; i++) current.board[2 + Math.floor(i / 10)][i % 10] = { type: 'p', color: i % 2 ? 'b' : 'w', moved: false };
   mockElement('modeSelect').value = 'ai';
   sandbox.api.setState(current);
   const engineConfig = sandbox.api.getEngineConfig('w');
