@@ -239,6 +239,54 @@ test('Move Hunter adds one 10% material-value bonus per attacked enemy piece', (
     'evaluation without a personality context remains unchanged');
 });
 
+test('MCTS Move Hunter uses its own attack evaluation and remains midgame-only', () => {
+  const s = position();
+  s.board[4][0] = { type: 'r', color: 'w', moved: false };
+  s.board[0][0] = { type: 'r', color: 'w', moved: false };
+  s.board[4][4] = { type: 'q', color: 'b', moved: false };
+  s.board[2][2] = { type: 'b', color: 'b', moved: false };
+  s.board[6][6] = { type: 'b', color: 'w', moved: false };
+  const baseline = sandbox.mctsEvaluateBoard(s);
+  const hunter = sandbox.mctsEvaluateBoard(s,
+    { personalityId: 'move_hunter', side: 'w', phase: 'midgame' });
+  assert.ok(Math.abs(hunter - baseline - 0.95) < 1e-9,
+    'MCTS awards one queen bonus despite multiple attackers and a defended target');
+  assert.equal(sandbox.mctsEvaluateBoard(s,
+    { personalityId: 'move_hunter', side: 'w', phase: 'opening' }), baseline,
+    'the MCTS evaluator must not apply the profile outside midgame');
+  assert.equal(baseline, sandbox.api.MinMaxSearchCore.evaluateBoard(s),
+    'MCTS Default evaluation must remain unchanged');
+
+  const black = position();
+  black.board[4][9] = { type: 'r', color: 'b', moved: false };
+  black.board[0][9] = { type: 'r', color: 'b', moved: false };
+  black.board[4][4] = { type: 'q', color: 'w', moved: false };
+  black.board[2][2] = { type: 'b', color: 'b', moved: false };
+  black.board[6][6] = { type: 'b', color: 'w', moved: false };
+  const blackBaseline = sandbox.mctsEvaluateBoard(black);
+  const blackHunter = sandbox.mctsEvaluateBoard(black,
+    { personalityId: 'move_hunter', side: 'b', phase: 'midgame' });
+  assert.ok(Math.abs(blackHunter - blackBaseline + 0.95) < 1e-9,
+    'Black MCTS Move Hunter reduces the White-perspective score and excludes the attacked king');
+
+  const engine = sandbox.api.enginePlugins.get('mcts');
+  assert.ok(engine.supportedPersonalities.includes('move_hunter'));
+  const makeRequest = phase => EngineContract.createRequest({
+    requestId: 'mcts-move-hunter-' + phase,
+    generation: 1,
+    engineId: 'mcts',
+    position: position(),
+    limits: { depth: 1, timeMs: 1000 },
+    config: { strength: 'easy', settings: { playouts: 50, capDepth: 1, temperature: 0 },
+      personalityId: 'move_hunter', phase }
+  });
+  const valid = engine.search(makeRequest('midgame'));
+  assert.equal(valid.status, EngineContract.statuses.COMPLETED, JSON.stringify(valid));
+  const invalid = engine.search(makeRequest('opening'));
+  assert.equal(invalid.status, EngineContract.statuses.FAILED);
+  assert.equal(invalid.error.code, 'UNSUPPORTED_PERSONALITY');
+});
+
 test('Move Hunter attack evaluation is preserved through structured worker dispatch', async () => {
   const workerBlobs = new Map();
   const previousCreateObjectURL = sandbox.URL.createObjectURL;
@@ -260,7 +308,14 @@ test('Move Hunter attack evaluation is preserved through structured worker dispa
         setTimeout(callback) { callback(); return 1; }
       };
       vm.createContext(workerContext);
-      vm.runInContext(workerSource + '\nglobalThis.__moveHunterEvaluate = MinMaxSearchCore.evaluateBoard;', workerContext,
+      vm.runInContext(workerSource + `\nglobalThis.__moveHunterEvaluate = MinMaxSearchCore.evaluateBoard;
+        globalThis.__mctsMoveHunterEvaluate = mctsEvaluateBoard;
+        globalThis.__mctsEvaluationContexts = [];
+        const originalMctsEvaluate = mctsEvaluateBoard;
+        mctsEvaluateBoard = function (state, context) {
+          __mctsEvaluationContexts.push(context);
+          return originalMctsEvaluate(state, context);
+        };`, workerContext,
         { filename: 'ai-worker.js' });
       await workerContext.onmessage({ data });
       if (this.onmessage) this.onmessage({ data: response });
@@ -315,8 +370,34 @@ test('Move Hunter attack evaluation is preserved through structured worker dispa
     const mainThreadBaseline = sandbox.api.MinMaxSearchCore.evaluateBoard(s);
     assert.ok(Math.abs(mainThreadBaseline - baseline) < 1e-9,
       'main-thread Default evaluation must match the worker Default evaluation');
-    assert.equal(sandbox.api.enginePlugins.get('mcts').supportedPersonalities.includes('move_hunter'), false,
-      'MCTS must remain unaffected and must not advertise Move Hunter');
+    assert.equal(sandbox.api.enginePlugins.get('mcts').supportedPersonalities.includes('move_hunter'), true,
+      'MCTS must advertise its newly supported Move Hunter profile');
+
+    const mctsRequest = EngineContract.createRequest({
+      requestId: 'mcts-move-hunter-worker-dispatch',
+      generation: 302,
+      engineId: 'mcts',
+      position: s,
+      limits: { depth: 1, timeMs: 1000 },
+      config: { strength: 'easy', settings: { playouts: 50, capDepth: 1, temperature: 0 },
+        personalityId: 'move_hunter', phase: 'midgame' }
+    });
+    const mctsResponse = await new Promise(resolve => {
+      worker.onmessage = event => resolve(event.data);
+      worker.postMessage({ id: 302, contractRequest: mctsRequest });
+    });
+    assert.equal(mctsResponse.result.status, EngineContract.statuses.COMPLETED,
+      JSON.stringify(mctsResponse.result));
+    assert.ok(allLegalState(s).some(move => JSON.stringify(move) === JSON.stringify(mctsResponse.result.move)),
+      'MCTS worker must return a legal move with Move Hunter selected');
+    assert.ok(workerContext.__mctsEvaluationContexts.some(context =>
+      context && context.personalityId === 'move_hunter' && context.side === 'w' && context.phase === 'midgame'),
+      'the worker must pass the configured Move Hunter context into MCTS playout evaluation');
+    const mctsBaseline = workerContext.__mctsMoveHunterEvaluate(s);
+    const mctsHunter = workerContext.__mctsMoveHunterEvaluate(s,
+      { personalityId: 'move_hunter', side: 'w', phase: 'midgame' });
+    assert.ok(Math.abs(mctsHunter - mctsBaseline - 0.95) < 1e-9,
+      'the serialized MCTS evaluator must receive attacked() and award one target bonus');
   } finally {
     sandbox.api.resetAIWorker();
     sandbox.URL.createObjectURL = previousCreateObjectURL;
