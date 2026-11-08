@@ -1470,7 +1470,7 @@ test('engine configuration defaults cover every side and phase independently', (
   assert.deepEqual(Object.keys(sandbox.api.PERSONALITY_PROFILES), ['default', 'move_hunter']);
   assert.equal(sandbox.api.PERSONALITY_PROFILES.default.name, 'Default');
   assert.deepEqual(Array.from(sandbox.api.enginePlugins.get('minmax_legacy').supportedPersonalities), ['default', 'move_hunter']);
-  assert.deepEqual(Array.from(sandbox.api.enginePlugins.get('mcts').supportedPersonalities), ['default']);
+  assert.deepEqual(Array.from(sandbox.api.enginePlugins.get('mcts').supportedPersonalities), ['default', 'move_hunter']);
   assert.deepEqual(Array.from(sandbox.api.PERSONALITY_PROFILES.move_hunter.phases), ['midgame']);
   for (const side of ['white', 'black']) {
     for (const phase of ['opening', 'midgame', 'endgame']) {
@@ -1481,7 +1481,7 @@ test('engine configuration defaults cover every side and phase independently', (
   }
 });
 
-test('Move Hunter is restricted to MinMax midgame and reaches AI search configuration', () => {
+test('Move Hunter is restricted to midgame for MinMax and MCTS and reaches AI search configuration', () => {
   const config = sandbox.api.getEngineConfiguration();
   config.sides.white.phases.midgame.personalityId = 'move_hunter';
   sandbox.api.setEngineConfiguration(config);
@@ -1494,9 +1494,16 @@ test('Move Hunter is restricted to MinMax midgame and reaches AI search configur
   assert.throws(() => sandbox.api.validateEngineConfiguration(invalidOpening), error =>
     error.code === 'UNSUPPORTED_PERSONALITY' && /does not support personality profile move_hunter/.test(error.message));
 
+  const validMcts = sandbox.api.getEngineConfiguration();
+  validMcts.sides.black.phases.midgame.engineId = 'mcts';
+  validMcts.sides.black.phases.midgame.personalityId = 'move_hunter';
+  const validatedMcts = sandbox.api.validateEngineConfiguration(validMcts);
+  assert.equal(validatedMcts.sides.black.phases.midgame.personalityId, 'move_hunter');
+  assert.equal(sandbox.api.getEngineAssignment('b', 'midgame').engine.id, 'mcts');
+
   const invalidMcts = sandbox.api.getEngineConfiguration();
-  invalidMcts.sides.black.phases.midgame.engineId = 'mcts';
-  invalidMcts.sides.black.phases.midgame.personalityId = 'move_hunter';
+  invalidMcts.sides.black.phases.opening.engineId = 'mcts';
+  invalidMcts.sides.black.phases.opening.personalityId = 'move_hunter';
   assert.throws(() => sandbox.api.validateEngineConfiguration(invalidMcts), error =>
     error.code === 'UNSUPPORTED_PERSONALITY');
 
