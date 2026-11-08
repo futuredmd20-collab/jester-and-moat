@@ -1032,7 +1032,7 @@ const ENGINE_RESULT_STATUS = Object.freeze({
 const ENGINE_ERROR_CODES = Object.freeze({
   INVALID_REQUEST: 'INVALID_REQUEST', INVALID_POSITION: 'INVALID_POSITION',
   INVALID_CONFIG: 'INVALID_CONFIG', INVALID_MOVE: 'INVALID_MOVE', UNSUPPORTED_VARIANT: 'UNSUPPORTED_VARIANT',
-  SEARCH_FAILED: 'SEARCH_FAILED', CANCELLED: 'CANCELLED'
+  UNSUPPORTED_PERSONALITY: 'UNSUPPORTED_PERSONALITY', SEARCH_FAILED: 'SEARCH_FAILED', CANCELLED: 'CANCELLED'
 });
 function engineDeepFreeze(value) {
   if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
@@ -1144,11 +1144,17 @@ function evaluateBoard(st) { return MinMaxSearchCore.evaluateBoard(st); }
 function minimax(st, depth, alpha, beta, isMaximizing) { return MinMaxSearchCore.minimax(st, depth, alpha, beta, isMaximizing); }
 function getBestMove(st, depth) { return MinMaxSearchCore.getBestMove(st, depth); }
 
+const PERSONALITY_PROFILES = Object.freeze({
+  default: Object.freeze({ id: 'default', name: 'Default', description: "The engine's standard playing style." })
+});
+const DEFAULT_PERSONALITY_ID = 'default';
+
 const MinMaxLegacy = {
   id: 'minmax_legacy',
   name: 'MinMax',
   phases: [ENGINE_PHASES.OPENING, ENGINE_PHASES.MIDGAME, ENGINE_PHASES.ENDGAME],
   supportedVariants: [{ id: 'jester-moat', versions: [1] }],
+  supportedPersonalities: [DEFAULT_PERSONALITY_ID],
   capabilities: ['depth', 'timeMs'],
   strengths: {
     easy: { depth: 1, timeMs: 3000 },
@@ -1160,7 +1166,14 @@ const MinMaxLegacy = {
     timeMs: { type: 'integer', default: 6000, min: 250, max: 12000, label: 'Time budget', description: 'Maximum search time in milliseconds.', unit: 'ms' }
   },
   strength: 'default',
-  search: function(request) { return MinMaxSearchCore.search(request); },
+  search: function(request) {
+    try {
+      assertEnginePersonalityCompatibility(this, request && request.config && request.config.personalityId, this.id);
+    } catch (error) {
+      return EngineContract.failed(request, error.code || ENGINE_ERROR_CODES.INVALID_CONFIG, error.message);
+    }
+    return MinMaxSearchCore.search(request);
+  },
 };
 
 function assertEngineVariantCompatibility(engine, position, engineId = engine && engine.id) {
@@ -1172,6 +1185,16 @@ function assertEngineVariantCompatibility(engine, position, engineId = engine &&
     const label = variant && variant.id ? `${variant.id} v${variant.version}` : 'missing variant identity';
     throw Object.assign(new Error(`Engine ${engineId || 'unknown'} does not support variant ${label}.`),
       { code: ENGINE_ERROR_CODES.UNSUPPORTED_VARIANT });
+  }
+  return true;
+}
+
+function assertEnginePersonalityCompatibility(engine, personalityId = DEFAULT_PERSONALITY_ID, engineId = engine && engine.id) {
+  const profile = PERSONALITY_PROFILES[personalityId];
+  const supported = engine && engine.supportedPersonalities;
+  if (!profile || !Array.isArray(supported) || !supported.includes(personalityId)) {
+    throw Object.assign(new Error(`Engine ${engineId || 'unknown'} does not support personality profile ${personalityId || 'missing'}.`),
+      { code: ENGINE_ERROR_CODES.UNSUPPORTED_PERSONALITY });
   }
   return true;
 }
@@ -1191,15 +1214,15 @@ const ENGINE_STRENGTHS = Object.freeze(['easy', 'medium', 'hard']);
 const ENGINE_STRENGTH_LABELS = Object.freeze({ easy: 'Easy', medium: 'Medium', hard: 'Hard' });
 const ENGINE_CONFIG_SCHEMA_VERSION = 1;
 const ENGINE_PRESETS = Object.freeze({
-  balanced: { label: 'Balanced · MinMax Medium', engineId: 'minmax_legacy', strength: 'medium' },
-  easy: { label: 'Easy · MinMax Easy', engineId: 'minmax_legacy', strength: 'easy' },
-  hard: { label: 'Hard · MinMax Hard', engineId: 'minmax_legacy', strength: 'hard' }
+  balanced: { label: 'Balanced · MinMax Medium', engineId: 'minmax_legacy', strength: 'medium', personalityId: DEFAULT_PERSONALITY_ID },
+  easy: { label: 'Easy · MinMax Easy', engineId: 'minmax_legacy', strength: 'easy', personalityId: DEFAULT_PERSONALITY_ID },
+  hard: { label: 'Hard · MinMax Hard', engineId: 'minmax_legacy', strength: 'hard', personalityId: DEFAULT_PERSONALITY_ID }
 });
 
 function createDefaultEngineConfiguration() {
   const phases = {};
   for (const phase of Object.values(ENGINE_PHASES)) {
-    phases[phase] = { engineId: 'minmax_legacy', strength: 'medium', advanced: {} };
+    phases[phase] = { engineId: 'minmax_legacy', strength: 'medium', personalityId: DEFAULT_PERSONALITY_ID, advanced: {} };
   }
   return {
     schemaVersion: ENGINE_CONFIG_SCHEMA_VERSION,
@@ -1237,16 +1260,19 @@ function validateEngineSettingsAgainstSchema(engineId, settings, schemas) {
   return engineCopy(settings);
 }
 
-function validateEngineRequestConfig(engineId, config, schemas) {
-  if (config == null) return { strength: 'medium', settings: {} };
-  if (!engineHasOnlyKeys(config, ['strength', 'settings']))
+function validateEngineRequestConfig(engineId, config, schemas, engineMetadata) {
+  const requestConfig = config == null ? {} : config;
+  if (!engineHasOnlyKeys(requestConfig, ['strength', 'settings', 'personalityId']))
     throw new Error('Unsupported engine configuration field.');
-  const strength = config.strength == null ? 'medium' : config.strength;
+  const strength = requestConfig.strength == null ? 'medium' : requestConfig.strength;
   if (!ENGINE_STRENGTHS.includes(strength))
     throw new Error('Unsupported engine strength: ' + strength);
+  const personalityId = requestConfig.personalityId == null ? DEFAULT_PERSONALITY_ID : requestConfig.personalityId;
+  assertEnginePersonalityCompatibility(engineMetadata && engineMetadata[engineId], personalityId, engineId);
   return {
     strength,
-    settings: validateEngineSettingsAgainstSchema(engineId, config.settings, schemas)
+    personalityId,
+    settings: validateEngineSettingsAgainstSchema(engineId, requestConfig.settings, schemas)
   };
 }
 
@@ -1272,17 +1298,21 @@ function validateEngineConfiguration(value, position = null) {
     normalized.sides[side] = { phases: {} };
     for (const phase of Object.values(ENGINE_PHASES)) {
       const assignment = sideConfig.phases[phase];
-      if (!engineHasOnlyKeys(assignment, ['engineId', 'strength', 'advanced']) ||
+      if (!engineHasOnlyKeys(assignment, ['engineId', 'strength', 'personalityId', 'advanced']) ||
           typeof assignment.engineId !== 'string' || !enginePlugins.has(assignment.engineId) ||
           !ENGINE_STRENGTHS.includes(assignment.strength) ||
           !enginePlugins.get(assignment.engineId).phases.includes(phase))
         throw new Error('Invalid ' + side + ' ' + phase + ' engine assignment.');
       const targetPosition = position || (state && state.variant ? state : { variant: GAME_VARIANT });
-      assertEngineVariantCompatibility(enginePlugins.get(assignment.engineId), targetPosition, assignment.engineId);
+      const engine = enginePlugins.get(assignment.engineId);
+      assertEngineVariantCompatibility(engine, targetPosition, assignment.engineId);
+      const personalityId = assignment.personalityId == null ? DEFAULT_PERSONALITY_ID : assignment.personalityId;
+      assertEnginePersonalityCompatibility(engine, personalityId, assignment.engineId);
       const advanced = validateEngineSettingsAgainstSchema(assignment.engineId, assignment.advanced || {}, schemas);
       normalized.sides[side].phases[phase] = {
         engineId: assignment.engineId,
         strength: assignment.strength,
+        personalityId,
         advanced
       };
     }
@@ -1298,11 +1328,13 @@ function getEngineAssignment(side, phase) {
   const engine = enginePlugins.get(assignment.engineId);
   if (!engine) throw new Error('Unknown engine: ' + assignment.engineId);
   assertEngineVariantCompatibility(engine, state && state.variant ? state : { variant: GAME_VARIANT }, assignment.engineId);
+  const personalityId = assignment.personalityId == null ? DEFAULT_PERSONALITY_ID : assignment.personalityId;
+  assertEnginePersonalityCompatibility(engine, personalityId, assignment.engineId);
   const profile = engine.strengths && engine.strengths[assignment.strength];
   if (!profile) throw new Error(engine.name + ' does not support ' + assignment.strength + ' strength.');
   const settings = Object.assign({}, profile, assignment.advanced);
   validateEngineSettingsAgainstSchema(engine.id, settings, getEngineSettingsSchemas());
-  return { engine, phase, strength: assignment.strength, advanced: engineCopy(assignment.advanced), settings };
+  return { engine, phase, strength: assignment.strength, personalityId, personality: PERSONALITY_PROFILES[personalityId], advanced: engineCopy(assignment.advanced), settings };
 }
 
 let engineConfiguration = createDefaultEngineConfiguration();
@@ -1384,7 +1416,8 @@ function applyEnginePreset(presetId) {
   for (const side of ['white', 'black']) {
     for (const phase of Object.values(ENGINE_PHASES)) {
       next.sides[side].phases[phase] = {
-        engineId: preset.engineId, strength: preset.strength, advanced: {}
+        engineId: preset.engineId, strength: preset.strength,
+        personalityId: preset.personalityId || DEFAULT_PERSONALITY_ID, advanced: {}
       };
     }
   }
@@ -1535,15 +1568,18 @@ function ensureAIWorker() {
   }
   const workerEngineSettingsSchemas = getEngineSettingsSchemas();
   const workerEngineMetadata = Object.fromEntries(Array.from(enginePlugins.entries()).map(([id, engine]) =>
-    [id, { id, supportedVariants: engine.supportedVariants || [] }]));
+    [id, { id, supportedVariants: engine.supportedVariants || [], supportedPersonalities: engine.supportedPersonalities || [] }]));
   const workerSource = `"use strict";
 const ENGINE_STRENGTHS = ['easy', 'medium', 'hard'];
+const PERSONALITY_PROFILES = ${JSON.stringify(PERSONALITY_PROFILES)};
+const DEFAULT_PERSONALITY_ID = '${DEFAULT_PERSONALITY_ID}';
 const ENGINE_SETTINGS_SCHEMAS = ${JSON.stringify(workerEngineSettingsSchemas)};
 const WORKER_ENGINE_METADATA = ${JSON.stringify(workerEngineMetadata)};
 ${engineHasOnlyKeys.toString()}
 ${validateEngineSettingsAgainstSchema.toString()}
 ${validateEngineRequestConfig.toString()}
 ${assertEngineVariantCompatibility.toString()}
+${assertEnginePersonalityCompatibility.toString()}
 const ROWS = 8, COLS = 10;
 const DIRS = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
 function engineCopy(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
@@ -1585,7 +1621,7 @@ onmessage = async function(event) {
       if (!['minmax_legacy', 'mcts'].includes(request.engineId))
         throw new Error('Unsupported structured engine selector.');
       assertEngineVariantCompatibility(WORKER_ENGINE_METADATA[request.engineId], request.position, request.engineId);
-      const validatedConfig = validateEngineRequestConfig(request.engineId, request.config, ENGINE_SETTINGS_SCHEMAS);
+      const validatedConfig = validateEngineRequestConfig(request.engineId, request.config, ENGINE_SETTINGS_SCHEMAS, WORKER_ENGINE_METADATA);
       const control = { cancelled: false };
       const key = String(request.requestId);
       activeSearches.set(key, control);
@@ -1932,7 +1968,7 @@ function aiMove(){
     ? EngineContract.createRequest({
         requestId: id, generation: id, engineId: engine.id, position: clone(state),
         limits: { depth, timeMs },
-        config: { strength, settings }
+        config: { strength, settings, personalityId: engineConfig.personalityId }
       })
     : null;
   const request = { id, engine, depth, state: clone(state), contractRequest, startedAt: Date.now(), phase, side, fallback: false };
