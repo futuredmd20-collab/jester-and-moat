@@ -310,7 +310,7 @@ function mctsEngine(level) {
           return EngineContract.failed(request, 'INVALID_CONFIG', 'MCTS received unsupported configuration.');
         }
         var personalityId = config && config.personalityId != null ? config.personalityId : DEFAULT_PERSONALITY_ID;
-        if (!PERSONALITY_PROFILES[personalityId] || !Array.isArray(this.supportedPersonalities) ||
+        if (!Object.prototype.hasOwnProperty.call(PERSONALITY_PROFILES, personalityId) || !Array.isArray(this.supportedPersonalities) ||
             !this.supportedPersonalities.includes(personalityId)) {
           return EngineContract.failed(request, 'UNSUPPORTED_PERSONALITY',
             'Engine ' + this.id + ' does not support personality profile ' + (personalityId || 'missing') + '.');
