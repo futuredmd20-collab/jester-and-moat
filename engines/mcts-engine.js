@@ -305,7 +305,7 @@ function mctsEngine(level) {
       try {
         var config = request.config;
         if (config != null && (!config || typeof config !== 'object' || Array.isArray(config) ||
-            Object.keys(config).some(function (key) { return !['strength', 'settings', 'personalityId'].includes(key); }) ||
+            Object.keys(config).some(function (key) { return !['strength', 'settings', 'personalityId', 'phase'].includes(key); }) ||
             (config.strength != null && !['easy', 'medium', 'hard'].includes(config.strength)))) {
           return EngineContract.failed(request, 'INVALID_CONFIG', 'MCTS received unsupported configuration.');
         }
