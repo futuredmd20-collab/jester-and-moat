@@ -4,7 +4,7 @@ Purpose: define the architectural investigation and staged direction for adding 
 
 ## Status
 
-**Status: In progress (2026-11-08).** Stages A–D are complete. Variant identity (PR #140), engine/variant compatibility (PR #141), and the minimal personality contract (PR #143) are merged; PR #143 passed 153 automated tests and received manual PWA approval. Stage E.4's first non-default profile, MinMax Dragjägaren (Move Hunter), is being implemented on the current task branch; CI and PWA verification are pending. Further profiles, engines, and alternative-board work remain unstarted.
+**Status: In progress (2026-11-08).** Stages A–D are complete. Variant identity (PR #140), engine/variant compatibility (PR #141), and the minimal personality contract (PR #143) are merged; PR #143 passed 153 automated tests and received manual PWA approval. Stage E.4's first non-default profile, MinMax Dragjägaren (Move Hunter), is implemented on the current task branch; CI passed 156 tests and manual PWA verification is pending. Further profiles, engines, and alternative-board work remain unstarted.
 
 ## Goal
 
@@ -135,7 +135,7 @@ The ordering may be revised if the dependency audit demonstrates a lower-risk se
 
 **Implementation gate:** Add the profile to the shared registry, declare MinMax support, enforce its midgame-only availability in configuration and dispatch, pass personality identity through main-thread and worker requests, and cover scoring/sign/one-per-target behavior with regression tests. CI and manual PWA verification must be recorded only after completion.
 
-**Progress:** Implementation in progress on `feat/minmax-move-hunter-personality`; automated CI and PWA verification pending.
+**Progress:** Implemented on `feat/minmax-move-hunter-personality`; GitHub Actions passed all 156 tests. Manual PWA verification remains pending.
 
 ## Cross-cutting verification
 
@@ -176,5 +176,5 @@ Browser/mobile verification must be recorded separately from automated tests and
 
 ## Change log
 
-- **2026-11-08:** PR #143 merged Stage E.3's minimal personality contract; CI passed 153 tests and manual PWA verification was approved. Stage E.4's first non-default profile, MinMax Dragjägaren (Move Hunter), is being implemented for midgame only on `feat/minmax-move-hunter-personality`.
+- **2026-11-08:** PR #143 merged Stage E.3's minimal personality contract; CI passed 153 tests and manual PWA verification was approved. Stage E.4's first non-default profile, MinMax Dragjägaren (Move Hunter), is implemented for midgame only on `feat/minmax-move-hunter-personality`; CI passed 156 tests and manual PWA verification is pending.
 - **2026-11-07:** Created after Engine Configuration PR #138 merged. Records a planning direction only; no extension implementation is authorized by this document.
