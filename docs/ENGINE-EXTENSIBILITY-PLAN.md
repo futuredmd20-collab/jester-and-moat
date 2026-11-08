@@ -26,7 +26,7 @@ Do not build a general-purpose game framework, public plugin SDK, dynamic market
 - The current registry is a static `enginePlugins` Map. Keep registration simple unless a concrete requirement proves otherwise.
 - Variant identity is explicit: the current game is `jester-moat` v1 (PR #140).
 - MinMax and MCTS declare supported variants; configuration and pre-search checks, including worker dispatch, reject unsupported variants with `UNSUPPORTED_VARIANT` (PR #141).
-- The minimal personality contract is being implemented: a global `Default` profile and engine-declared support metadata. No non-default profiles or personality behavior are implemented. Alternative board sizes remain unimplemented. Illustrative profile names and behavior examples remain exploratory. See [Engine and Board Ideas](ENGINE-IDEAS.md).
+- The minimal personality contract is implemented on the current task branch: a global `Default` profile and engine-declared support metadata. No non-default profiles or personality behavior are implemented. Alternative board sizes remain unimplemented. Illustrative profile names and behavior examples remain exploratory. See [Engine and Board Ideas](ENGINE-IDEAS.md).
 - The bitboard proposal is a separate engine-internal performance investigation. It must not silently replace the canonical game-state representation.
 
 This is a baseline, not a promise that every current implementation detail is suitable for future variants. Re-inspect code and tests before each implementation stage.
