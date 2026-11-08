@@ -996,26 +996,38 @@ test('initial moat placement starts after four moves per side and completes for 
 });
 
 
-test('AI dispatch rejects a newly incompatible engine before starting a main-thread search', () => {
-  const originalEngine = sandbox.api.enginePlugins.get('mcts');
+test('main-thread dispatch rechecks engine variant compatibility immediately before search', () => {
+  const engine = sandbox.api.enginePlugins.get('mcts');
+  const originalVariants = engine.supportedVariants;
+  const originalSearch = engine.search;
   const originalConfig = sandbox.api.getEngineConfiguration();
+  const previousWorker = sandbox.Worker;
+  const previousWindowWorker = sandbox.window.Worker;
   let searchCalls = 0;
+  const callbackIndex = scheduledCallbacks.length;
   try {
-    sandbox.api.enginePlugins.set('mcts', { ...originalEngine, supportedVariants: [{ id: 'jester-moat', versions: [1] }] });
+    engine.supportedVariants = [{ id: 'jester-moat', versions: [1] }];
+    engine.search = function(request) { searchCalls++; return originalSearch.call(this, request); };
     configureEngine('white', 'endgame', 'mcts');
-    const incompatibleEngine = { ...sandbox.api.enginePlugins.get('mcts'), supportedVariants: [],
-      search(request) { searchCalls++; return originalEngine.search(request); } };
-    sandbox.api.enginePlugins.set('mcts', incompatibleEngine);
     sandbox.api.setState(position());
     mockElement('modeSelect').value = 'ai';
+    sandbox.Worker = undefined;
+    sandbox.window.Worker = undefined;
     sandbox.api.aiMove();
-    assert.equal(searchCalls, 0, 'incompatible engine must not enter main-thread search');
+    assert.equal(scheduledCallbacks.length, callbackIndex + 1, 'main-thread search should be scheduled');
+    engine.supportedVariants = [];
+    scheduledCallbacks[callbackIndex]();
+    assert.equal(searchCalls, 0, 'incompatible engine must be rejected before search');
     assert.match(mockElement('status').textContent, /does not support variant jester-moat v1/);
     assert.equal(sandbox.api.getActiveAIForTest().thinking, false);
   } finally {
-    sandbox.api.enginePlugins.set('mcts', originalEngine);
+    engine.supportedVariants = originalVariants;
+    engine.search = originalSearch;
     sandbox.api.setEngineConfiguration(originalConfig);
     sandbox.api.resetAIWorker();
+    sandbox.Worker = previousWorker;
+    sandbox.window.Worker = previousWindowWorker;
+    scheduledCallbacks.splice(callbackIndex);
   }
 });
 
@@ -1248,6 +1260,10 @@ test('engine configuration rejects engines that do not declare support for the a
   } finally {
     engine.supportedVariants = original;
   }
+  const wrongVersion = sandbox.api.getEngineConfiguration();
+  assert.throws(() => sandbox.api.validateEngineConfiguration(wrongVersion,
+    { variant: { id: 'jester-moat', version: 2 } }), error =>
+    error.code === 'UNSUPPORTED_VARIANT' && /jester-moat v2/.test(error.message));
 });
 
 test('engine configuration rejects unknown engines, unsupported settings, and out-of-range values', () => {
