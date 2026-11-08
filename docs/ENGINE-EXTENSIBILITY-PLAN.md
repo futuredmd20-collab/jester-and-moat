@@ -4,7 +4,7 @@ Purpose: define the architectural investigation and staged direction for adding 
 
 ## Status
 
-**Status: In progress (2026-11-08).** Stages A and B are complete. The existing game is represented by explicit `jester-moat` v1 identity (PR #140, merged), and Stage C engine/variant compatibility is complete (PR #141, merged and manually PWA-tested). Stage D's personality-layer design decisions are agreed. Stage E.3's minimal `Default` profile contract is implemented on the current task branch, pending automated and PWA verification; no non-default profiles or personality behavior have been added. Alternative-board work remains unstarted.
+**Status: In progress (2026-11-08).** Stages A and B are complete. The existing game is represented by explicit `jester-moat` v1 identity (PR #140, merged), and Stage C engine/variant compatibility is complete (PR #141, merged and manually PWA-tested). Stage D's personality-layer design decisions are agreed. Stage E.3's minimal `Default` profile contract is implemented on the current task branch, automated CI passed (152 tests); PWA verification pending; no non-default profiles or personality behavior have been added. Alternative-board work remains unstarted.
 
 ## Goal
 
@@ -105,7 +105,7 @@ Keep the personality contract small. It should establish stable profile identity
 - A supported non-default profile produces an observable style difference in controlled positions without changing legal move output, bypassing immediate tactical wins, or breaking search budgets, cancellation, stale-result rejection, and worker/main-thread behavior.
 - Existing configurations and saves receive a deliberate, tested defaulting/compatibility behavior; do not assume a migration without inspecting the actual formats.
 
-**Progress:** Design decisions complete. The minimal runtime contract is implemented on the current task branch: `Default` is registered, both current engines declare support, profile IDs are stored per side × phase, and unsupported profiles are rejected during configuration and dispatch. Non-default profiles and engine-specific behavior remain unimplemented; verification is pending.
+**Progress:** Design decisions complete. The minimal runtime contract is implemented on the current task branch: `Default` is registered, both current engines declare support, profile IDs are stored per side × phase, and unsupported profiles are rejected during configuration and dispatch. Non-default profiles and engine-specific behavior remain unimplemented; automated CI passed (152 tests); PWA verification is pending.
 
 ### E. Implement incrementally
 
@@ -113,7 +113,7 @@ Recommended implementation order after the design gates above:
 
 1. Represent the existing 10×8 Jester & Moat rules as the first variant, with behavior-preserving regression tests. **Complete (PR #140).**
 2. Add declared engine/variant compatibility and validation for MinMax and MCTS. **Complete (PR #141).**
-3. Implement the minimal personality contract from Stage D, including mandatory `Default`, engine-declared supported profile IDs, and explicit unsupported-profile validation. **Implemented on the current task branch; automated and PWA verification pending.**
+3. Implement the minimal personality contract from Stage D, including mandatory `Default`, engine-declared supported profile IDs, and explicit unsupported-profile validation. **Implemented on the current task branch; automated CI passed (152 tests), PWA verification pending.**
 4. Add a small built-in profile set only after selecting and testing the first engine's concrete behavior. Keep the roster deliberately small; the examples in ENGINE-IDEAS.md are candidates, not approved choices.
 5. Add personality support to further engines one at a time, preserving engine-owned interpretation and shared contract tests.
 6. Add further engines one at a time, with explicit variant/capability declarations and shared contract tests.
@@ -160,5 +160,5 @@ Browser/mobile verification must be recorded separately from automated tests and
 
 ## Change log
 
-- **2026-11-08:** Stage E.3 minimal personality contract implemented on `feat/personality-contract`, pending verification. It adds the global `Default` profile, engine support declarations, per-assignment profile identity, and explicit configuration/main-thread/worker rejection for unsupported profiles. No non-default profiles or behavior are included. Stage C remains complete (PR #141); Stage D design decisions remain agreed; Stages A and B remain complete (PR #140).
+- **2026-11-08:** Stage E.3 minimal personality contract implemented on `feat/personality-contract`, automated CI passed (152 tests); PWA verification pending. It adds the global `Default` profile, engine support declarations, per-assignment profile identity, and explicit configuration/main-thread/worker rejection for unsupported profiles. No non-default profiles or behavior are included. Stage C remains complete (PR #141); Stage D design decisions remain agreed; Stages A and B remain complete (PR #140).
 - **2026-11-07:** Created after Engine Configuration PR #138 merged. Records a planning direction only; no extension implementation is authorized by this document.
