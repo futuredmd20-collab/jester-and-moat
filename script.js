@@ -212,6 +212,13 @@ function renderPalettePieces() {
 }
 
 const ROWS = 8, COLS = 10;
+const GAME_VARIANT = Object.freeze({ id: 'jester-moat', version: 1 });
+const GAME_SETUP_IDS = Object.freeze(['edges', 'center']);
+
+function createGameIdentity(setupId) {
+  return { variant: { id: GAME_VARIANT.id, version: GAME_VARIANT.version },
+    setupId: GAME_SETUP_IDS.includes(setupId) ? setupId : null };
+}
 const DIRS = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
 
 /* Plugin System: Phase Constants */
@@ -359,6 +366,15 @@ function normalizeSavedState(candidate, initialTime = 0) {
     }
   }
   const normalized = clone(candidate);
+  if (normalized.variant === undefined) normalized.variant = { id: GAME_VARIANT.id, version: GAME_VARIANT.version };
+  else if (!normalized.variant || typeof normalized.variant !== 'object' || Array.isArray(normalized.variant) ||
+      normalized.variant.id !== GAME_VARIANT.id || normalized.variant.version !== GAME_VARIANT.version) {
+    throw new Error('Unsupported game variant in save file.');
+  }
+  if (normalized.setupId === undefined) normalized.setupId = null;
+  else if (normalized.setupId !== null && !GAME_SETUP_IDS.includes(normalized.setupId)) {
+    throw new Error('Invalid game setup ID in save file.');
+  }
   if (normalized.phase === undefined) normalized.phase = 'normal';
   if (!['normal', 'place_moat_w', 'place_moat_b'].includes(normalized.phase)) throw new Error('Invalid game phase in save file.');
   if (normalized.ply === undefined) normalized.ply = 0;
@@ -652,6 +668,7 @@ function setup(){
   }
 
   state = {
+    ...createGameIdentity(pos),
     board: b,
     turn: 'w',
     ply: 0,
@@ -2203,6 +2220,7 @@ function toggleEditor(){
 }
 
 function handleEditorClick(r, c){
+  state.setupId = null;
   if (activeTool === 'eraser'){
     state.board[r][c] = null;
   } else if (activeTool === 'w_moat'){
@@ -2288,6 +2306,7 @@ function validateAndPlayPosition(){
 }
 
 function clearBoard(){
+  state.setupId = null;
   state.board = Array.from({length: ROWS}, () => Array(COLS).fill(null));
   state.moats = {w: null, b: null};
   render();
@@ -2306,6 +2325,7 @@ function resetDefaultBoard(){
     b[ROWS-1][c] = makePiece(back[c], 'w');
   }
   state.board = b;
+  state.setupId = createGameIdentity(pos).setupId;
   state.moats = {w: null, b: null};
 
   const initialTime = parseInt(document.getElementById('timeSelect').value, 10);
