@@ -1168,7 +1168,7 @@ const MinMaxLegacy = {
   strength: 'default',
   search: function(request) {
     try {
-      assertEnginePersonalityCompatibility(this, request && request.config && request.config.personalityId, this.id);
+      assertEnginePersonalityCompatibility(this, request && request.config ? request.config.personalityId : undefined, this.id);
     } catch (error) {
       return EngineContract.failed(request, error.code || ENGINE_ERROR_CODES.INVALID_CONFIG, error.message);
     }
