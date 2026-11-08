@@ -1138,14 +1138,16 @@ const ENGINE_ERROR_CODES = EngineContract.errorCodes;
 /* Internal MinMax engine, protocol-v1 entry point.
  * Search receives an immutable contract request and returns a structured result.
  * Search limits are supplied by the caller; engine logic does not read the UI. */
-const MinMaxSearchCore = MinMaxSearchCoreFactory({ clone, other, applyRaw, allLegalState, inCheck, getJesterValue, EngineContract });
+const MinMaxSearchCore = MinMaxSearchCoreFactory({ clone, other, applyRaw, allLegalState, inCheck, attacked, getJesterValue, EngineContract });
 // Compatibility adapters for shared evaluation helpers used by MCTS and diagnostics.
 function evaluateBoard(st) { return MinMaxSearchCore.evaluateBoard(st); }
 function minimax(st, depth, alpha, beta, isMaximizing) { return MinMaxSearchCore.minimax(st, depth, alpha, beta, isMaximizing); }
 function getBestMove(st, depth) { return MinMaxSearchCore.getBestMove(st, depth); }
 
 const PERSONALITY_PROFILES = Object.freeze({
-  default: Object.freeze({ id: 'default', name: 'Default', description: "The engine's standard playing style." })
+  default: Object.freeze({ id: 'default', name: 'Default', description: "The engine's standard playing style." }),
+  move_hunter: Object.freeze({ id: 'move_hunter', name: 'Dragjägaren (Move Hunter)',
+    description: 'Prioritizes actual attacks against valuable enemy pieces.', phases: ['midgame'] })
 });
 const DEFAULT_PERSONALITY_ID = 'default';
 
@@ -1154,7 +1156,7 @@ const MinMaxLegacy = {
   name: 'MinMax',
   phases: [ENGINE_PHASES.OPENING, ENGINE_PHASES.MIDGAME, ENGINE_PHASES.ENDGAME],
   supportedVariants: [{ id: 'jester-moat', versions: [1] }],
-  supportedPersonalities: [DEFAULT_PERSONALITY_ID],
+  supportedPersonalities: [DEFAULT_PERSONALITY_ID, 'move_hunter'],
   capabilities: ['depth', 'timeMs'],
   strengths: {
     easy: { depth: 1, timeMs: 3000 },
@@ -1168,7 +1170,8 @@ const MinMaxLegacy = {
   strength: 'default',
   search: function(request) {
     try {
-      assertEnginePersonalityCompatibility(this, request && request.config ? request.config.personalityId : undefined, this.id);
+      assertEnginePersonalityCompatibility(this, request && request.config ? request.config.personalityId : undefined, this.id,
+        request && request.config ? request.config.phase : undefined);
     } catch (error) {
       return EngineContract.failed(request, error.code || ENGINE_ERROR_CODES.INVALID_CONFIG, error.message);
     }
@@ -1189,11 +1192,12 @@ function assertEngineVariantCompatibility(engine, position, engineId = engine &&
   return true;
 }
 
-function assertEnginePersonalityCompatibility(engine, personalityId = DEFAULT_PERSONALITY_ID, engineId = engine && engine.id) {
+function assertEnginePersonalityCompatibility(engine, personalityId = DEFAULT_PERSONALITY_ID, engineId = engine && engine.id, phase = null) {
   const profile = Object.prototype.hasOwnProperty.call(PERSONALITY_PROFILES, personalityId)
     ? PERSONALITY_PROFILES[personalityId] : null;
   const supported = engine && engine.supportedPersonalities;
-  if (!profile || !Array.isArray(supported) || !supported.includes(personalityId)) {
+  if (!profile || !Array.isArray(supported) || !supported.includes(personalityId) ||
+      (Array.isArray(profile.phases) && (!phase || !profile.phases.includes(phase)))) {
     throw Object.assign(new Error(`Engine ${engineId || 'unknown'} does not support personality profile ${personalityId || 'missing'}.`),
       { code: ENGINE_ERROR_CODES.UNSUPPORTED_PERSONALITY });
   }
@@ -1263,16 +1267,20 @@ function validateEngineSettingsAgainstSchema(engineId, settings, schemas) {
 
 function validateEngineRequestConfig(engineId, config, schemas, engineMetadata) {
   const requestConfig = config == null ? {} : config;
-  if (!engineHasOnlyKeys(requestConfig, ['strength', 'settings', 'personalityId']))
+  if (!engineHasOnlyKeys(requestConfig, ['strength', 'settings', 'personalityId', 'phase']))
     throw new Error('Unsupported engine configuration field.');
   const strength = requestConfig.strength == null ? 'medium' : requestConfig.strength;
   if (!ENGINE_STRENGTHS.includes(strength))
     throw new Error('Unsupported engine strength: ' + strength);
   const personalityId = requestConfig.personalityId == null ? DEFAULT_PERSONALITY_ID : requestConfig.personalityId;
-  assertEnginePersonalityCompatibility(engineMetadata && engineMetadata[engineId], personalityId, engineId);
+  const phase = requestConfig.phase == null ? null : requestConfig.phase;
+  if (phase != null && !['opening', 'midgame', 'endgame'].includes(phase))
+    throw new Error('Unsupported engine phase: ' + phase);
+  assertEnginePersonalityCompatibility(engineMetadata && engineMetadata[engineId], personalityId, engineId, phase);
   return {
     strength,
     personalityId,
+    phase,
     settings: validateEngineSettingsAgainstSchema(engineId, requestConfig.settings, schemas)
   };
 }
@@ -1308,7 +1316,7 @@ function validateEngineConfiguration(value, position = null) {
       const engine = enginePlugins.get(assignment.engineId);
       assertEngineVariantCompatibility(engine, targetPosition, assignment.engineId);
       const personalityId = assignment.personalityId == null ? DEFAULT_PERSONALITY_ID : assignment.personalityId;
-      assertEnginePersonalityCompatibility(engine, personalityId, assignment.engineId);
+      assertEnginePersonalityCompatibility(engine, personalityId, assignment.engineId, phase);
       const advanced = validateEngineSettingsAgainstSchema(assignment.engineId, assignment.advanced || {}, schemas);
       normalized.sides[side].phases[phase] = {
         engineId: assignment.engineId,
@@ -1369,6 +1377,11 @@ function renderEngineConfigurationUI() {
       const assignment = engineConfiguration.sides[side].phases[phase];
       const engine = enginePlugins.get(assignment.engineId);
       const effective = Object.assign({}, engine.strengths[assignment.strength], assignment.advanced);
+      const personalityOptions = (engine.supportedPersonalities || []).filter(id => {
+        const profile = PERSONALITY_PROFILES[id];
+        return profile && (!Array.isArray(profile.phases) || profile.phases.includes(phase));
+      }).map(id => '<option value="' + escapeEngineConfigHtml(id) + '">' +
+        escapeEngineConfigHtml(PERSONALITY_PROFILES[id].name || id) + '</option>').join('');
       const fields = Object.entries(engine.settings || {}).map(([key, definition]) => {
         const value = effective[key] == null ? definition.default : effective[key];
         const invalid = engineConfigInvalidField &&
@@ -1391,6 +1404,11 @@ function renderEngineConfigurationUI() {
         '<label class="engine-config-field"><span>Strength</span><select data-side="' + side +
         '" data-phase="' + phase + '" data-setting="strength">' +
         strengthOptions.replace('value="' + assignment.strength + '"', 'value="' + assignment.strength + '" selected') +
+        '</select></label>' +
+        '<label class="engine-config-field"><span>Personality</span><select data-side="' + side +
+        '" data-phase="' + phase + '" data-setting="personalityId">' +
+        personalityOptions.replace('value="' + assignment.personalityId + '"',
+          'value="' + assignment.personalityId + '" selected') +
         '</select></label>' +
         '<details class="engine-advanced"' +
          (engineConfigInvalidField && engineConfigInvalidField.side === side &&
@@ -1440,11 +1458,23 @@ function handleEngineConfigurationChange(event) {
     if (!enginePlugins.has(target.value)) return;
     assignment.engineId = target.value;
     assignment.advanced = {};
+    const selectedProfile = PERSONALITY_PROFILES[assignment.personalityId];
+    const supportedProfiles = enginePlugins.get(target.value).supportedPersonalities || [];
+    if (!supportedProfiles.includes(assignment.personalityId) ||
+        (selectedProfile && Array.isArray(selectedProfile.phases) && !selectedProfile.phases.includes(phase))) {
+      assignment.personalityId = DEFAULT_PERSONALITY_ID;
+    }
     if (engineConfigInvalidField && engineConfigInvalidField.side === side &&
         engineConfigInvalidField.phase === phase) engineConfigInvalidField = null;
   } else if (setting === 'strength') {
     if (!ENGINE_STRENGTHS.includes(target.value)) return;
     assignment.strength = target.value;
+  } else if (setting === 'personalityId') {
+    const engine = enginePlugins.get(assignment.engineId);
+    const profile = PERSONALITY_PROFILES[target.value];
+    if (!profile || !(engine.supportedPersonalities || []).includes(target.value) ||
+        (Array.isArray(profile.phases) && !profile.phases.includes(phase))) return;
+    assignment.personalityId = target.value;
   } else if (setting.startsWith('advanced:')) {
     const key = setting.slice('advanced:'.length);
     const engine = enginePlugins.get(assignment.engineId);
@@ -1652,11 +1682,13 @@ onmessage = async function(event) {
         const timeMs = request.limits && request.limits.timeMs > 0
           ? request.limits.timeMs : minmaxSettings.timeMs;
         const deadline = timeMs > 0 ? Date.now() + timeMs : Infinity;
+        const evaluationContext = MinMaxSearchCore.createEvaluationContext(request.position, validatedConfig);
         const outcome = await MinMaxSearchCore.getBestMoveAsync(
           clone(request.position), searchDepth,
           () => control.cancelled,
           () => new Promise(resolve => setTimeout(resolve, 0)),
-          () => Date.now() >= deadline
+          () => Date.now() >= deadline,
+          evaluationContext
         );
         if (outcome.cancelled) {
           activeSearches.delete(key);
@@ -1812,6 +1844,7 @@ function getEngineConfig(side) {
     engine: resolved.engine,
     phase,
     strength: resolved.strength,
+    personalityId: resolved.personalityId,
     settings: resolved.settings,
     depth,
     timeMs
@@ -1969,7 +2002,7 @@ function aiMove(){
     ? EngineContract.createRequest({
         requestId: id, generation: id, engineId: engine.id, position: clone(state),
         limits: { depth, timeMs },
-        config: { strength, settings, personalityId: engineConfig.personalityId }
+        config: { strength, settings, personalityId: engineConfig.personalityId, phase: engineConfig.phase }
       })
     : null;
   const request = { id, engine, depth, state: clone(state), contractRequest, startedAt: Date.now(), phase, side, fallback: false };
