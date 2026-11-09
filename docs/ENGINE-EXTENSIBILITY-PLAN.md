@@ -4,7 +4,7 @@ Purpose: define the architectural investigation and staged direction for adding 
 
 ## Status
 
-**Status: In progress (2026-11-09).** Stages A–D and E.4/E.5 are complete and merged. PR #147 enabled Pjäsjägaren (Piece Hunter) in opening, midgame, and endgame for both MinMax and MCTS. GitHub Actions passed 158 tests (0 failures), and manual PWA verification was approved. Additional engines and alternative-board work remain unstarted. The next design task is to refine the shared engine-configuration contract before implementing further personalities or engines.
+**Status: In progress (2026-11-09).** Stages A–D and E.4/E.5 are complete and merged; E.6 implementation is underway. PR #147 enabled Pjäsjägaren (Piece Hunter) in opening, midgame, and endgame for both MinMax and MCTS. GitHub Actions passed 158 tests (0 failures), and manual PWA verification was approved. Additional engines and alternative-board work remain unstarted. The next design task is to refine the shared engine-configuration contract before implementing further personalities or engines.
 
 ## Goal
 
@@ -129,7 +129,7 @@ Keep the personality contract small. It should establish stable profile identity
 - Define how presets and saved configurations represent the general settings and sparse phase overrides. Inspect actual persistence formats and plan compatibility behavior deliberately; do not assume a migration strategy.
 - Add contract tests for inheritance, field-level overrides, engine changes/defaults, setting applicability, shared-setting compatibility, and isolation between sides/phases.
 
-This is a design/contract stage. It does not authorize implementation by itself. The existing completed Engine Configuration plan remains the record of the shipped side × phase configuration; this section describes the intended extensible model that will supersede that shape only through a separately approved implementation.
+**Design acceptance gate: complete (2026-11-09).** The resolved model and deterministic inheritance rules are implemented in the current task branch. The existing completed Engine Configuration plan remains the record of the shipped schema-v1 side × phase configuration; this section describes the schema-v2 model that supersedes it.
 
 ### E. Implement incrementally
 
@@ -144,6 +144,14 @@ Recommended implementation order after the design gates above:
 7. Add a reduced board such as 5×8 only after geometry, setup, rule differences, serialization, editor, rendering, and engine compatibility have explicit designs and tests.
 
 The ordering may be revised if the dependency audit demonstrates a lower-risk sequence. A new engine does not need to wait for every personality or board variant if its scope is compatible with the current game.
+
+### E.6. Implement inherited engine configuration
+
+**Agreed model (2026-11-09):** one general configuration per side, with sparse field-level phase overrides. Engine, strength, and personality resolve independently. Advanced settings inherit with the general engine; a phase engine override starts with the new engine's strength defaults and uses only phase-local Advanced overrides.
+
+**Implementation scope:** schema version 2, deterministic effective-assignment resolution, strict validation of every effective side × phase combination, presets based on general settings, version-1 reset to defaults (no migration), and UI controls for general values plus explicit per-phase inheritance/overrides.
+
+**Progress:** Implementation is underway on `feat/inherited-engine-configuration`. The schema-v2 model, resolver, validation, persistence reset, presets, and inherited/override UI are implemented. Contract tests and CI verification are in progress; do not mark this stage complete until those checks pass.
 
 ### E.4. First non-default profile: Pjäsjägaren (Piece Hunter)
 
