@@ -1456,12 +1456,12 @@ test('engine configuration defaults use one general profile per side and sparse 
   assert.deepEqual(Array.from(sandbox.api.PERSONALITY_PROFILES.move_hunter.phases),
     ['opening', 'midgame', 'endgame']);
   for (const side of ['white', 'black']) {
-    assert.deepEqual(config.sides[side].general, {
+    assert.equal(JSON.stringify(config.sides[side].general), JSON.stringify({
       engineId: 'minmax_legacy', strength: 'medium', personalityId: 'default', advanced: {}
-    });
-    assert.deepEqual(config.sides[side].phases, {
+    }));
+    assert.equal(JSON.stringify(config.sides[side].phases), JSON.stringify({
       opening: {}, midgame: {}, endgame: {}
-    });
+    }));
     for (const phase of ['opening', 'midgame', 'endgame']) {
       const resolved = sandbox.api.getEngineAssignment(side === 'white' ? 'w' : 'b', phase);
       assert.equal(resolved.engine.id, 'minmax_legacy');
@@ -1473,6 +1473,7 @@ test('engine configuration defaults use one general profile per side and sparse 
 });
 
 test('general settings inherit while independent phase fields override only themselves', () => {
+  sandbox.api.applyEnginePreset('balanced');
   const config = sandbox.api.getEngineConfiguration();
   config.sides.white.general.personalityId = 'move_hunter';
   config.sides.white.phases.midgame = { strength: 'hard' };
@@ -1494,6 +1495,7 @@ test('general settings inherit while independent phase fields override only them
 });
 
 test('Piece Hunter reaches AI search configuration through inherited personality selection', () => {
+  sandbox.api.applyEnginePreset('balanced');
   const config = sandbox.api.getEngineConfiguration();
   config.sides.white.general.personalityId = 'move_hunter';
   sandbox.api.setEngineConfiguration(config);
@@ -1511,6 +1513,7 @@ test('Piece Hunter reaches AI search configuration through inherited personality
 });
 
 test('phase overrides accept mixed engines, strengths, and isolated Advanced settings', () => {
+  sandbox.api.applyEnginePreset('balanced');
   const config = sandbox.api.getEngineConfiguration();
   config.sides.white.phases.opening = {
     engineId: 'mcts', strength: 'hard', advanced: { playouts: 3000 }
@@ -1538,6 +1541,7 @@ test('phase overrides accept mixed engines, strengths, and isolated Advanced set
 });
 
 test('Advanced settings inherit with the engine but phase engine changes use new engine defaults', () => {
+  sandbox.api.applyEnginePreset('balanced');
   const config = sandbox.api.getEngineConfiguration();
   config.sides.white.general.engineId = 'mcts';
   config.sides.white.general.advanced = { playouts: 1200 };
@@ -1563,6 +1567,7 @@ test('Advanced settings inherit with the engine but phase engine changes use new
 });
 
 test('changing a general engine resets only Advanced overrides that inherit that engine', () => {
+  sandbox.api.applyEnginePreset('balanced');
   const config = sandbox.api.getEngineConfiguration();
   config.sides.white.general.engineId = 'mcts';
   config.sides.white.general.advanced = { playouts: 1200 };
@@ -1574,15 +1579,16 @@ test('changing a general engine resets only Advanced overrides that inherit that
     target: { dataset: { side: 'white', scope: 'general', setting: 'engineId' }, value: 'minmax_legacy' }
   });
   const updated = sandbox.api.getEngineConfiguration();
-  assert.deepEqual(updated.sides.white.general.advanced, {});
-  assert.deepEqual(updated.sides.white.phases.opening.advanced, {});
-  assert.deepEqual(updated.sides.white.phases.midgame.advanced, { depth: 5 });
+  assert.equal(JSON.stringify(updated.sides.white.general.advanced), '{}');
+  assert.equal(JSON.stringify(updated.sides.white.phases.opening.advanced), '{}');
+  assert.equal(JSON.stringify(updated.sides.white.phases.midgame.advanced), JSON.stringify({ depth: 5 }));
   assert.equal(sandbox.api.getEngineAssignment('w', 'opening').settings.playouts, undefined);
   assert.equal(sandbox.api.getEngineAssignment('w', 'midgame').settings.depth, 5);
   assert.equal(sandbox.api.getEngineAssignment('w', 'endgame').engine.id, 'minmax_legacy');
 });
 
 test('removing a phase override restores inheritance without changing other phases', () => {
+  sandbox.api.applyEnginePreset('balanced');
   const config = sandbox.api.getEngineConfiguration();
   config.sides.white.general.strength = 'hard';
   config.sides.white.phases.opening.strength = 'easy';
@@ -1598,6 +1604,7 @@ test('removing a phase override restores inheritance without changing other phas
 });
 
 test('engine configuration rejects unsupported personality profiles explicitly', () => {
+  sandbox.api.applyEnginePreset('balanced');
   const engine = sandbox.api.enginePlugins.get('mcts');
   const original = engine.supportedPersonalities;
   try {
@@ -1642,6 +1649,7 @@ test('MinMax treats a null request config as the default personality', () => {
 });
 
 test('engine configuration rejects engines that do not declare support for the active variant', () => {
+  sandbox.api.applyEnginePreset('balanced');
   const engine = sandbox.api.enginePlugins.get('mcts');
   const original = engine.supportedVariants;
   try {
@@ -1660,6 +1668,7 @@ test('engine configuration rejects engines that do not declare support for the a
 });
 
 test('engine configuration rejects unknown engines, unsupported settings, and out-of-range values', () => {
+  sandbox.api.applyEnginePreset('balanced');
   const base = sandbox.api.getEngineConfiguration();
   const unknownEngine = JSON.parse(JSON.stringify(base));
   unknownEngine.sides.white.phases.opening.engineId = 'missing-engine';
@@ -1677,6 +1686,7 @@ test('engine configuration rejects unknown engines, unsupported settings, and ou
 });
 
 test('strength profiles supply engine-specific settings and Advanced overrides take priority', () => {
+  sandbox.api.applyEnginePreset('balanced');
   const config = sandbox.api.getEngineConfiguration();
   config.sides.white.phases.opening = {
     engineId: 'mcts', strength: 'medium', advanced: { playouts: 1200 }
@@ -1699,7 +1709,7 @@ test('presets populate general settings and manual phase overrides mark the conf
   assert.equal(config.presetId, 'easy');
   assert.equal(config.sides.white.general.strength, 'easy');
   assert.equal(config.sides.black.general.strength, 'easy');
-  assert.deepEqual(config.sides.white.phases, { opening: {}, midgame: {}, endgame: {} });
+  assert.equal(JSON.stringify(config.sides.white.phases), JSON.stringify({ opening: {}, midgame: {}, endgame: {} }));
 
   config.sides.white.phases.opening.engineId = 'mcts';
   sandbox.api.setEngineConfiguration(config);
@@ -1712,6 +1722,7 @@ test('presets populate general settings and manual phase overrides mark the conf
 });
 
 test('version-2 configuration persists and restores; version-1 or malformed saved shapes reset to defaults', () => {
+  sandbox.api.applyEnginePreset('balanced');
   const config = sandbox.api.getEngineConfiguration();
   config.sides.white.general.engineId = 'mcts';
   config.sides.white.general.strength = 'hard';
@@ -1743,6 +1754,7 @@ test('version-2 configuration persists and restores; version-1 or malformed save
 });
 
 test('storage read and write failures do not throw during engine configuration setup', () => {
+  sandbox.api.applyEnginePreset('balanced');
   storageThrowsOnRead = true;
   storageThrowsOnWrite = true;
   assert.doesNotThrow(() => sandbox.api.loadEngineConfig());
