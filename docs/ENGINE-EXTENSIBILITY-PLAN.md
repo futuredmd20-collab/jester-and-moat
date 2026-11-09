@@ -4,7 +4,7 @@ Purpose: define the architectural investigation and staged direction for adding 
 
 ## Status
 
-**Status: In progress (2026-11-09).** Stages A–D and the initial E.4/E.5 implementations are complete and merged. PR #144 added MinMax Pjäsjägaren for midgame; PR #146 added the same profile to MCTS for midgame. Both passed CI and manual PWA verification. The current task branch extends the existing profile to opening, midgame, and endgame for both engines. GitHub Actions run #575 passed 158 tests (0 failures); manual PWA verification across all three phases remains pending. Additional engines and alternative-board work remain unstarted.
+**Status: In progress (2026-11-09).** Stages A–D and E.4/E.5 are complete and merged. PR #147 enabled Pjäsjägaren (Piece Hunter) in opening, midgame, and endgame for both MinMax and MCTS. GitHub Actions passed 158 tests (0 failures), and manual PWA verification was approved. Additional engines and alternative-board work remain unstarted. The next design task is to refine the shared engine-configuration contract before implementing further personalities or engines.
 
 ## Goal
 
@@ -26,7 +26,7 @@ Do not build a general-purpose game framework, public plugin SDK, dynamic market
 - The current registry is a static `enginePlugins` Map. Keep registration simple unless a concrete requirement proves otherwise.
 - Variant identity is explicit: the current game is `jester-moat` v1 (PR #140).
 - MinMax and MCTS declare supported variants; configuration and pre-search checks, including worker dispatch, reject unsupported variants with `UNSUPPORTED_VARIANT` (PR #141).
-- The minimal personality contract is merged in PR #143: a global `Default` profile and engine-declared support metadata. MinMax Pjäsjägaren (Piece Hunter) is merged in PR #144 and MCTS support in PR #146; both initially supported midgame only. The current task extends the existing profile to all three detected phases for both engines. Alternative board sizes remain unimplemented. Other illustrative profile names and behavior examples remain exploratory. See [Engine and Board Ideas](ENGINE-IDEAS.md).
+- The minimal personality contract is merged in PR #143: a global `Default` profile and engine-declared support metadata. Pjäsjägaren (Piece Hunter) is supported by both MinMax and MCTS in all three detected phases (PR #147). Alternative board sizes remain unimplemented. Other illustrative profile names and behavior examples remain exploratory. See [Engine and Board Ideas](ENGINE-IDEAS.md).
 - The bitboard proposal is a separate engine-internal performance investigation. It must not silently replace the canonical game-state representation.
 
 This is a baseline, not a promise that every current implementation detail is suitable for future variants. Re-inspect code and tests before each implementation stage.
@@ -88,7 +88,7 @@ Engines declare supported variant IDs and versions, plus any genuine capabilitie
 **Design decisions agreed (2026-11-08):**
 
 - A personality is a reusable, named playing-style profile, not another engine ID.
-- Personality selection is independent of engine and strength, and is configured per **side × phase** (White/Black × opening/midgame/endgame in the current configuration model).
+- Personality selection is independent of engine and strength. Its effective value is resolved per **side × phase**, using the side's general setting unless a phase explicitly overrides it.
 - Profiles are global identities that can be reused across engines. Each engine declares which profiles it supports and is responsible for translating a selected profile into its own search/evaluation behavior. Engines do not need identical internal implementations.
 - Start with names and user-facing descriptions only. Do not define a shared set of numeric style dimensions or tuning parameters in the first version.
 - `Default` is always available, is the standard initial selection, and is mandatory for every engine.
@@ -105,7 +105,31 @@ Keep the personality contract small. It should establish stable profile identity
 - A supported non-default profile produces an observable style difference in controlled positions without changing legal move output, bypassing immediate tactical wins, or breaking search budgets, cancellation, stale-result rejection, and worker/main-thread behavior.
 - Existing configurations and saves receive a deliberate, tested defaulting/compatibility behavior; do not assume a migration without inspecting the actual formats.
 
-**Progress:** Complete. PR #143 merged the minimal runtime contract: `Default` is registered, both current engines declare support, profile IDs are stored per side × phase, and unsupported profiles are rejected during configuration and dispatch. CI passed with 153 tests and the user approved the PWA test.
+**Progress:** Complete. PR #143 merged the minimal runtime contract: `Default` is registered, both current engines declare support, profile IDs are stored in the then-current side × phase configuration, and unsupported profiles are rejected during configuration and dispatch. CI passed with 153 tests and the user approved the PWA test.
+
+### D.1. Refine the extensible configuration and settings contract
+
+**Design decisions agreed (2026-11-09; design only, not yet implemented):**
+
+- Each side (White/Black) has a general configuration inherited by opening, midgame, and endgame.
+- Each phase may optionally override individual fields. Engine, strength, and personality are independent fields: changing one does not replace the others. A phase without an override inherits the current general value; changing the general value updates every phase that has not overridden that field.
+- Advanced settings follow the same inheritance model as the engine they belong to. When a phase overrides its engine, it starts with that engine's defaults; phase-specific advanced overrides can then be added without affecting other phases.
+- Settings are classified as **Engine Settings**, **Strength Settings**, or **Personality Settings**. Only settings relevant to the selected engine/strength/personality combination are presented.
+- Settings with identical meaning and behavior may be shared across engines. Define these centrally and require each engine to declare explicit support. A matching label alone is insufficient: semantics and compatible value meaning must match.
+- Engine-specific settings remain available where genuinely needed, but are presented under a context-sensitive **Advanced** section. Common settings remain the primary interface.
+- Prefer named levels when an option has meaningful discrete steps. Use a continuous slider or percentage control only when the underlying concept is genuinely continuous. User-facing percentages use 0–100 even if internal values use 0–1; presentation and internal representation remain separate.
+- Settings definitions must describe user-facing labels/help, presentation and allowed choices/ranges, defaults, internal values/conversion, and relevant engine/strength/personality dependencies. Do not expose raw implementation values when a meaningful user-facing choice can be provided.
+- Keep the existing static engine registry and engine-owned implementation model. This contract does not require a new plugin system or a universal personality algorithm/parameter model.
+
+**Design acceptance gate before implementation:**
+- Specify the resolved configuration shape and deterministic inheritance/override rules, including how absent, inherited, and explicitly overridden values are represented.
+- Specify validation for the effective configuration before persistence and again before search/worker dispatch; unsupported combinations or settings must be reported rather than silently replaced or ignored.
+- Define central shared-setting metadata and explicit per-engine support declarations, while allowing engine-specific advanced definitions.
+- Define the boundary between engine, strength, and personality settings, including how changing a dependency affects existing overrides.
+- Define how presets and saved configurations represent the general settings and sparse phase overrides. Inspect actual persistence formats and plan compatibility behavior deliberately; do not assume a migration strategy.
+- Add contract tests for inheritance, field-level overrides, engine changes/defaults, setting applicability, shared-setting compatibility, and isolation between sides/phases.
+
+This is a design/contract stage. It does not authorize implementation by itself. The existing completed Engine Configuration plan remains the record of the shipped side × phase configuration; this section describes the intended extensible model that will supersede that shape only through a separately approved implementation.
 
 ### E. Implement incrementally
 
@@ -114,8 +138,8 @@ Recommended implementation order after the design gates above:
 1. Represent the existing 10×8 Jester & Moat rules as the first variant, with behavior-preserving regression tests. **Complete (PR #140).**
 2. Add declared engine/variant compatibility and validation for MinMax and MCTS. **Complete (PR #141).**
 3. Implement the minimal personality contract from Stage D, including mandatory `Default`, engine-declared supported profile IDs, and explicit unsupported-profile validation. **Complete (PR #143; 153 CI tests passed; manual PWA test approved).**
-4. Add the first built-in profile to one engine and one phase, then verify its behavior in controlled positions before expanding the roster. Pjäsjägaren (Piece Hunter) is complete for MinMax midgame (PR #144; 157 automated tests passed and manual PWA verification was approved).
-5. Add personality support to further engines one at a time, preserving engine-owned interpretation and shared contract tests. **Complete in PR #146:** add the existing Pjäsjägaren profile to MCTS for midgame only. GitHub Actions passed 158 tests (0 failures); manual PWA verification remains pending.
+4. Add the first built-in profile to one engine and one phase, then verify its behavior in controlled positions before expanding the roster. Pjäsjägaren (Piece Hunter) was first completed for MinMax midgame (PR #144; 157 automated tests passed and manual PWA verification was approved).
+5. Add personality support to further engines one at a time, preserving engine-owned interpretation and shared contract tests. **Complete in PR #146:** add the existing Pjäsjägaren profile to MCTS, initially for midgame.
 6. Add further engines one at a time, with explicit variant/capability declarations and shared contract tests.
 7. Add a reduced board such as 5×8 only after geometry, setup, rule differences, serialization, editor, rendering, and engine compatibility have explicit designs and tests.
 
@@ -125,8 +149,8 @@ The ordering may be revised if the dependency audit demonstrates a lower-risk se
 
 **Agreed behavior (2026-11-08):**
 
-- First engine: MinMax only; MCTS remains `Default`-only and its evaluation behavior must not change.
-- Availability: opening, midgame, and endgame, independently selectable for White and Black through the side × phase configuration.
+- First engine: MinMax only; MCTS's evaluation behavior must not change as part of the initial MinMax implementation.
+- Availability: opening, midgame, and endgame, with the effective selection resolved independently for White and Black through the side × phase configuration.
 - Scope: positions are evaluated differently; move ordering is unchanged.
 - Behavior: reward actual attacks against enemy pieces, including defended targets. Do not reward merely potential attacks and do not add a separate check bonus.
 - Count each attacked enemy piece once, regardless of the number of attackers.
@@ -135,7 +159,7 @@ The ordering may be revised if the dependency audit demonstrates a lower-risk se
 
 **Implementation gate:** Add the profile to the shared registry, declare MinMax support, enforce its availability in all three supported phases while requiring a valid phase context in configuration and dispatch, pass personality identity through main-thread and worker requests, and cover scoring/sign/one-per-target behavior with regression tests. CI and manual PWA verification must be recorded only after completion.
 
-**Progress:** Initial MinMax midgame implementation completed in PR #144; GitHub Actions passed 157 tests (0 failures), and the user approved the PWA test. The current task branch removes the midgame-only restriction and adds phase-by-phase scoring, contract, and worker-dispatch coverage for opening, midgame, and endgame.
+**Progress:** Complete. The initial MinMax implementation shipped in PR #144; PR #147 extended support to opening, midgame, and endgame. CI passed 158 tests, and manual PWA verification was approved.
 
 ### E.5. Add Pjäsjägaren to MCTS
 
@@ -150,7 +174,7 @@ The ordering may be revised if the dependency audit demonstrates a lower-risk se
 
 **Implementation gate:** Cover White/Black scoring, defended and multiply-attacked targets, king exclusion, all-phase validation, unchanged Default evaluation, and structured worker dispatch. Record CI and manual PWA verification only after they actually pass.
 
-**Progress:** Initial MCTS midgame implementation completed in PR #146. GitHub Actions passed 158 tests (0 failures), and the user approved the PWA test. The current task branch extends MCTS evaluation and worker dispatch to all three phases, with tests confirming each phase is accepted.
+**Progress:** Complete. PR #146 added MCTS support, and PR #147 extended it to opening, midgame, and endgame. CI passed 158 tests, and manual PWA verification was approved.
 
 ## Cross-cutting verification
 
@@ -161,7 +185,11 @@ Every implementation stage must add focused regression coverage for the changed 
 - Save/load and editor round trips preserve variant identity and state.
 - Engine compatibility is checked before worker and main-thread search.
 - Unsupported capabilities/settings are rejected rather than silently ignored.
-- Personality selection remains independent per side × phase, round-trips through presets and saved configurations, and rejects unsupported engine/profile combinations.
+- Effective personality selection resolves independently per side × phase, round-trips through presets and saved configurations, and rejects unsupported engine/profile combinations.
+- General configuration values are inherited by phases unless individually overridden; changing one field does not reset unrelated fields.
+- Advanced settings inherit with their engine, reset to the new engine's defaults when a phase changes engine, and allow isolated phase overrides.
+- Shared settings have identical semantics across engines, are centrally defined, and are explicitly declared by supporting engines.
+- UI presentation exposes only applicable settings, prioritizes understandable named choices, and keeps engine-specific options under context-sensitive Advanced.
 - Personality behavior cannot bypass legality or immediate tactical wins.
 - Search budgets, cancellation, stale-result rejection, and fallback remain correct.
 - Alternative board tests cover coordinate bounds, move generation, attacks/checks, special rules, promotion, rendering, and editor operations.
@@ -174,7 +202,7 @@ Browser/mobile verification must be recorded separately from automated tests and
 - No broad personality roster or additional engine implementations as part of the first Piece Hunter profile task; further profiles and engines remain separately staged.
 - No commitment to the illustrative personality names or roster.
 - No user-created personality profiles in the first implementation.
-- No shared numeric personality parameter model in the first implementation.
+- No universal numeric personality parameter model or shared personality algorithm; shared setting definitions are allowed only where semantics genuinely match.
 - No assumption that every engine supports every variant, phase, or personality (except the mandatory `Default` profile).
 - No dynamic third-party plugin system.
 - No migration of existing saved games or engine configuration unless a future approved change explicitly defines and tests it.
@@ -191,6 +219,7 @@ Browser/mobile verification must be recorded separately from automated tests and
 
 ## Change log
 
-- **2026-11-09:** Extended the existing Pjäsjägaren profile to opening, midgame, and endgame for both MinMax and MCTS on `feat/move-hunter-all-phases`; CI passed 158 tests (0 failures); PWA verification remains pending.
+- **2026-11-09:** PR #147 enabled Pjäsjägaren for opening, midgame, and endgame in both MinMax and MCTS; CI passed 158 tests and manual PWA verification was approved. Agreed the extensible configuration/settings contract: general per-side values with sparse field-level phase overrides; inherited Advanced settings; separate Engine/Strength/Personality settings; central definitions for semantically shared settings with explicit engine support; named choices as the default presentation; engine-specific settings under context-sensitive Advanced.
+
 - **2026-11-08:** PR #143 merged Stage E.3's minimal personality contract; CI passed 153 tests and manual PWA verification was approved. PR #144 completed the initial MinMax midgame profile; CI passed 157 tests and manual PWA verification was approved. PR #146 added the same midgame profile to MCTS; CI passed 158 tests and manual PWA verification was approved.
 - **2026-11-07:** Created after Engine Configuration PR #138 merged. Records a planning direction only; no extension implementation is authorized by this document.
