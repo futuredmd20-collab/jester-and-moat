@@ -8,7 +8,12 @@
     function createEvaluationContext(position, config) {
       const personalityId = config && config.personalityId || 'default';
       if (personalityId === 'move_hunter') {
-        return { personalityId, side: position.turn, phase: config && config.phase };
+        const phase = config && config.phase;
+        if (!['opening', 'midgame', 'endgame'].includes(phase)) {
+          throw Object.assign(new Error('Move Hunter requires a supported game phase.'),
+            { code: EngineContract.errorCodes.UNSUPPORTED_PERSONALITY });
+        }
+        return { personalityId, side: position.turn, phase };
       }
       return null;
     }
