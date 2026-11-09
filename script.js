@@ -1271,7 +1271,7 @@ function validateEngineRequestConfig(engineId, config, schemas, engineMetadata) 
     throw new Error('Unsupported engine strength: ' + strength);
   const personalityId = requestConfig.personalityId == null ? DEFAULT_PERSONALITY_ID : requestConfig.personalityId;
   const phase = requestConfig.phase == null ? null : requestConfig.phase;
-  if (phase != null && !Object.values(ENGINE_PHASES).includes(phase))
+  if (phase != null && !['opening', 'midgame', 'endgame'].includes(phase))
     throw new Error('Unsupported engine phase: ' + phase);
   assertEnginePersonalityCompatibility(engineMetadata && engineMetadata[engineId], personalityId, engineId, phase);
   return {
@@ -1374,7 +1374,6 @@ function validateEngineConfiguration(value, position = null) {
         throw new Error(engine.name + ' does not support ' + effective.strength + ' strength.');
       validateEngineSettingsAgainstSchema(effective.engineId, effective.advanced, schemas);
     }
-    assertEnginePersonalityCompatibility(generalEngine, generalPersonality, general.engineId, null);
   }
   return normalized;
 }
