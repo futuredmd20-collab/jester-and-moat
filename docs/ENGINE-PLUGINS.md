@@ -4,7 +4,7 @@ Purpose: record design decisions, repository implementation, verification gaps, 
 
 ## Status
 
-**Status: In progress (2026-11-07).** The current integration and contract-test pass remain complete; PR #119 (including PR #120) is merged. The calibration runner and methodology are available. A previous run covering all 15 pairings with 20 games per pairing was completed and used to make adjustments (user-confirmed); the separate CI matrix in PR #133 was cancelled and produced no results. Full calibration is now an optional, manually requested measurement—not a prerequisite for continued engine development. Other follow-up areas remain parked; unverified browser/device behavior is not marked as passed.
+**Status: In progress (2026-11-09).** The current integration and contract-test pass remain complete; PR #119 (including PR #120) is merged. The schema-v2 inherited configuration implementation is under review on `feat/inherited-engine-configuration`; CI and PWA verification are not yet recorded. The calibration runner and methodology are available. A previous run covering all 15 pairings with 20 games per pairing was completed and used to make adjustments (user-confirmed); the separate CI matrix in PR #133 was cancelled and produced no results. Full calibration is now an optional, manually requested measurement—not a prerequisite for continued engine development. Other follow-up areas remain parked; unverified browser/device behavior is not marked as passed.
 
 ## Goal and contract
 
