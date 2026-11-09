@@ -4,7 +4,7 @@ Purpose: define the architectural investigation and staged direction for adding 
 
 ## Status
 
-**Status: In progress (2026-11-08).** Stages A–D and E.4 are complete. Variant identity (PR #140), engine/variant compatibility (PR #141), the minimal personality contract (PR #143), and MinMax Dragjägaren (PR #144) are merged. Stage E.5 is implemented on `feat/mcts-move-hunter-personality`: MCTS support for the existing Dragjägaren profile. PR #146's GitHub Actions suite passed 158 tests (0 failures); manual PWA verification remains pending. Additional engines and alternative-board work remain unstarted.
+**Status: In progress (2026-11-09).** Stages A–D and the initial E.4/E.5 implementations are complete and merged. PR #144 added MinMax Dragjägaren for midgame; PR #146 added the same profile to MCTS for midgame. Both passed CI and manual PWA verification. The current task branch extends the existing profile to opening, midgame, and endgame for both engines. Additional engines and alternative-board work remain unstarted.
 
 ## Goal
 
@@ -26,7 +26,7 @@ Do not build a general-purpose game framework, public plugin SDK, dynamic market
 - The current registry is a static `enginePlugins` Map. Keep registration simple unless a concrete requirement proves otherwise.
 - Variant identity is explicit: the current game is `jester-moat` v1 (PR #140).
 - MinMax and MCTS declare supported variants; configuration and pre-search checks, including worker dispatch, reject unsupported variants with `UNSUPPORTED_VARIANT` (PR #141).
-- The minimal personality contract is merged in PR #143: a global `Default` profile and engine-declared support metadata. MinMax Dragjägaren (Move Hunter) is merged in PR #144 for midgame only. MCTS remains `Default`-only on `main`; E.5 adds the same profile to MCTS on the current task branch, also for midgame only. Alternative board sizes remain unimplemented. Other illustrative profile names and behavior examples remain exploratory. See [Engine and Board Ideas](ENGINE-IDEAS.md).
+- The minimal personality contract is merged in PR #143: a global `Default` profile and engine-declared support metadata. MinMax Dragjägaren (Move Hunter) is merged in PR #144 and MCTS support in PR #146; both initially supported midgame only. The current task extends the existing profile to all three detected phases for both engines. Alternative board sizes remain unimplemented. Other illustrative profile names and behavior examples remain exploratory. See [Engine and Board Ideas](ENGINE-IDEAS.md).
 - The bitboard proposal is a separate engine-internal performance investigation. It must not silently replace the canonical game-state representation.
 
 This is a baseline, not a promise that every current implementation detail is suitable for future variants. Re-inspect code and tests before each implementation stage.
@@ -126,7 +126,7 @@ The ordering may be revised if the dependency audit demonstrates a lower-risk se
 **Agreed behavior (2026-11-08):**
 
 - First engine: MinMax only; MCTS remains `Default`-only and its evaluation behavior must not change.
-- Availability: midgame only, independently selectable for White and Black through the side × phase configuration.
+- Availability: opening, midgame, and endgame, independently selectable for White and Black through the side × phase configuration.
 - Scope: positions are evaluated differently; move ordering is unchanged.
 - Behavior: reward actual attacks against enemy pieces, including defended targets. Do not reward merely potential attacks and do not add a separate check bonus.
 - Count each attacked enemy piece once, regardless of the number of attackers.
@@ -135,14 +135,14 @@ The ordering may be revised if the dependency audit demonstrates a lower-risk se
 
 **Implementation gate:** Add the profile to the shared registry, declare MinMax support, enforce its midgame-only availability in configuration and dispatch, pass personality identity through main-thread and worker requests, and cover scoring/sign/one-per-target behavior with regression tests. CI and manual PWA verification must be recorded only after completion.
 
-**Progress:** Complete. PR #144 merged the MinMax midgame implementation. GitHub Actions passed 157 tests (0 failures), including a regression test that exercises the serialized worker dispatch path and verifies the attack bonus survives worker execution. The user confirmed the behavior works in the PWA.
+**Progress:** Initial MinMax midgame implementation completed in PR #144; GitHub Actions passed 157 tests (0 failures), and the user approved the PWA test. The current task branch removes the midgame-only restriction and adds phase-by-phase scoring, contract, and worker-dispatch coverage for opening, midgame, and endgame.
 
 ### E.5. Add Dragjägaren to MCTS
 
 **Agreed behavior (2026-11-08):**
 
 - Reuse the existing `move_hunter` profile; do not introduce a second profile identity.
-- Availability: MCTS midgame only, independently selectable for White and Black through the existing side × phase configuration.
+- Availability: MCTS opening, midgame, and endgame, independently selectable for White and Black through the existing side × phase configuration.
 - MCTS owns the interpretation: add the attack bonus at the random-playout leaf evaluation, while retaining MCTS's UCT selection, simulation, backpropagation, strength levels, and budgets.
 - Reward actual attacks against enemy non-king pieces, including defended targets. Count each target once, regardless of attacker count; use 10% of its material value.
 - Keep MCTS `Default` evaluation and MinMax behavior unchanged. The configured side remains the beneficiary throughout each playout.
@@ -150,7 +150,7 @@ The ordering may be revised if the dependency audit demonstrates a lower-risk se
 
 **Implementation gate:** Cover White/Black scoring, defended and multiply-attacked targets, king exclusion, midgame-only validation, unchanged Default evaluation, and structured worker dispatch. Record CI and manual PWA verification only after they actually pass.
 
-**Progress:** Implemented on `feat/mcts-move-hunter-personality` (PR #146). GitHub Actions passed 158 tests (0 failures), including the MCTS worker-dispatch and phase-rejection coverage. Manual PWA verification remains pending.
+**Progress:** Initial MCTS midgame implementation completed in PR #146. GitHub Actions passed 158 tests (0 failures), and the user approved the PWA test. The current task branch extends MCTS evaluation and worker dispatch to all three phases, with tests confirming each phase is accepted.
 
 ## Cross-cutting verification
 
@@ -191,5 +191,6 @@ Browser/mobile verification must be recorded separately from automated tests and
 
 ## Change log
 
-- **2026-11-08:** PR #143 merged Stage E.3's minimal personality contract; CI passed 153 tests and manual PWA verification was approved. PR #144 completed Stage E.4's first non-default profile, MinMax Dragjägaren (Move Hunter), for midgame only; CI passed 157 tests and manual PWA verification was approved. E.5 adds the existing profile to MCTS on `feat/mcts-move-hunter-personality`; PR #146's CI passed 158 tests (0 failures), and manual PWA verification remains pending.
+- **2026-11-09:** Extended the existing Dragjägaren profile to opening, midgame, and endgame for both MinMax and MCTS on `feat/move-hunter-all-phases`; CI and PWA verification are pending.
+- **2026-11-08:** PR #143 merged Stage E.3's minimal personality contract; CI passed 153 tests and manual PWA verification was approved. PR #144 completed the initial MinMax midgame profile; CI passed 157 tests and manual PWA verification was approved. PR #146 added the same midgame profile to MCTS; CI passed 158 tests and manual PWA verification was approved.
 - **2026-11-07:** Created after Engine Configuration PR #138 merged. Records a planning direction only; no extension implementation is authorized by this document.
