@@ -1324,7 +1324,6 @@ function validateEngineConfiguration(value, position = null) {
 
     const general = sideConfig.general;
     if (typeof general.engineId !== 'string' || !enginePlugins.has(general.engineId) ||
-        !enginePlugins.get(general.engineId).phases.includes(ENGINE_PHASES.OPENING) ||
         !ENGINE_STRENGTHS.includes(general.strength))
       throw new Error('Invalid ' + side + ' general engine assignment.');
     const generalPersonality = general.personalityId == null ? DEFAULT_PERSONALITY_ID : general.personalityId;
@@ -1497,7 +1496,10 @@ function renderEngineConfigurationUI() {
       const strength = engine.strengths[effective.strength] || {};
       const effectiveSettings = Object.assign({}, strength, effective.advanced);
       const phaseEngineOptions = '<option value="__inherit__">Use general (' +
-        escapeEngineConfigHtml(generalEngine.name || general.engineId) + ')</option>' + engineOptions;
+        escapeEngineConfigHtml(generalEngine.name || general.engineId) + ')</option>' + allEngines
+        .filter(candidate => candidate.phases.includes(phase)).map(candidate => '<option value="' +
+          escapeEngineConfigHtml(candidate.id) + '">' + escapeEngineConfigHtml(candidate.name || candidate.id) +
+          '</option>').join('');
       const phaseStrengthOptions = '<option value="__inherit__">Use general (' +
         ENGINE_STRENGTH_LABELS[general.strength] + ')</option>' + strengthOptions;
       const phasePersonalityOptions = '<option value="__inherit__">Use general (' +
