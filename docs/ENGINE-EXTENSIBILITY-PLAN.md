@@ -4,7 +4,7 @@ Purpose: define the architectural investigation and staged direction for adding 
 
 ## Status
 
-**Status: In progress (2026-11-09).** Stages A–D and E.4/E.5 are complete and merged. E.6 implementation and automated verification are complete on the current branch; manual PWA verification is pending. PR #147 enabled Pjäsjägaren (Piece Hunter) in opening, midgame, and endgame for both MinMax and MCTS. GitHub Actions passed 158 tests (0 failures), and manual PWA verification was approved. Additional engines and alternative-board work remain unstarted. The shared engine-configuration contract is now implemented as Stage E.6 in the current task branch; verification is pending.
+**Status: In progress (2026-11-09).** Stages A–D and E.4/E.5 are complete and merged. Stage E.6 implementation, automated verification, and manual PWA verification are complete on the current task branch; PR #150 is awaiting final review. PR #147 enabled Pjäsjägaren (Piece Hunter) in opening, midgame, and endgame for both MinMax and MCTS. GitHub Actions passed 158 tests (0 failures), and manual PWA verification was approved. Additional engines and alternative-board work remain unstarted.
 
 ## Goal
 
@@ -182,7 +182,7 @@ The ordering may be revised if the dependency audit demonstrates a lower-risk se
 
 **Implementation scope:** schema version 2, deterministic effective-assignment resolution, strict validation of every effective side × phase combination, presets based on general settings, version-1 reset to defaults (no migration), and UI controls for general values plus explicit per-phase inheritance/overrides.
 
-**Progress:** Implemented on `feat/inherited-engine-configuration`. The schema-v2 model, resolver, validation, persistence reset, presets, and inherited/override UI are implemented. GitHub Actions run #590 passed all 162 tests (0 failures). Manual PWA verification remains pending.
+**Progress:** Implemented on `feat/inherited-engine-configuration` in PR #150. The schema-v2 model, resolver, validation, persistence reset, presets, and inherited/override UI are implemented. GitHub Actions run #594 passed all 162 tests (0 failures). The user completed manual PWA verification on 2026-11-09. The supplied runtime log confirms phase transitions, engine switches, worker searches, and a rejected worker move followed by a successful main-thread retry.
 
 ## Cross-cutting verification
 
@@ -227,6 +227,7 @@ Browser/mobile verification must be recorded separately from automated tests and
 
 ## Change log
 
+- **2026-11-09:** PR #150 completed Stage E.6 implementation and verification: schema-v2 inherited configuration, CI run #594 (162 tests passed, 0 failed), and user-confirmed PWA verification. The supplied runtime log showed phase transitions, engine changes, worker search activity, and successful main-thread retry after a rejected worker move.
 - **2026-11-09:** PR #147 enabled Pjäsjägaren for opening, midgame, and endgame in both MinMax and MCTS; CI passed 158 tests and manual PWA verification was approved. Agreed the extensible configuration/settings contract: general per-side values with sparse field-level phase overrides; inherited Advanced settings; separate Engine/Strength/Personality settings; central definitions for semantically shared settings with explicit engine support; named choices as the default presentation; engine-specific settings under context-sensitive Advanced.
 
 - **2026-11-08:** PR #143 merged Stage E.3's minimal personality contract; CI passed 153 tests and manual PWA verification was approved. PR #144 completed the initial MinMax midgame profile; CI passed 157 tests and manual PWA verification was approved. PR #146 added the same midgame profile to MCTS; CI passed 158 tests and manual PWA verification was approved.
