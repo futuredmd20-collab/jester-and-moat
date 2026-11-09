@@ -54,7 +54,7 @@ Each side (White/Black) has one general engine, strength, personality, and Advan
 - Use common Easy/Medium/Hard strength names, translated by each engine's own profiles.
 - Engine-declared Advanced overrides win over strength defaults; unsupported settings are rejected.
 - Presets are editable profiles, not separate configuration systems.
-- No migration is required for the previous `engineConfig` shape.
+- Schema-v1 `engineConfig` data is reset to schema-v2 defaults; no migration is performed.
 - Keep phase detection separate from engine assignment resolution.
 - Default both sides to MinMax in every phase unless the user opts into MCTS.
 - Classify phases using total piece count plus the existing ply condition, not material score.
