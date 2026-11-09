@@ -1502,6 +1502,7 @@ test('Move Hunter is available in every phase for MinMax and MCTS and reaches AI
 });
 
 test('side and phase assignments accept mixed engines, strengths, and independent advanced settings', () => {
+  sandbox.api.applyEnginePreset('balanced');
   const config = sandbox.api.getEngineConfiguration();
   config.sides.white.phases.opening = {
     engineId: 'mcts', strength: 'hard', advanced: { playouts: 3000 }
