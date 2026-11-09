@@ -10,7 +10,7 @@
       if (personalityId === 'move_hunter') {
         const phase = config && config.phase;
         if (!['opening', 'midgame', 'endgame'].includes(phase)) {
-          throw Object.assign(new Error('Move Hunter requires a supported game phase.'),
+          throw Object.assign(new Error('Piece Hunter requires a supported game phase.'),
             { code: EngineContract.errorCodes.UNSUPPORTED_PERSONALITY });
         }
         return { personalityId, side: position.turn, phase };
