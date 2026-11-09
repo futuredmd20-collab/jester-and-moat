@@ -36,6 +36,19 @@ The first useful result should be a versioned parameter package that the game ca
 - Reuse the existing calibration runner only where inspection proves a component is suitable. Its current MinMax/MCTS comparison purpose does not make it an evolutionary trainer or guarantee that its harness can be reused unchanged.
 - Preserve the game's canonical rules, legal-move validation, immutable search snapshots, cancellation, stale-result rejection, worker failure handling, and offline PWA deployment boundaries.
 
+## Representation-independent evaluation boundary
+
+The evolutionary model must not depend on the game's current internal board representation. The canonical game state remains authoritative, but the trainer and the engine's evaluation model should consume a stable, semantic feature interface rather than reading matrix cells, bitboards, or other storage details directly.
+
+- Define evaluation features in terms of game meaning (for example, material balance, piece activity, mobility, king safety, or variant-specific positional concepts), not in terms of how pieces are stored or indexed.
+- Keep feature extraction behind a narrow adapter owned by the engine/game integration. The evolutionary algorithm operates on feature values and bounded weights; it does not inspect or mutate the underlying board representation.
+- Treat the current 10×8 matrix as the initial adapter source. A future bitboard implementation may accelerate feature extraction internally, but must produce the same feature semantics and compatible values for equivalent positions.
+- Keep variant-specific features explicit and versioned. Do not assume that a feature is meaningful or supported for every future board geometry or variant; validate compatibility rather than silently substituting or omitting it.
+- Version the feature schema separately from the exported parameter-package schema. A change to feature meaning, scale, normalization, or availability requires an explicit compatibility decision; old weights must not be silently applied to semantically changed features.
+- Add equivalence tests before changing the representation used by feature extraction: equivalent positions represented through different internal encodings must yield equivalent feature vectors within explicitly defined numeric tolerances.
+
+This boundary allows bitboards or another internal representation to be introduced independently, without making the evolutionary algorithm, training history, or parameter packages depend on that implementation choice. It does not authorize or require bitboard implementation.
+
 ## Data and artifact boundaries
 
 | Data | Purpose | Initial direction |
@@ -53,7 +66,9 @@ Training history and checkpoints must not be committed to the ordinary game repo
 ### 1. Define the evolutionary model
 
 Before implementing the engine, specify:
-- The initial evaluation features and parameter bounds, based on inspected game rules and existing evaluation code.
+- The initial semantic evaluation features and parameter bounds, based on inspected game rules and existing evaluation code. Define their meaning, scale/normalization, applicability, and feature-schema version; do not expose matrix indices or bitboard layout as model inputs.
+- The feature-extraction boundary between canonical game state and the evolutionary model, including how variant-specific features are declared and validated.
+- The compatibility rule for future board-representation changes: equivalent positions must yield equivalent feature vectors, or require an explicit feature-schema/version migration before existing weights can be reused.
 - Candidate representation and initialization.
 - Selection, mutation, optional crossover, elitism, and population replacement.
 - Fitness calculation, match scheduling, colour balance, termination conditions, and handling of draws.
@@ -135,4 +150,4 @@ After the engine has a stable baseline:
 
 ## Change log
 
-- **2026-11-09:** Created the plan after the user selected an evolutionary third engine, offline CLI training, small initial runs, separate training data, JSON parameter exports, and future compatibility with in-game evolution.
+- **2026-11-09:** Added a representation-independent semantic feature boundary so future bitboard or other internal representation work can proceed without coupling evolutionary weights or training data to storage details.
