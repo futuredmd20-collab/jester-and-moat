@@ -1146,7 +1146,7 @@ function getBestMove(st, depth) { return MinMaxSearchCore.getBestMove(st, depth)
 
 const PERSONALITY_PROFILES = Object.freeze({
   default: Object.freeze({ id: 'default', name: 'Default', description: "The engine's standard playing style." }),
-  move_hunter: Object.freeze({ id: 'move_hunter', name: 'Dragjägaren (Move Hunter)',
+  move_hunter: Object.freeze({ id: 'move_hunter', name: 'Pjäsjägaren (Piece Hunter)',
     description: 'Prioritizes actual attacks against valuable enemy pieces.', phases: ['opening', 'midgame', 'endgame'] })
 });
 const DEFAULT_PERSONALITY_ID = 'default';
