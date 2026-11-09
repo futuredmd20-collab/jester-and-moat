@@ -220,10 +220,12 @@ test('Move Hunter adds one 10% material-value bonus per attacked enemy piece', (
   s.board[2][2] = { type: 'b', color: 'b', moved: false };
   s.board[6][6] = { type: 'b', color: 'w', moved: false };
   const baseline = sandbox.api.MinMaxSearchCore.evaluateBoard(s);
-  const hunter = sandbox.api.MinMaxSearchCore.evaluateBoard(s,
-    { personalityId: 'move_hunter', side: 'w', phase: 'midgame' });
-  assert.ok(Math.abs(hunter - baseline - 0.95) < 1e-9,
-    'the attacked queen earns one bonus even though it is defended and has two attackers');
+  for (const phase of ['opening', 'midgame', 'endgame']) {
+    const hunter = sandbox.api.MinMaxSearchCore.evaluateBoard(s,
+      { personalityId: 'move_hunter', side: 'w', phase });
+    assert.ok(Math.abs(hunter - baseline - 0.95) < 1e-9,
+      `the attacked queen earns one bonus in ${phase} even though it is defended and has two attackers`);
+  }
 
   const blackPosition = position();
   blackPosition.board[4][9] = { type: 'r', color: 'b', moved: false };
@@ -1451,8 +1453,8 @@ test('engine configuration defaults cover every side and phase independently', (
   assert.equal(sandbox.api.PERSONALITY_PROFILES.default.name, 'Default');
   assert.deepEqual(Array.from(sandbox.api.enginePlugins.get('minmax_legacy').supportedPersonalities), ['default', 'move_hunter']);
   assert.deepEqual(Array.from(sandbox.api.enginePlugins.get('mcts').supportedPersonalities), ['default', 'move_hunter']);
-  assert.equal(sandbox.api.PERSONALITY_PROFILES.move_hunter.phases, undefined,
-    'Move Hunter is available in every detected game phase');
+  assert.deepEqual(Array.from(sandbox.api.PERSONALITY_PROFILES.move_hunter.phases),
+    ['opening', 'midgame', 'endgame'], 'Move Hunter is available in every detected game phase');
   for (const side of ['white', 'black']) {
     for (const phase of ['opening', 'midgame', 'endgame']) {
       assert.equal(JSON.stringify(config.sides[side].phases[phase]), JSON.stringify({
