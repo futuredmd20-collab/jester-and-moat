@@ -4,7 +4,7 @@ Purpose: preserve exploratory ideas for future engine, board, and opponent modes
 
 ## Status
 
-The engine-personality architecture direction is agreed. Dragjägaren (Move Hunter) is implemented for MinMax midgame (PR #144); its CI suite passed 157 tests and the user approved the manual PWA verification. Other personality examples and all remaining ideas below remain exploratory unless explicitly noted.
+The engine-personality architecture direction is agreed. Pjäsjägaren (Piece Hunter) is implemented for MinMax and MCTS in opening, midgame, and endgame (PR #147); CI passed 158 tests and the user approved manual PWA verification. An evolutionary third engine with offline CLI training has been selected as the next engine direction and is tracked in [Evolutionary Engine Plan](EVOLUTIONARY-ENGINE-PLAN.md); its implementation details remain to be designed. Other personality examples and the remaining ideas below are exploratory unless explicitly noted.
 
 ## 1. Standard Chess Opponents and Strength Measurement
 
@@ -46,6 +46,19 @@ Other illustrative personalities (not selected or approved):
 - **Opportunisten (Opportunist):** looks for weaknesses and mistakes to exploit.
 
 A future design should distinguish personality from basic playing competence: a style preference should not automatically make an engine overlook an obvious win or choose a clearly losing move.
+
+## 4. Evolutionary Engine — Selected Direction
+
+The user selected an evolutionary engine as the next engine after MinMax and MCTS. The initial direction is deliberately modest:
+
+- Evolve a bounded set of evaluation weights through automated matches; do not begin with neural networks or evolved complete programs.
+- Train offline through a separate Node.js CLI workflow. Normal PWA gameplay loads a prepared, validated parameter package and does not run training.
+- Start with small populations and limited generations, targeting modest local hardware such as the Mac mini M1.
+- Keep training history and resume data outside the shipped PWA. JSONL is the initial candidate for run history; checkpoint format and safe resume behavior require design.
+- Export selected results as small, versioned JSON parameter packages.
+- Keep a future path open for in-game evolution, but do not implement it in the first version.
+
+This is a selected direction, not a completed design or implementation. See [Evolutionary Engine Plan](EVOLUTIONARY-ENGINE-PLAN.md) for scope, staged work, and acceptance gates.
 
 ## Relationship Between the Ideas
 
