@@ -213,7 +213,7 @@ test('loading a saved AI-vs-AI game resumes auto-play after import paused it', (
   sandbox.api.resetAIWorker();
 });
 
-test('Move Hunter adds one 10% material-value bonus per attacked enemy piece', () => {
+test('Piece Hunter adds one 10% material-value bonus per attacked enemy piece', () => {
   const s = position();
   s.board[4][0] = { type: 'r', color: 'w', moved: false };
   s.board[4][4] = { type: 'q', color: 'b', moved: false };
@@ -241,7 +241,7 @@ test('Move Hunter adds one 10% material-value bonus per attacked enemy piece', (
     'evaluation without a personality context remains unchanged');
 });
 
-test('MCTS Move Hunter applies its own attack evaluation in every phase', () => {
+test('MCTS Piece Hunter applies its own attack evaluation in every phase', () => {
   const s = position();
   s.board[4][0] = { type: 'r', color: 'w', moved: false };
   s.board[0][0] = { type: 'r', color: 'w', moved: false };
@@ -269,7 +269,7 @@ test('MCTS Move Hunter applies its own attack evaluation in every phase', () => 
     const blackHunter = sandbox.mctsEvaluateBoard(black,
       { personalityId: 'move_hunter', side: 'b', phase });
     assert.ok(Math.abs(blackHunter - blackBaseline + 0.95) < 1e-9,
-      `Black MCTS Move Hunter must reduce the White-perspective score in ${phase} and exclude the king`);
+      `Black MCTS Piece Hunter must reduce the White-perspective score in ${phase} and exclude the king`);
   }
 
   const engine = sandbox.api.enginePlugins.get('mcts');
@@ -280,7 +280,7 @@ test('MCTS Move Hunter applies its own attack evaluation in every phase', () => 
     configurable.sides.white.phases[phase].personalityId = 'move_hunter';
     assert.equal(sandbox.api.validateEngineConfiguration(configurable)
       .sides.white.phases[phase].personalityId, 'move_hunter',
-      `configuration must accept MCTS Move Hunter in ${phase}`);
+      `configuration must accept MCTS Piece Hunter in ${phase}`);
     const request = EngineContract.createRequest({
       requestId: 'mcts-move-hunter-' + phase,
       generation: 1,
@@ -292,11 +292,11 @@ test('MCTS Move Hunter applies its own attack evaluation in every phase', () => 
     });
     const result = engine.search(request);
     assert.equal(result.status, EngineContract.statuses.COMPLETED,
-      `MCTS contract must accept Move Hunter in ${phase}: ${JSON.stringify(result)}`);
+      `MCTS contract must accept Piece Hunter in ${phase}: ${JSON.stringify(result)}`);
   }
 });
 
-test('Move Hunter attack evaluation is preserved through structured worker dispatch', async () => {
+test('Piece Hunter attack evaluation is preserved through structured worker dispatch', async () => {
   const workerBlobs = new Map();
   const previousCreateObjectURL = sandbox.URL.createObjectURL;
   const previousRevokeObjectURL = sandbox.URL.revokeObjectURL;
@@ -365,7 +365,7 @@ test('Move Hunter attack evaluation is preserved through structured worker dispa
       });
       assert.equal(response.id, 301 + index);
       assert.equal(response.result.status, EngineContract.statuses.COMPLETED,
-        `MinMax worker must accept Move Hunter in ${phase}: ${JSON.stringify(response.result)}`);
+        `MinMax worker must accept Piece Hunter in ${phase}: ${JSON.stringify(response.result)}`);
       assert.ok(response.result.move, 'worker dispatch should return a legal search move');
       assert.ok(allLegalState(s).some(move => JSON.stringify(move) === JSON.stringify(response.result.move)));
     }
@@ -380,7 +380,7 @@ test('Move Hunter attack evaluation is preserved through structured worker dispa
     assert.ok(Math.abs(mainThreadBaseline - baseline) < 1e-9,
       'main-thread Default evaluation must match the worker Default evaluation');
     assert.equal(sandbox.api.enginePlugins.get('mcts').supportedPersonalities.includes('move_hunter'), true,
-      'MCTS must advertise its newly supported Move Hunter profile');
+      'MCTS must advertise its newly supported Piece Hunter profile');
 
     for (const [index, phase] of ['opening', 'midgame', 'endgame'].entries()) {
       const mctsRequest = EngineContract.createRequest({
@@ -397,9 +397,9 @@ test('Move Hunter attack evaluation is preserved through structured worker dispa
         worker.postMessage({ id: 304 + index, contractRequest: mctsRequest });
       });
       assert.equal(mctsResponse.result.status, EngineContract.statuses.COMPLETED,
-        `MCTS worker must accept Move Hunter in ${phase}: ${JSON.stringify(mctsResponse.result)}`);
+        `MCTS worker must accept Piece Hunter in ${phase}: ${JSON.stringify(mctsResponse.result)}`);
       assert.ok(allLegalState(s).some(move => JSON.stringify(move) === JSON.stringify(mctsResponse.result.move)),
-        'MCTS worker must return a legal move with Move Hunter selected');
+        'MCTS worker must return a legal move with Piece Hunter selected');
       assert.ok(workerContext.__mctsEvaluationContexts.some(context =>
         context && context.personalityId === 'move_hunter' && context.side === 'w' && context.phase === phase),
         `the worker must pass the configured ${phase} context into MCTS playout evaluation`);
@@ -420,7 +420,7 @@ test('Move Hunter attack evaluation is preserved through structured worker dispa
   }
 });
 
-test('MinMax contract accepts Move Hunter in all three phases', () => {
+test('MinMax contract accepts Piece Hunter in all three phases', () => {
   for (const phase of ['opening', 'midgame', 'endgame']) {
     const request = EngineContract.createRequest({
       requestId: 'move-hunter-' + phase,
@@ -432,7 +432,7 @@ test('MinMax contract accepts Move Hunter in all three phases', () => {
     });
     const result = sandbox.api.MinMaxLegacy.search(request);
     assert.equal(result.status, EngineContract.statuses.COMPLETED,
-      `MinMax contract must accept Move Hunter in ${phase}: ${JSON.stringify(result)}`);
+      `MinMax contract must accept Piece Hunter in ${phase}: ${JSON.stringify(result)}`);
   }
 });
 
@@ -1454,7 +1454,7 @@ test('engine configuration defaults cover every side and phase independently', (
   assert.deepEqual(Array.from(sandbox.api.enginePlugins.get('minmax_legacy').supportedPersonalities), ['default', 'move_hunter']);
   assert.deepEqual(Array.from(sandbox.api.enginePlugins.get('mcts').supportedPersonalities), ['default', 'move_hunter']);
   assert.deepEqual(Array.from(sandbox.api.PERSONALITY_PROFILES.move_hunter.phases),
-    ['opening', 'midgame', 'endgame'], 'Move Hunter is available in every detected game phase');
+    ['opening', 'midgame', 'endgame'], 'Piece Hunter is available in every detected game phase');
   for (const side of ['white', 'black']) {
     for (const phase of ['opening', 'midgame', 'endgame']) {
       assert.equal(JSON.stringify(config.sides[side].phases[phase]), JSON.stringify({
@@ -1464,7 +1464,7 @@ test('engine configuration defaults cover every side and phase independently', (
   }
 });
 
-test('Move Hunter is available in every phase for MinMax and MCTS and reaches AI search configuration', () => {
+test('Piece Hunter is available in every phase for MinMax and MCTS and reaches AI search configuration', () => {
   const phases = ['opening', 'midgame', 'endgame'];
   const minmaxConfig = sandbox.api.getEngineConfiguration();
   for (const phase of phases) minmaxConfig.sides.white.phases[phase].personalityId = 'move_hunter';
