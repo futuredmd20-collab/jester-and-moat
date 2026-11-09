@@ -1464,9 +1464,11 @@ function renderEngineConfigurationUI() {
     const generalEngine = enginePlugins.get(general.engineId);
     const generalStrength = generalEngine.strengths[general.strength] || {};
     const generalSettings = Object.assign({}, generalStrength, general.advanced);
-    const personalityOptions = engine => (engine.supportedPersonalities || []).filter(id => {
+    const personalityOptions = (engine, phase = null) => (engine.supportedPersonalities || []).filter(id => {
       const profile = PERSONALITY_PROFILES[id];
-      return profile && (!Array.isArray(profile.phases) || Object.values(ENGINE_PHASES).every(p => profile.phases.includes(p)));
+      return profile && (!Array.isArray(profile.phases) || (phase
+        ? profile.phases.includes(phase)
+        : Object.values(ENGINE_PHASES).every(p => profile.phases.includes(p))));
     }).map(id => '<option value="' + escapeEngineConfigHtml(id) + '">' +
       escapeEngineConfigHtml(PERSONALITY_PROFILES[id].name || id) + '</option>').join('');
     const generalFields = renderEngineSettingFields(side, null, generalEngine, generalSettings, 'general');
@@ -1500,7 +1502,7 @@ function renderEngineConfigurationUI() {
         ENGINE_STRENGTH_LABELS[general.strength] + ')</option>' + strengthOptions;
       const phasePersonalityOptions = '<option value="__inherit__">Use general (' +
         escapeEngineConfigHtml(PERSONALITY_PROFILES[general.personalityId].name) + ')</option>' +
-        personalityOptions(engine);
+        personalityOptions(engine, phase);
       const engineValue = Object.prototype.hasOwnProperty.call(overrides, 'engineId') ? overrides.engineId : '__inherit__';
       const strengthValue = Object.prototype.hasOwnProperty.call(overrides, 'strength') ? overrides.strength : '__inherit__';
       const personalityValue = Object.prototype.hasOwnProperty.call(overrides, 'personalityId') ? overrides.personalityId : '__inherit__';
@@ -1579,6 +1581,7 @@ function handleEngineConfigurationChange(event) {
       destination[setting] = value;
     } else if (value === '__inherit__') {
       delete destination[setting];
+      if (setting === 'engineId') destination.advanced = {};
     } else {
       if (setting === 'engineId') {
         if (!enginePlugins.has(value)) return;
