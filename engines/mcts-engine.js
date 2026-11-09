@@ -94,8 +94,7 @@ function mctsApplyMove(s, m) {
  * even as each random playout alternates turns. */
 function mctsEvaluateBoard(s, evaluationContext = null) {
   var score = evaluateBoard(s);
-  if (!evaluationContext || evaluationContext.personalityId !== 'move_hunter' ||
-      evaluationContext.phase !== 'midgame' || !attacked) return score;
+  if (!evaluationContext || evaluationContext.personalityId !== 'move_hunter' || !attacked) return score;
 
   var hunterSide = evaluationContext.side;
   var pieceValues = { p: 1.0, n: 3.0, b: 3.5, r: 5.0, q: 9.5, k: 200.0, j: getJesterValue(s) };
