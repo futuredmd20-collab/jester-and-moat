@@ -4,7 +4,7 @@ Purpose: define the architectural investigation and staged direction for adding 
 
 ## Status
 
-**Status: In progress (2026-11-09).** Stages A–D and E.4/E.5 are complete and merged; E.6 implementation is underway. PR #147 enabled Pjäsjägaren (Piece Hunter) in opening, midgame, and endgame for both MinMax and MCTS. GitHub Actions passed 158 tests (0 failures), and manual PWA verification was approved. Additional engines and alternative-board work remain unstarted. The shared engine-configuration contract is now implemented as Stage E.6 in the current task branch; verification is pending.
+**Status: In progress (2026-11-09).** Stages A–D and E.4/E.5 are complete and merged. E.6 implementation and automated verification are complete on the current branch; manual PWA verification is pending. PR #147 enabled Pjäsjägaren (Piece Hunter) in opening, midgame, and endgame for both MinMax and MCTS. GitHub Actions passed 158 tests (0 failures), and manual PWA verification was approved. Additional engines and alternative-board work remain unstarted. The shared engine-configuration contract is now implemented as Stage E.6 in the current task branch; verification is pending.
 
 ## Goal
 
@@ -182,7 +182,7 @@ The ordering may be revised if the dependency audit demonstrates a lower-risk se
 
 **Implementation scope:** schema version 2, deterministic effective-assignment resolution, strict validation of every effective side × phase combination, presets based on general settings, version-1 reset to defaults (no migration), and UI controls for general values plus explicit per-phase inheritance/overrides.
 
-**Progress:** Implementation is underway on `feat/inherited-engine-configuration`. The schema-v2 model, resolver, validation, persistence reset, presets, and inherited/override UI are implemented. Contract tests and CI verification are in progress; do not mark this stage complete until those checks pass.
+**Progress:** Implemented on `feat/inherited-engine-configuration`. The schema-v2 model, resolver, validation, persistence reset, presets, and inherited/override UI are implemented. GitHub Actions run #590 passed all 162 tests (0 failures). Manual PWA verification remains pending.
 
 ## Cross-cutting verification
 
