@@ -4,7 +4,7 @@ Purpose: define the architectural investigation and staged direction for adding 
 
 ## Status
 
-**Status: In progress (2026-11-09).** Stages A–D and E.4/E.5 are complete and merged. Stage E.6 implementation, automated verification, and manual PWA verification are complete on the current task branch; PR #150 is awaiting final review. PR #147 enabled Pjäsjägaren (Piece Hunter) in opening, midgame, and endgame for both MinMax and MCTS. GitHub Actions passed 158 tests (0 failures), and manual PWA verification was approved. Additional engines and alternative-board work remain unstarted.
+**Status: In progress (2026-11-09).** Stages A–D and E.4/E.5 are complete and merged. Stage E.6 is complete and merged in PR #150; GitHub Actions run #594 passed 162 tests (0 failures), and the user completed manual PWA verification. PR #147 enabled Pjäsjägaren (Piece Hunter) in opening, midgame, and endgame for both MinMax and MCTS. Additional engine and alternative-board implementation remains unstarted. The evolutionary third engine is now the selected next engine direction; see [Evolutionary Engine Plan](EVOLUTIONARY-ENGINE-PLAN.md).
 
 ## Goal
 
@@ -142,6 +142,7 @@ Recommended implementation order after the design gates above:
 5. Add personality support to further engines one at a time, preserving engine-owned interpretation and shared contract tests. **Complete in PR #146:** add the existing Pjäsjägaren profile to MCTS, initially for midgame.
 6. Add further engines one at a time, with explicit variant/capability declarations and shared contract tests.
 7. Add a reduced board such as 5×8 only after geometry, setup, rule differences, serialization, editor, rendering, and engine compatibility have explicit designs and tests.
+8. Develop the selected evolutionary third engine as a separate, staged track. Begin with a small offline CLI trainer that evolves bounded evaluation weights and exports versioned JSON parameter packages; keep training history/checkpoints outside the PWA and runtime. Preserve a future path to in-game evolution without implementing it in the first version. See [Evolutionary Engine Plan](EVOLUTIONARY-ENGINE-PLAN.md).
 
 The ordering may be revised if the dependency audit demonstrates a lower-risk sequence. A new engine does not need to wait for every personality or board variant if its scope is compatible with the current game.
 
@@ -224,10 +225,12 @@ Browser/mobile verification must be recorded separately from automated tests and
 - [Engine Plugins](ENGINE-PLUGINS.md): current integration, verification, and parked follow-up work.
 - [Engine and Board Ideas](ENGINE-IDEAS.md): exploratory personality examples, standard-chess, and alternative-board ideas.
 - [Bitboard Engine Evaluation and Migration](BITBOARD-ENGINE-PLAN.md): separate engine-internal performance evaluation.
+- [Evolutionary Engine Plan](EVOLUTIONARY-ENGINE-PLAN.md): selected third-engine direction and separate offline CLI training workflow.
 
 ## Change log
 
-- **2026-11-09:** PR #150 completed Stage E.6 implementation and verification: schema-v2 inherited configuration, CI run #594 (162 tests passed, 0 failed), and user-confirmed PWA verification. The supplied runtime log showed phase transitions, engine changes, worker search activity, and successful main-thread retry after a rejected worker move.
+- **2026-11-09:** PR #150 merged, completing Stage E.6: schema-v2 inherited configuration, CI run #594 (162 tests passed, 0 failed), and user-confirmed PWA verification. The supplied runtime log showed phase transitions, engine changes, worker search activity, and successful main-thread retry after a rejected worker move.
+- **2026-11-09:** Selected an evolutionary engine as the next engine direction. Initial scope is a small offline CLI trainer that evolves evaluation weights and exports versioned parameter packages; in-game evolution remains a future-compatible possibility, not first-version scope. See [Evolutionary Engine Plan](EVOLUTIONARY-ENGINE-PLAN.md).
 - **2026-11-09:** PR #147 enabled Pjäsjägaren for opening, midgame, and endgame in both MinMax and MCTS; CI passed 158 tests and manual PWA verification was approved. Agreed the extensible configuration/settings contract: general per-side values with sparse field-level phase overrides; inherited Advanced settings; separate Engine/Strength/Personality settings; central definitions for semantically shared settings with explicit engine support; named choices as the default presentation; engine-specific settings under context-sensitive Advanced.
 
 - **2026-11-08:** PR #143 merged Stage E.3's minimal personality contract; CI passed 153 tests and manual PWA verification was approved. PR #144 completed the initial MinMax midgame profile; CI passed 157 tests and manual PWA verification was approved. PR #146 added the same midgame profile to MCTS; CI passed 158 tests and manual PWA verification was approved.
