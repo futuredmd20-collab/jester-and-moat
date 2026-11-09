@@ -1214,10 +1214,10 @@ if (typeof mctsEngine === 'function') {
   console.warn('MCTS engine failed to load; falling back to MinMax.');
 }
 
-/* Engine configuration: one independent assignment for every side and phase. */
+/* Engine configuration: general per-side values with sparse phase overrides. */
 const ENGINE_STRENGTHS = Object.freeze(['easy', 'medium', 'hard']);
 const ENGINE_STRENGTH_LABELS = Object.freeze({ easy: 'Easy', medium: 'Medium', hard: 'Hard' });
-const ENGINE_CONFIG_SCHEMA_VERSION = 1;
+const ENGINE_CONFIG_SCHEMA_VERSION = 2;
 const ENGINE_PRESETS = Object.freeze({
   balanced: { label: 'Balanced · MinMax Medium', engineId: 'minmax_legacy', strength: 'medium', personalityId: DEFAULT_PERSONALITY_ID },
   easy: { label: 'Easy · MinMax Easy', engineId: 'minmax_legacy', strength: 'easy', personalityId: DEFAULT_PERSONALITY_ID },
@@ -1225,17 +1225,14 @@ const ENGINE_PRESETS = Object.freeze({
 });
 
 function createDefaultEngineConfiguration() {
-  const phases = {};
-  for (const phase of Object.values(ENGINE_PHASES)) {
-    phases[phase] = { engineId: 'minmax_legacy', strength: 'medium', personalityId: DEFAULT_PERSONALITY_ID, advanced: {} };
-  }
+  const side = () => ({
+    general: { engineId: 'minmax_legacy', strength: 'medium', personalityId: DEFAULT_PERSONALITY_ID, advanced: {} },
+    phases: Object.fromEntries(Object.values(ENGINE_PHASES).map(phase => [phase, {}]))
+  });
   return {
     schemaVersion: ENGINE_CONFIG_SCHEMA_VERSION,
     presetId: 'balanced',
-    sides: {
-      white: { phases: engineCopy(phases) },
-      black: { phases: engineCopy(phases) }
-    }
+    sides: { white: side(), black: side() }
   };
 }
 
@@ -1256,7 +1253,7 @@ function validateEngineSettingsAgainstSchema(engineId, settings, schemas) {
     const validType = definition.type === 'integer' ? Number.isInteger(value)
       : definition.type === 'number' ? Number.isFinite(value)
       : definition.type === 'boolean' ? typeof value === 'boolean'
-      : definition.type === 'enum' ? definition.options.includes(value)
+      : definition.type === 'enum' ? Array.isArray(definition.options) && definition.options.includes(value)
       : false;
     if (!validType || (definition.min != null && value < definition.min) ||
         (definition.max != null && value > definition.max))
@@ -1274,7 +1271,7 @@ function validateEngineRequestConfig(engineId, config, schemas, engineMetadata) 
     throw new Error('Unsupported engine strength: ' + strength);
   const personalityId = requestConfig.personalityId == null ? DEFAULT_PERSONALITY_ID : requestConfig.personalityId;
   const phase = requestConfig.phase == null ? null : requestConfig.phase;
-  if (phase != null && !['opening', 'midgame', 'endgame'].includes(phase))
+  if (phase != null && !Object.values(ENGINE_PHASES).includes(phase))
     throw new Error('Unsupported engine phase: ' + phase);
   assertEnginePersonalityCompatibility(engineMetadata && engineMetadata[engineId], personalityId, engineId, phase);
   return {
@@ -1289,61 +1286,123 @@ function getEngineSettingsSchemas() {
   return Object.fromEntries(Array.from(enginePlugins.entries()).map(([id, engine]) => [id, engine.settings || {}]));
 }
 
+function resolveEngineAssignmentFromConfig(config, side, phase) {
+  const sideConfig = config.sides[side];
+  const overrides = sideConfig.phases[phase] || {};
+  const general = sideConfig.general;
+  const engineOverridden = Object.prototype.hasOwnProperty.call(overrides, 'engineId');
+  const engineId = engineOverridden ? overrides.engineId : general.engineId;
+  const advanced = engineOverridden
+    ? Object.assign({}, overrides.advanced || {})
+    : Object.assign({}, general.advanced || {}, overrides.advanced || {});
+  return {
+    engineId,
+    strength: Object.prototype.hasOwnProperty.call(overrides, 'strength') ? overrides.strength : general.strength,
+    personalityId: Object.prototype.hasOwnProperty.call(overrides, 'personalityId')
+      ? overrides.personalityId : general.personalityId,
+    advanced,
+    engineOverridden
+  };
+}
+
 function validateEngineConfiguration(value, position = null) {
   if (!engineHasOnlyKeys(value, ['schemaVersion', 'presetId', 'sides']) ||
       value.schemaVersion !== ENGINE_CONFIG_SCHEMA_VERSION ||
       !(value.presetId === null || Object.prototype.hasOwnProperty.call(ENGINE_PRESETS, value.presetId)) ||
-      !engineHasOnlyKeys(value.sides, ['white', 'black']) ||
-      !value.sides.white || !value.sides.black)
+      !engineHasOnlyKeys(value.sides, ['white', 'black']) || !value.sides.white || !value.sides.black)
     throw new Error('Invalid engine configuration structure.');
 
   const normalized = { schemaVersion: ENGINE_CONFIG_SCHEMA_VERSION, presetId: value.presetId, sides: {} };
   const schemas = getEngineSettingsSchemas();
+  const targetPosition = position || (state && state.variant ? state : { variant: GAME_VARIANT });
   for (const side of ['white', 'black']) {
     const sideConfig = value.sides[side];
-    if (!engineHasOnlyKeys(sideConfig, ['phases']) ||
-        !engineHasOnlyKeys(sideConfig.phases, Object.values(ENGINE_PHASES)))
-      throw new Error('Invalid phase assignments for ' + side + '.');
-    normalized.sides[side] = { phases: {} };
+    if (!engineHasOnlyKeys(sideConfig, ['general', 'phases']) ||
+        !engineHasOnlyKeys(sideConfig.phases, Object.values(ENGINE_PHASES)) ||
+        !sideConfig.general || !engineHasOnlyKeys(sideConfig.general, ['engineId', 'strength', 'personalityId', 'advanced']))
+      throw new Error('Invalid configuration for ' + side + '.');
+
+    const general = sideConfig.general;
+    if (typeof general.engineId !== 'string' || !enginePlugins.has(general.engineId) ||
+        !enginePlugins.get(general.engineId).phases.includes(ENGINE_PHASES.OPENING) ||
+        !ENGINE_STRENGTHS.includes(general.strength))
+      throw new Error('Invalid ' + side + ' general engine assignment.');
+    const generalPersonality = general.personalityId == null ? DEFAULT_PERSONALITY_ID : general.personalityId;
+    const generalAdvanced = validateEngineSettingsAgainstSchema(general.engineId, general.advanced || {}, schemas);
+    const generalEngine = enginePlugins.get(general.engineId);
+    assertEngineVariantCompatibility(generalEngine, targetPosition, general.engineId);
+    normalized.sides[side] = {
+      general: { engineId: general.engineId, strength: general.strength,
+        personalityId: generalPersonality, advanced: generalAdvanced },
+      phases: {}
+    };
+
     for (const phase of Object.values(ENGINE_PHASES)) {
-      const assignment = sideConfig.phases[phase];
-      if (!engineHasOnlyKeys(assignment, ['engineId', 'strength', 'personalityId', 'advanced']) ||
-          typeof assignment.engineId !== 'string' || !enginePlugins.has(assignment.engineId) ||
-          !ENGINE_STRENGTHS.includes(assignment.strength) ||
-          !enginePlugins.get(assignment.engineId).phases.includes(phase))
-        throw new Error('Invalid ' + side + ' ' + phase + ' engine assignment.');
-      const targetPosition = position || (state && state.variant ? state : { variant: GAME_VARIANT });
-      const engine = enginePlugins.get(assignment.engineId);
-      assertEngineVariantCompatibility(engine, targetPosition, assignment.engineId);
-      const personalityId = assignment.personalityId == null ? DEFAULT_PERSONALITY_ID : assignment.personalityId;
-      assertEnginePersonalityCompatibility(engine, personalityId, assignment.engineId, phase);
-      const advanced = validateEngineSettingsAgainstSchema(assignment.engineId, assignment.advanced || {}, schemas);
-      normalized.sides[side].phases[phase] = {
-        engineId: assignment.engineId,
-        strength: assignment.strength,
-        personalityId,
-        advanced
-      };
+      const overrides = sideConfig.phases[phase] == null ? {} : sideConfig.phases[phase];
+      if (!engineHasOnlyKeys(overrides, ['engineId', 'strength', 'personalityId', 'advanced']))
+        throw new Error('Invalid ' + side + ' ' + phase + ' phase overrides.');
+      const clean = {};
+      if (Object.prototype.hasOwnProperty.call(overrides, 'engineId')) {
+        if (typeof overrides.engineId !== 'string' || !enginePlugins.has(overrides.engineId) ||
+            !enginePlugins.get(overrides.engineId).phases.includes(phase))
+          throw new Error('Invalid ' + side + ' ' + phase + ' engine override.');
+        clean.engineId = overrides.engineId;
+      }
+      if (Object.prototype.hasOwnProperty.call(overrides, 'strength')) {
+        if (!ENGINE_STRENGTHS.includes(overrides.strength))
+          throw new Error('Invalid ' + side + ' ' + phase + ' strength override.');
+        clean.strength = overrides.strength;
+      }
+      if (Object.prototype.hasOwnProperty.call(overrides, 'personalityId')) {
+        if (typeof overrides.personalityId !== 'string')
+          throw new Error('Invalid ' + side + ' ' + phase + ' personality override.');
+        clean.personalityId = overrides.personalityId;
+      }
+      if (Object.prototype.hasOwnProperty.call(overrides, 'advanced')) {
+        if (!overrides.advanced || typeof overrides.advanced !== 'object' || Array.isArray(overrides.advanced))
+          throw new Error('Invalid ' + side + ' ' + phase + ' Advanced overrides.');
+        clean.advanced = engineCopy(overrides.advanced);
+      }
+      normalized.sides[side].phases[phase] = clean;
+
+      const effective = resolveEngineAssignmentFromConfig(normalized, side, phase);
+      const engine = enginePlugins.get(effective.engineId);
+      if (!engine || !engine.phases.includes(phase))
+        throw new Error('Invalid ' + side + ' ' + phase + ' effective engine assignment.');
+      assertEngineVariantCompatibility(engine, targetPosition, effective.engineId);
+      assertEnginePersonalityCompatibility(engine, effective.personalityId, effective.engineId, phase);
+      if (!engine.strengths || !engine.strengths[effective.strength])
+        throw new Error(engine.name + ' does not support ' + effective.strength + ' strength.');
+      validateEngineSettingsAgainstSchema(effective.engineId, effective.advanced, schemas);
     }
+    assertEnginePersonalityCompatibility(generalEngine, generalPersonality, general.engineId, null);
   }
   return normalized;
 }
 
 function getEngineAssignment(side, phase) {
   const normalizedSide = side === 'w' ? 'white' : side === 'b' ? 'black' : side;
-  const assignment = engineConfiguration.sides[normalizedSide] &&
-    engineConfiguration.sides[normalizedSide].phases[phase];
-  if (!assignment) throw new Error('Unknown engine assignment: ' + side + ' / ' + phase);
-  const engine = enginePlugins.get(assignment.engineId);
-  if (!engine) throw new Error('Unknown engine: ' + assignment.engineId);
-  assertEngineVariantCompatibility(engine, state && state.variant ? state : { variant: GAME_VARIANT }, assignment.engineId);
-  const personalityId = assignment.personalityId == null ? DEFAULT_PERSONALITY_ID : assignment.personalityId;
-  assertEnginePersonalityCompatibility(engine, personalityId, assignment.engineId, phase);
-  const profile = engine.strengths && engine.strengths[assignment.strength];
-  if (!profile) throw new Error(engine.name + ' does not support ' + assignment.strength + ' strength.');
-  const settings = Object.assign({}, profile, assignment.advanced);
+  if (!['white', 'black'].includes(normalizedSide) || !Object.values(ENGINE_PHASES).includes(phase))
+    throw new Error('Unknown engine assignment: ' + side + ' / ' + phase);
+  const effective = resolveEngineAssignmentFromConfig(engineConfiguration, normalizedSide, phase);
+  const engine = enginePlugins.get(effective.engineId);
+  if (!engine) throw new Error('Unknown engine: ' + effective.engineId);
+  assertEngineVariantCompatibility(engine, state && state.variant ? state : { variant: GAME_VARIANT }, effective.engineId);
+  assertEnginePersonalityCompatibility(engine, effective.personalityId, effective.engineId, phase);
+  const profile = engine.strengths && engine.strengths[effective.strength];
+  if (!profile) throw new Error(engine.name + ' does not support ' + effective.strength + ' strength.');
+  const settings = Object.assign({}, profile, effective.advanced);
   validateEngineSettingsAgainstSchema(engine.id, settings, getEngineSettingsSchemas());
-  return { engine, phase, strength: assignment.strength, personalityId, personality: PERSONALITY_PROFILES[personalityId], advanced: engineCopy(assignment.advanced), settings };
+  return {
+    engine, phase, strength: effective.strength, personalityId: effective.personalityId,
+    personality: PERSONALITY_PROFILES[effective.personalityId],
+    advanced: engineCopy(effective.advanced), settings,
+    inherited: {
+      engineId: !effective.engineOverridden,
+      strength: !Object.prototype.hasOwnProperty.call(engineConfiguration.sides[normalizedSide].phases[phase], 'strength'),
+      personalityId: !Object.prototype.hasOwnProperty.call(engineConfiguration.sides[normalizedSide].phases[phase], 'personalityId')
+    }
+  };
 }
 
 let engineConfiguration = createDefaultEngineConfiguration();
@@ -1363,60 +1422,109 @@ function escapeEngineConfigHtml(value) {
   })[char]);
 }
 
+function renderEngineSettingFields(side, phase, engine, effectiveSettings, scope) {
+  return Object.entries(engine.settings || {}).map(([key, definition]) => {
+    const value = effectiveSettings[key] == null ? definition.default : effectiveSettings[key];
+    const invalid = engineConfigInvalidField && engineConfigInvalidField.side === side &&
+      engineConfigInvalidField.phase === phase && engineConfigInvalidField.key === key;
+    const attrs = ' data-side="' + side + '" data-phase="' + (phase || '') +
+      '" data-scope="' + scope + '" data-setting="advanced:' + escapeEngineConfigHtml(key) + '"';
+    let control;
+    if (definition.type === 'boolean') {
+      control = '<input type="checkbox"' + attrs + (value ? ' checked' : '') +
+        ' aria-invalid="' + (invalid ? 'true' : 'false') + '">';
+    } else if (definition.type === 'enum') {
+      control = '<select' + attrs + '>' + (definition.options || []).map(option =>
+        '<option value="' + escapeEngineConfigHtml(option) + '"' + (option === value ? ' selected' : '') + '>' +
+        escapeEngineConfigHtml(option) + '</option>').join('') + '</select>';
+    } else {
+      control = '<input type="number"' + attrs + ' min="' + (definition.min == null ? '' : definition.min) +
+        '" max="' + (definition.max == null ? '' : definition.max) + '" step="' +
+        (definition.step || 1) + '" value="' + escapeEngineConfigHtml(value) +
+        '" aria-invalid="' + (invalid ? 'true' : 'false') + '">';
+    }
+    return '<label class="engine-config-field"><span>' + escapeEngineConfigHtml(definition.label || key) +
+      '</span>' + control + (definition.description ? '<small>' +
+      escapeEngineConfigHtml(definition.description) + '</small>' : '') + '</label>';
+  }).join('');
+}
+
 function renderEngineConfigurationUI() {
   const host = document.getElementById('engineAssignments');
   if (!host) return;
-  const engineOptions = Array.from(enginePlugins.values()).map(engine =>
-    '<option value="' + escapeEngineConfigHtml(engine.id) + '">' +
-    escapeEngineConfigHtml(engine.name || engine.id) + '</option>').join('');
+  const allEngines = Array.from(enginePlugins.values());
+  const engineOptions = allEngines.map(engine => '<option value="' +
+    escapeEngineConfigHtml(engine.id) + '">' + escapeEngineConfigHtml(engine.name || engine.id) + '</option>').join('');
   const strengthOptions = ENGINE_STRENGTHS.map(strength =>
     '<option value="' + strength + '">' + ENGINE_STRENGTH_LABELS[strength] + '</option>').join('');
   const cards = [];
   for (const side of ['white', 'black']) {
+    const sideConfig = engineConfiguration.sides[side];
+    const general = sideConfig.general;
+    const generalEngine = enginePlugins.get(general.engineId);
+    const generalStrength = generalEngine.strengths[general.strength] || {};
+    const generalSettings = Object.assign({}, generalStrength, general.advanced);
+    const personalityOptions = engine => (engine.supportedPersonalities || []).filter(id => {
+      const profile = PERSONALITY_PROFILES[id];
+      return profile && (!Array.isArray(profile.phases) || Object.values(ENGINE_PHASES).every(p => profile.phases.includes(p)));
+    }).map(id => '<option value="' + escapeEngineConfigHtml(id) + '">' +
+      escapeEngineConfigHtml(PERSONALITY_PROFILES[id].name || id) + '</option>').join('');
+    const generalFields = renderEngineSettingFields(side, null, generalEngine, generalSettings, 'general');
+    cards.push('<section class="engine-assignment engine-general-assignment"><h4>' +
+      (side === 'white' ? 'White' : 'Black') + ' · General</h4>' +
+      '<label class="engine-config-field"><span>Engine</span><select data-side="' + side +
+      '" data-scope="general" data-setting="engineId">' +
+      engineOptions.replace('value="' + general.engineId + '"', 'value="' + general.engineId + '" selected') +
+      '</select></label>' +
+      '<label class="engine-config-field"><span>Strength</span><select data-side="' + side +
+      '" data-scope="general" data-setting="strength">' +
+      strengthOptions.replace('value="' + general.strength + '"', 'value="' + general.strength + '" selected') +
+      '</select></label>' +
+      '<label class="engine-config-field"><span>Personality</span><select data-side="' + side +
+      '" data-scope="general" data-setting="personalityId">' +
+      personalityOptions(generalEngine).replace('value="' + general.personalityId + '"',
+        'value="' + general.personalityId + '" selected') + '</select></label>' +
+      '<details class="engine-advanced"><summary>Advanced settings</summary><div class="engine-advanced-fields">' +
+      generalFields + '</div><button type="button" class="engine-reset-advanced" data-side="' + side +
+      '" data-scope="general">Reset advanced settings</button></details></section>');
+
     for (const phase of Object.values(ENGINE_PHASES)) {
-      const assignment = engineConfiguration.sides[side].phases[phase];
-      const engine = enginePlugins.get(assignment.engineId);
-      const effective = Object.assign({}, engine.strengths[assignment.strength], assignment.advanced);
-      const personalityOptions = (engine.supportedPersonalities || []).filter(id => {
-        const profile = PERSONALITY_PROFILES[id];
-        return profile && (!Array.isArray(profile.phases) || profile.phases.includes(phase));
-      }).map(id => '<option value="' + escapeEngineConfigHtml(id) + '">' +
-        escapeEngineConfigHtml(PERSONALITY_PROFILES[id].name || id) + '</option>').join('');
-      const fields = Object.entries(engine.settings || {}).map(([key, definition]) => {
-        const value = effective[key] == null ? definition.default : effective[key];
-        const invalid = engineConfigInvalidField &&
-          engineConfigInvalidField.side === side && engineConfigInvalidField.phase === phase &&
-          engineConfigInvalidField.key === key;
-        return '<label class="engine-config-field"><span>' + escapeEngineConfigHtml(definition.label || key) +
-          '</span><input type="number" data-side="' + side + '" data-phase="' + phase +
-          '" data-setting="advanced:' + key + '" min="' + definition.min + '" max="' + definition.max +
-          '" step="' + (definition.step || 1) + '" value="' + escapeEngineConfigHtml(value) +
-          '" aria-invalid="' + (invalid ? 'true' : 'false') + '">' +
-          (definition.description ? '<small>' + escapeEngineConfigHtml(definition.description) + '</small>' : '') +
-          '</label>';
-      }).join('');
+      const overrides = sideConfig.phases[phase];
+      const effective = resolveEngineAssignmentFromConfig(engineConfiguration, side, phase);
+      const engine = enginePlugins.get(effective.engineId);
+      const strength = engine.strengths[effective.strength] || {};
+      const effectiveSettings = Object.assign({}, strength, effective.advanced);
+      const phaseEngineOptions = '<option value="__inherit__">Use general (' +
+        escapeEngineConfigHtml(generalEngine.name || general.engineId) + ')</option>' + engineOptions;
+      const phaseStrengthOptions = '<option value="__inherit__">Use general (' +
+        ENGINE_STRENGTH_LABELS[general.strength] + ')</option>' + strengthOptions;
+      const phasePersonalityOptions = '<option value="__inherit__">Use general (' +
+        escapeEngineConfigHtml(PERSONALITY_PROFILES[general.personalityId].name) + ')</option>' +
+        personalityOptions(engine);
+      const engineValue = Object.prototype.hasOwnProperty.call(overrides, 'engineId') ? overrides.engineId : '__inherit__';
+      const strengthValue = Object.prototype.hasOwnProperty.call(overrides, 'strength') ? overrides.strength : '__inherit__';
+      const personalityValue = Object.prototype.hasOwnProperty.call(overrides, 'personalityId') ? overrides.personalityId : '__inherit__';
+      const fields = renderEngineSettingFields(side, phase, engine, effectiveSettings, 'phase');
+      const advancedOpen = Object.keys(overrides.advanced || {}).length > 0 ||
+        (engineConfigInvalidField && engineConfigInvalidField.side === side && engineConfigInvalidField.phase === phase);
       cards.push('<section class="engine-assignment"><h4>' + (side === 'white' ? 'White' : 'Black') +
         ' · ' + phase.charAt(0).toUpperCase() + phase.slice(1) + '</h4>' +
         '<label class="engine-config-field"><span>Engine</span><select data-side="' + side +
-        '" data-phase="' + phase + '" data-setting="engineId">' +
-        engineOptions.replace('value="' + assignment.engineId + '"', 'value="' + assignment.engineId + '" selected') +
+        '" data-phase="' + phase + '" data-scope="phase" data-setting="engineId">' +
+        phaseEngineOptions.replace('value="' + engineValue + '"', 'value="' + engineValue + '" selected') +
         '</select></label>' +
         '<label class="engine-config-field"><span>Strength</span><select data-side="' + side +
-        '" data-phase="' + phase + '" data-setting="strength">' +
-        strengthOptions.replace('value="' + assignment.strength + '"', 'value="' + assignment.strength + '" selected') +
+        '" data-phase="' + phase + '" data-scope="phase" data-setting="strength">' +
+        phaseStrengthOptions.replace('value="' + strengthValue + '"', 'value="' + strengthValue + '" selected') +
         '</select></label>' +
         '<label class="engine-config-field"><span>Personality</span><select data-side="' + side +
-        '" data-phase="' + phase + '" data-setting="personalityId">' +
-        personalityOptions.replace('value="' + assignment.personalityId + '"',
-          'value="' + assignment.personalityId + '" selected') +
-        '</select></label>' +
-        '<details class="engine-advanced"' +
-         (engineConfigInvalidField && engineConfigInvalidField.side === side &&
-          engineConfigInvalidField.phase === phase ? ' open' : '') +
-         '><summary>Advanced settings</summary>' +
-        '<div class="engine-advanced-fields">' + fields + '</div>' +
-        '<button type="button" class="engine-reset-advanced" data-side="' + side +
-        '" data-phase="' + phase + '">Reset advanced settings</button></details></section>');
+        '" data-phase="' + phase + '" data-scope="phase" data-setting="personalityId">' +
+        phasePersonalityOptions.replace('value="' + personalityValue + '"',
+          'value="' + personalityValue + '" selected') + '</select></label>' +
+        '<details class="engine-advanced"' + (advancedOpen ? ' open' : '') +
+        '><summary>Advanced settings</summary><div class="engine-advanced-fields">' + fields +
+        '</div><button type="button" class="engine-reset-advanced" data-side="' + side +
+        '" data-phase="' + phase + '" data-scope="phase">Reset phase Advanced overrides</button></details></section>');
     }
   }
   host.innerHTML = cards.join('');
@@ -1433,12 +1541,10 @@ function applyEnginePreset(presetId) {
   const next = createDefaultEngineConfiguration();
   next.presetId = presetId;
   for (const side of ['white', 'black']) {
-    for (const phase of Object.values(ENGINE_PHASES)) {
-      next.sides[side].phases[phase] = {
-        engineId: preset.engineId, strength: preset.strength,
-        personalityId: preset.personalityId || DEFAULT_PERSONALITY_ID, advanced: {}
-      };
-    }
+    next.sides[side].general = {
+      engineId: preset.engineId, strength: preset.strength,
+      personalityId: preset.personalityId || DEFAULT_PERSONALITY_ID, advanced: {}
+    };
   }
   engineConfiguration = validateEngineConfiguration(next);
   engineConfigInvalidField = null;
@@ -1450,42 +1556,58 @@ function applyEnginePreset(presetId) {
 function handleEngineConfigurationChange(event) {
   const target = event && event.target;
   if (!target || !target.dataset) return;
-  const { side, phase, setting } = target.dataset;
-  if (!['white', 'black'].includes(side) || !Object.values(ENGINE_PHASES).includes(phase) || !setting) return;
+  const { side, phase, setting, scope } = target.dataset;
+  if (!['white', 'black'].includes(side) ||
+      (scope === 'phase' && !Object.values(ENGINE_PHASES).includes(phase)) ||
+      !['general', 'phase'].includes(scope) || !setting) return;
   const previous = engineCopy(engineConfiguration);
-  const assignment = engineConfiguration.sides[side].phases[phase];
-  if (setting === 'engineId') {
-    if (!enginePlugins.has(target.value)) return;
-    assignment.engineId = target.value;
-    assignment.advanced = {};
-    const selectedProfile = PERSONALITY_PROFILES[assignment.personalityId];
-    const supportedProfiles = enginePlugins.get(target.value).supportedPersonalities || [];
-    if (!supportedProfiles.includes(assignment.personalityId) ||
-        (selectedProfile && Array.isArray(selectedProfile.phases) && !selectedProfile.phases.includes(phase))) {
-      assignment.personalityId = DEFAULT_PERSONALITY_ID;
+  const destination = scope === 'general'
+    ? engineConfiguration.sides[side].general
+    : engineConfiguration.sides[side].phases[phase];
+  const value = setting.startsWith('advanced:')
+    ? (setting.slice('advanced:'.length) && target.type === 'checkbox' ? !!target.checked : target.value)
+    : target.value;
+
+  if (setting === 'engineId' || setting === 'strength' || setting === 'personalityId') {
+    if (scope === 'general') {
+      if (setting === 'engineId' && !enginePlugins.has(value)) return;
+      if (setting === 'strength' && !ENGINE_STRENGTHS.includes(value)) return;
+      if (setting === 'personalityId') {
+        const engine = enginePlugins.get(destination.engineId);
+        if (!PERSONALITY_PROFILES[value] || !(engine.supportedPersonalities || []).includes(value)) return;
+      }
+      destination[setting] = value;
+    } else if (value === '__inherit__') {
+      delete destination[setting];
+    } else {
+      if (setting === 'engineId') {
+        if (!enginePlugins.has(value)) return;
+        destination.advanced = {};
+      }
+      if (setting === 'strength' && !ENGINE_STRENGTHS.includes(value)) return;
+      if (setting === 'personalityId') {
+        const engineId = destination.engineId || engineConfiguration.sides[side].general.engineId;
+        const engine = enginePlugins.get(engineId);
+        if (!PERSONALITY_PROFILES[value] || !(engine.supportedPersonalities || []).includes(value)) return;
+      }
+      destination[setting] = value;
     }
-    if (engineConfigInvalidField && engineConfigInvalidField.side === side &&
-        engineConfigInvalidField.phase === phase) engineConfigInvalidField = null;
-  } else if (setting === 'strength') {
-    if (!ENGINE_STRENGTHS.includes(target.value)) return;
-    assignment.strength = target.value;
-  } else if (setting === 'personalityId') {
-    const engine = enginePlugins.get(assignment.engineId);
-    const profile = PERSONALITY_PROFILES[target.value];
-    if (!profile || !(engine.supportedPersonalities || []).includes(target.value) ||
-        (Array.isArray(profile.phases) && !profile.phases.includes(phase))) return;
-    assignment.personalityId = target.value;
   } else if (setting.startsWith('advanced:')) {
     const key = setting.slice('advanced:'.length);
-    const engine = enginePlugins.get(assignment.engineId);
+    const engineId = scope === 'general'
+      ? destination.engineId
+      : (destination.engineId || engineConfiguration.sides[side].general.engineId);
+    const engine = enginePlugins.get(engineId);
     const definition = engine && engine.settings && engine.settings[key];
     if (!definition) return;
-    const value = Number(target.value);
+    let parsed = value;
+    if (definition.type === 'integer' || definition.type === 'number') parsed = Number(value);
     try {
-      validateEngineSettingsAgainstSchema(assignment.engineId, { [key]: value }, getEngineSettingsSchemas());
-      assignment.advanced[key] = value;
+      validateEngineSettingsAgainstSchema(engineId, { [key]: parsed }, getEngineSettingsSchemas());
+      if (!destination.advanced) destination.advanced = {};
+      destination.advanced[key] = parsed;
     } catch (error) {
-      engineConfigInvalidField = { side, phase, key };
+      engineConfigInvalidField = { side, phase: phase || null, key };
       status(error.message);
       renderEngineConfigurationUI();
       return;
@@ -1494,6 +1616,7 @@ function handleEngineConfigurationChange(event) {
   } else {
     return;
   }
+
   engineConfiguration.presetId = null;
   try {
     engineConfiguration = validateEngineConfiguration(engineConfiguration);
@@ -1521,7 +1644,7 @@ function loadEngineConfig() {
   try {
     engineConfiguration = validateEngineConfiguration(saved);
   } catch (e) {
-    // The old shape and any invalid schema are intentionally reset; no migration is required.
+    // Schema-v1 and malformed configurations reset to the version-2 defaults.
     engineConfiguration = createDefaultEngineConfiguration();
   }
   renderEngineConfigurationUI();
@@ -1573,11 +1696,15 @@ if (engineAssignmentsHost) engineAssignmentsHost.addEventListener('change', hand
 if (engineAssignmentsHost) engineAssignmentsHost.addEventListener('click', event => {
   const target = event && event.target;
   if (!target || !target.classList || !target.classList.contains('engine-reset-advanced')) return;
-  const { side, phase } = target.dataset || {};
-  if (!['white', 'black'].includes(side) || !Object.values(ENGINE_PHASES).includes(phase)) return;
-  engineConfiguration.sides[side].phases[phase].advanced = {};
+  const { side, phase, scope } = target.dataset || {};
+  if (!['white', 'black'].includes(side) || !['general', 'phase'].includes(scope) ||
+      (scope === 'phase' && !Object.values(ENGINE_PHASES).includes(phase))) return;
+  const destination = scope === 'general'
+    ? engineConfiguration.sides[side].general
+    : engineConfiguration.sides[side].phases[phase];
+  destination.advanced = {};
   if (engineConfigInvalidField && engineConfigInvalidField.side === side &&
-      engineConfigInvalidField.phase === phase) engineConfigInvalidField = null;
+      (scope === 'general' || engineConfigInvalidField.phase === phase)) engineConfigInvalidField = null;
   engineConfiguration.presetId = null;
   persistEngineConfiguration();
   renderEngineConfigurationUI();
