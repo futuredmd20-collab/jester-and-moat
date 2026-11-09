@@ -8,11 +8,7 @@
     function createEvaluationContext(position, config) {
       const personalityId = config && config.personalityId || 'default';
       if (personalityId === 'move_hunter') {
-        if (!config || config.phase !== 'midgame') {
-          throw Object.assign(new Error('Move Hunter is only available for the midgame phase.'),
-            { code: EngineContract.errorCodes.UNSUPPORTED_PERSONALITY });
-        }
-        return { personalityId, side: position.turn, phase: config.phase };
+        return { personalityId, side: position.turn, phase: config && config.phase };
       }
       return null;
     }
