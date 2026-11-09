@@ -4,7 +4,7 @@ Purpose: define the architectural investigation and staged direction for adding 
 
 ## Status
 
-**Status: In progress (2026-11-09).** Stages A–D and E.4/E.5 are complete and merged; E.6 implementation is underway. PR #147 enabled Pjäsjägaren (Piece Hunter) in opening, midgame, and endgame for both MinMax and MCTS. GitHub Actions passed 158 tests (0 failures), and manual PWA verification was approved. Additional engines and alternative-board work remain unstarted. The next design task is to refine the shared engine-configuration contract before implementing further personalities or engines.
+**Status: In progress (2026-11-09).** Stages A–D and E.4/E.5 are complete and merged; E.6 implementation is underway. PR #147 enabled Pjäsjägaren (Piece Hunter) in opening, midgame, and endgame for both MinMax and MCTS. GitHub Actions passed 158 tests (0 failures), and manual PWA verification was approved. Additional engines and alternative-board work remain unstarted. The shared engine-configuration contract is now implemented as Stage E.6 in the current task branch; verification is pending.
 
 ## Goal
 
