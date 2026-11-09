@@ -8,22 +8,27 @@ Purpose: record design decisions, repository implementation, verification gaps, 
 
 ## Goal and contract
 
-The current configuration design assigns an engine and strength independently for every **side × phase** combination. MinMax is the default for all six assignments; MCTS is available as an alternative.
+Each side (White/Black) has one general engine, strength, personality, and Advanced configuration. Opening, midgame, and endgame inherit those values unless a phase stores a sparse field-level override. MinMax is the default for both sides; MCTS is available as an alternative.
 
 ```js
 {
-  schemaVersion: 1,
+  schemaVersion: 2,
   sides: {
-    white: { phases: { opening: { engineId, strength, advanced }, midgame: { ... }, endgame: { ... } } },
-    black: { phases: { opening: { ... }, midgame: { ... }, endgame: { ... } } }
+    white: {
+      general: { engineId, strength, personalityId, advanced },
+      phases: { opening: {}, midgame: { strength }, endgame: { engineId, advanced } }
+    },
+    black: { general: { ... }, phases: { opening: {}, midgame: {}, endgame: {} } }
   }
 }
 ```
 
 - Common strength levels are Easy, Medium, and Hard. Each engine declares its own strength profiles and translates the common level into its own search settings.
 - Each engine declares its supported Advanced settings, including type, default, range, label, and description. Explicit Advanced overrides take priority over strength-profile values.
-- Presets populate the same configuration model and remain editable. Manual changes mark the configuration as custom.
-- The implementation uses `localStorage` key `engineConfig` with schema version 1. The old settings shape is intentionally reset to defaults; no migration is required.
+- Presets populate both sides' general settings and leave phase overrides empty. Manual changes mark the configuration as custom.
+- Phase overrides are sparse and field-specific: changing engine, strength, or personality does not replace the other inherited fields. Removing an override restores inheritance.
+- Advanced settings inherit from the general engine. A phase-level engine override starts from that engine's strength profile/defaults and uses only its own Advanced overrides; it never inherits Advanced values belonging to the general engine.
+- The implementation uses `localStorage` key `engineConfig` with schema version 2. Version-1 and malformed configurations reset to safe version-2 defaults; no migration is performed.
 - Effective strength and settings travel through the existing protocol-v1 `config` field. The worker and main-thread search paths validate engine-specific settings; main-thread fallback time limits continue to take precedence.
 - Phase detection remains `getGamePhase()` in `script.js`: opening if ply < 10 OR total pieces >= 34; endgame if total pieces <= 16; otherwise midgame. It identifies the phase only; it does not select or modify an assignment.
 - In 2 Player Pass, engine controls are hidden and automated Next/auto-play actions are blocked.
@@ -45,7 +50,7 @@ The current configuration design assigns an engine and strength independently fo
 
 ## Decisions to preserve
 
-- Keep one independent engine/strength/advanced assignment for every side × phase combination.
+- Keep one general engine/strength/personality/Advanced configuration per side, with sparse, field-level phase overrides.
 - Use common Easy/Medium/Hard strength names, translated by each engine's own profiles.
 - Engine-declared Advanced overrides win over strength defaults; unsupported settings are rejected.
 - Presets are editable profiles, not separate configuration systems.
