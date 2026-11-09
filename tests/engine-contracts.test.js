@@ -85,7 +85,7 @@ const sandbox = {
 vm.createContext(sandbox);
 vm.runInContext(minmax, sandbox);
 vm.runInContext(source.slice(0, boundary) + `
-globalThis.api = { GAME_VARIANT, GAME_SETUP_IDS, createGameIdentity, EngineContract, PERSONALITY_PROFILES, DEFAULT_PERSONALITY_ID, assertEnginePersonalityCompatibility, MinMaxLegacy, cancelActiveAIRequest, setActiveAIForTest(worker, request) { aiWorker = worker; pendingAIRequest = request; aiRequestId = request.id; isAIThinking = true; }, getActiveAIForTest() { return { worker: aiWorker, request: pendingAIRequest, thinking: isAIThinking, id: aiRequestId }; }, allLegalState, inCheck, findLegalMoveMatch, MinMaxSearchCore, getBestMove: MinMaxSearchCore.getBestMove, getBestMoveAsync: MinMaxSearchCore.getBestMoveAsync, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout); aiWorkerTimeout = null; if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; gameOver = false; gameOverMessage = ''; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getEngineConfiguration() { return engineCopy(engineConfiguration); }, setEngineConfiguration(config) { engineConfiguration = validateEngineConfiguration(config); updateEngineConfigUI(); }, validateEngineConfiguration, getEngineAssignment, applyEnginePreset, isAIMode, updateModeUI, stepNextMove, toggleAutoPlay, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, applyLoadedGame, resumeLoadedGamePlayback, getAutoPlayForTest() { return autoPlayInterval; }, stopAutoPlayForTest: stopAutoPlay, ENGINE_PHASES, debugLogger, DebugLogger, status };
+globalThis.api = { GAME_VARIANT, GAME_SETUP_IDS, createGameIdentity, EngineContract, PERSONALITY_PROFILES, DEFAULT_PERSONALITY_ID, assertEnginePersonalityCompatibility, MinMaxLegacy, cancelActiveAIRequest, setActiveAIForTest(worker, request) { aiWorker = worker; pendingAIRequest = request; aiRequestId = request.id; isAIThinking = true; }, getActiveAIForTest() { return { worker: aiWorker, request: pendingAIRequest, thinking: isAIThinking, id: aiRequestId }; }, allLegalState, inCheck, findLegalMoveMatch, MinMaxSearchCore, getBestMove: MinMaxSearchCore.getBestMove, getBestMoveAsync: MinMaxSearchCore.getBestMoveAsync, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout); aiWorkerTimeout = null; if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; gameOver = false; gameOverMessage = ''; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getEngineConfiguration() { return engineCopy(engineConfiguration); }, setEngineConfiguration(config) { engineConfiguration = validateEngineConfiguration(config); updateEngineConfigUI(); }, validateEngineConfiguration, getEngineAssignment, handleEngineConfigurationChange, applyEnginePreset, isAIMode, updateModeUI, stepNextMove, toggleAutoPlay, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, applyLoadedGame, resumeLoadedGamePlayback, getAutoPlayForTest() { return autoPlayInterval; }, stopAutoPlayForTest: stopAutoPlay, ENGINE_PHASES, debugLogger, DebugLogger, status };
 `, sandbox, { filename: 'script.js' });
 vm.runInContext(mcts, sandbox, { filename: 'engines/mcts-engine.js' });
 // The app's HTML loads the MCTS module before script.js; register its plugin here
@@ -1560,6 +1560,26 @@ test('Advanced settings inherit with the engine but phase engine changes use new
   assert.equal(sandbox.api.getEngineAssignment('w', 'opening').settings.capDepth, 18);
   assert.equal(sandbox.api.getEngineAssignment('w', 'midgame').settings.depth, 3);
   assert.equal(sandbox.api.getEngineAssignment('w', 'endgame').settings.depth, 5);
+});
+
+test('changing a general engine resets only Advanced overrides that inherit that engine', () => {
+  const config = sandbox.api.getEngineConfiguration();
+  config.sides.white.general.engineId = 'mcts';
+  config.sides.white.general.advanced = { playouts: 1200 };
+  config.sides.white.phases.opening.advanced = { playouts: 1800 };
+  config.sides.white.phases.midgame = { engineId: 'minmax_legacy', advanced: { depth: 5 } };
+  sandbox.api.setEngineConfiguration(config);
+
+  sandbox.api.handleEngineConfigurationChange({
+    target: { dataset: { side: 'white', scope: 'general', setting: 'engineId' }, value: 'minmax_legacy' }
+  });
+  const updated = sandbox.api.getEngineConfiguration();
+  assert.deepEqual(updated.sides.white.general.advanced, {});
+  assert.deepEqual(updated.sides.white.phases.opening.advanced, {});
+  assert.deepEqual(updated.sides.white.phases.midgame.advanced, { depth: 5 });
+  assert.equal(sandbox.api.getEngineAssignment('w', 'opening').settings.playouts, undefined);
+  assert.equal(sandbox.api.getEngineAssignment('w', 'midgame').settings.depth, 5);
+  assert.equal(sandbox.api.getEngineAssignment('w', 'endgame').engine.id, 'minmax_legacy');
 });
 
 test('removing a phase override restores inheritance without changing other phases', () => {
