@@ -133,7 +133,7 @@ The ordering may be revised if the dependency audit demonstrates a lower-risk se
 - Scale the bonus to 10% of the target's existing material value. The king is excluded because its 200-point value is a terminal-search sentinel, not a capturable material value.
 - Keep the existing Default evaluation unchanged.
 
-**Implementation gate:** Add the profile to the shared registry, declare MinMax support, enforce its midgame-only availability in configuration and dispatch, pass personality identity through main-thread and worker requests, and cover scoring/sign/one-per-target behavior with regression tests. CI and manual PWA verification must be recorded only after completion.
+**Implementation gate:** Add the profile to the shared registry, declare MinMax support, enforce its availability in all three supported phases while requiring a valid phase context in configuration and dispatch, pass personality identity through main-thread and worker requests, and cover scoring/sign/one-per-target behavior with regression tests. CI and manual PWA verification must be recorded only after completion.
 
 **Progress:** Initial MinMax midgame implementation completed in PR #144; GitHub Actions passed 157 tests (0 failures), and the user approved the PWA test. The current task branch removes the midgame-only restriction and adds phase-by-phase scoring, contract, and worker-dispatch coverage for opening, midgame, and endgame.
 
@@ -148,7 +148,7 @@ The ordering may be revised if the dependency audit demonstrates a lower-risk se
 - Keep MCTS `Default` evaluation and MinMax behavior unchanged. The configured side remains the beneficiary throughout each playout.
 - Recheck personality/phase compatibility in main-thread search and structured worker dispatch; pass the selected context through both synchronous and asynchronous MCTS search paths.
 
-**Implementation gate:** Cover White/Black scoring, defended and multiply-attacked targets, king exclusion, midgame-only validation, unchanged Default evaluation, and structured worker dispatch. Record CI and manual PWA verification only after they actually pass.
+**Implementation gate:** Cover White/Black scoring, defended and multiply-attacked targets, king exclusion, all-phase validation, unchanged Default evaluation, and structured worker dispatch. Record CI and manual PWA verification only after they actually pass.
 
 **Progress:** Initial MCTS midgame implementation completed in PR #146. GitHub Actions passed 158 tests (0 failures), and the user approved the PWA test. The current task branch extends MCTS evaluation and worker dispatch to all three phases, with tests confirming each phase is accepted.
 
