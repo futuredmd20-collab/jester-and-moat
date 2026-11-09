@@ -239,7 +239,7 @@ test('Move Hunter adds one 10% material-value bonus per attacked enemy piece', (
     'evaluation without a personality context remains unchanged');
 });
 
-test('MCTS Move Hunter uses its own attack evaluation and remains midgame-only', () => {
+test('MCTS Move Hunter applies its own attack evaluation in every phase', () => {
   const s = position();
   s.board[4][0] = { type: 'r', color: 'w', moved: false };
   s.board[0][0] = { type: 'r', color: 'w', moved: false };
@@ -247,13 +247,12 @@ test('MCTS Move Hunter uses its own attack evaluation and remains midgame-only',
   s.board[2][2] = { type: 'b', color: 'b', moved: false };
   s.board[6][6] = { type: 'b', color: 'w', moved: false };
   const baseline = sandbox.mctsEvaluateBoard(s);
-  const hunter = sandbox.mctsEvaluateBoard(s,
-    { personalityId: 'move_hunter', side: 'w', phase: 'midgame' });
-  assert.ok(Math.abs(hunter - baseline - 0.95) < 1e-9,
-    'MCTS awards one queen bonus despite multiple attackers and a defended target');
-  assert.equal(sandbox.mctsEvaluateBoard(s,
-    { personalityId: 'move_hunter', side: 'w', phase: 'opening' }), baseline,
-    'the MCTS evaluator must not apply the profile outside midgame');
+  for (const phase of ['opening', 'midgame', 'endgame']) {
+    const hunter = sandbox.mctsEvaluateBoard(s,
+      { personalityId: 'move_hunter', side: 'w', phase });
+    assert.ok(Math.abs(hunter - baseline - 0.95) < 1e-9,
+      `MCTS must award one queen bonus in ${phase}, despite multiple attackers and a defended target`);
+  }
   assert.equal(baseline, sandbox.api.MinMaxSearchCore.evaluateBoard(s),
     'MCTS Default evaluation must remain unchanged');
 
@@ -264,39 +263,35 @@ test('MCTS Move Hunter uses its own attack evaluation and remains midgame-only',
   black.board[2][2] = { type: 'b', color: 'b', moved: false };
   black.board[6][6] = { type: 'b', color: 'w', moved: false };
   const blackBaseline = sandbox.mctsEvaluateBoard(black);
-  const blackHunter = sandbox.mctsEvaluateBoard(black,
-    { personalityId: 'move_hunter', side: 'b', phase: 'midgame' });
-  assert.ok(Math.abs(blackHunter - blackBaseline + 0.95) < 1e-9,
-    'Black MCTS Move Hunter reduces the White-perspective score and excludes the attacked king');
+  for (const phase of ['opening', 'midgame', 'endgame']) {
+    const blackHunter = sandbox.mctsEvaluateBoard(black,
+      { personalityId: 'move_hunter', side: 'b', phase });
+    assert.ok(Math.abs(blackHunter - blackBaseline + 0.95) < 1e-9,
+      `Black MCTS Move Hunter must reduce the White-perspective score in ${phase} and exclude the king`);
+  }
 
   const engine = sandbox.api.enginePlugins.get('mcts');
   assert.ok(engine.supportedPersonalities.includes('move_hunter'));
-  const configurable = sandbox.api.getEngineConfiguration();
-  configurable.sides.white.phases.midgame.engineId = 'mcts';
-  configurable.sides.white.phases.midgame.personalityId = 'move_hunter';
-  assert.equal(sandbox.api.validateEngineConfiguration(configurable)
-    .sides.white.phases.midgame.personalityId, 'move_hunter',
-    'the existing side × phase configuration must accept MCTS Move Hunter in midgame');
-  const wrongPhase = sandbox.api.getEngineConfiguration();
-  wrongPhase.sides.white.phases.opening.engineId = 'mcts';
-  wrongPhase.sides.white.phases.opening.personalityId = 'move_hunter';
-  assert.throws(() => sandbox.api.validateEngineConfiguration(wrongPhase), error =>
-    error.code === 'UNSUPPORTED_PERSONALITY',
-    'configuration must reject MCTS Move Hunter outside midgame');
-  const makeRequest = phase => EngineContract.createRequest({
-    requestId: 'mcts-move-hunter-' + phase,
-    generation: 1,
-    engineId: 'mcts',
-    position: position(),
-    limits: { depth: 1, timeMs: 1000 },
-    config: { strength: 'easy', settings: { playouts: 50, capDepth: 1, temperature: 0 },
-      personalityId: 'move_hunter', phase }
-  });
-  const valid = engine.search(makeRequest('midgame'));
-  assert.equal(valid.status, EngineContract.statuses.COMPLETED, JSON.stringify(valid));
-  const invalid = engine.search(makeRequest('opening'));
-  assert.equal(invalid.status, EngineContract.statuses.FAILED);
-  assert.equal(invalid.error.code, 'UNSUPPORTED_PERSONALITY');
+  for (const phase of ['opening', 'midgame', 'endgame']) {
+    const configurable = sandbox.api.getEngineConfiguration();
+    configurable.sides.white.phases[phase].engineId = 'mcts';
+    configurable.sides.white.phases[phase].personalityId = 'move_hunter';
+    assert.equal(sandbox.api.validateEngineConfiguration(configurable)
+      .sides.white.phases[phase].personalityId, 'move_hunter',
+      `configuration must accept MCTS Move Hunter in ${phase}`);
+    const request = EngineContract.createRequest({
+      requestId: 'mcts-move-hunter-' + phase,
+      generation: 1,
+      engineId: 'mcts',
+      position: position(),
+      limits: { depth: 1, timeMs: 1000 },
+      config: { strength: 'easy', settings: { playouts: 50, capDepth: 1, temperature: 0 },
+        personalityId: 'move_hunter', phase }
+    });
+    const result = engine.search(request);
+    assert.equal(result.status, EngineContract.statuses.COMPLETED,
+      `MCTS contract must accept Move Hunter in ${phase}: ${JSON.stringify(result)}`);
+  }
 });
 
 test('Move Hunter attack evaluation is preserved through structured worker dispatch', async () => {
@@ -353,25 +348,25 @@ test('Move Hunter attack evaluation is preserved through structured worker dispa
     s.board[4][4] = { type: 'q', color: 'b', moved: false };
     s.board[2][2] = { type: 'b', color: 'b', moved: false };
     s.board[6][6] = { type: 'b', color: 'w', moved: false };
-    const contractRequest = EngineContract.createRequest({
-      requestId: 'move-hunter-worker-dispatch',
-      generation: 301,
-      engineId: 'minmax_legacy',
-      position: s,
-      limits: { depth: 1, timeMs: 1000 },
-      config: { strength: 'medium', settings: {}, personalityId: 'move_hunter', phase: 'midgame' }
-    });
-
-    const response = await new Promise(resolve => {
-      worker.onmessage = event => resolve(event.data);
-      worker.postMessage({ id: 301, contractRequest });
-    });
-
-    assert.equal(response.id, 301);
-    assert.equal(response.result.status, EngineContract.statuses.COMPLETED,
-      JSON.stringify(response.result));
-    assert.ok(response.result.move, 'worker dispatch should return a legal search move');
-    assert.ok(allLegalState(s).some(move => JSON.stringify(move) === JSON.stringify(response.result.move)));
+    for (const [index, phase] of ['opening', 'midgame', 'endgame'].entries()) {
+      const contractRequest = EngineContract.createRequest({
+        requestId: 'move-hunter-worker-' + phase,
+        generation: 301 + index,
+        engineId: 'minmax_legacy',
+        position: s,
+        limits: { depth: 1, timeMs: 1000 },
+        config: { strength: 'medium', settings: {}, personalityId: 'move_hunter', phase }
+      });
+      const response = await new Promise(resolve => {
+        worker.onmessage = event => resolve(event.data);
+        worker.postMessage({ id: 301 + index, contractRequest });
+      });
+      assert.equal(response.id, 301 + index);
+      assert.equal(response.result.status, EngineContract.statuses.COMPLETED,
+        `MinMax worker must accept Move Hunter in ${phase}: ${JSON.stringify(response.result)}`);
+      assert.ok(response.result.move, 'worker dispatch should return a legal search move');
+      assert.ok(allLegalState(s).some(move => JSON.stringify(move) === JSON.stringify(response.result.move)));
+    }
 
     const baseline = workerContext.__moveHunterEvaluate(s);
     const hunter = workerContext.__moveHunterEvaluate(s,
@@ -385,48 +380,35 @@ test('Move Hunter attack evaluation is preserved through structured worker dispa
     assert.equal(sandbox.api.enginePlugins.get('mcts').supportedPersonalities.includes('move_hunter'), true,
       'MCTS must advertise its newly supported Move Hunter profile');
 
-    const mctsRequest = EngineContract.createRequest({
-      requestId: 'mcts-move-hunter-worker-dispatch',
-      generation: 302,
-      engineId: 'mcts',
-      position: s,
-      limits: { depth: 1, timeMs: 1000 },
-      config: { strength: 'easy', settings: { playouts: 50, capDepth: 1, temperature: 0 },
-        personalityId: 'move_hunter', phase: 'midgame' }
-    });
-    const mctsResponse = await new Promise(resolve => {
-      worker.onmessage = event => resolve(event.data);
-      worker.postMessage({ id: 302, contractRequest: mctsRequest });
-    });
-    assert.equal(mctsResponse.result.status, EngineContract.statuses.COMPLETED,
-      JSON.stringify(mctsResponse.result));
-    assert.ok(allLegalState(s).some(move => JSON.stringify(move) === JSON.stringify(mctsResponse.result.move)),
-      'MCTS worker must return a legal move with Move Hunter selected');
-    assert.ok(workerContext.__mctsEvaluationContexts.some(context =>
-      context && context.personalityId === 'move_hunter' && context.side === 'w' && context.phase === 'midgame'),
-      'the worker must pass the configured Move Hunter context into MCTS playout evaluation');
+    for (const [index, phase] of ['opening', 'midgame', 'endgame'].entries()) {
+      const mctsRequest = EngineContract.createRequest({
+        requestId: 'mcts-move-hunter-worker-' + phase,
+        generation: 304 + index,
+        engineId: 'mcts',
+        position: s,
+        limits: { depth: 1, timeMs: 1000 },
+        config: { strength: 'easy', settings: { playouts: 50, capDepth: 1, temperature: 0 },
+          personalityId: 'move_hunter', phase }
+      });
+      const mctsResponse = await new Promise(resolve => {
+        worker.onmessage = event => resolve(event.data);
+        worker.postMessage({ id: 304 + index, contractRequest: mctsRequest });
+      });
+      assert.equal(mctsResponse.result.status, EngineContract.statuses.COMPLETED,
+        `MCTS worker must accept Move Hunter in ${phase}: ${JSON.stringify(mctsResponse.result)}`);
+      assert.ok(allLegalState(s).some(move => JSON.stringify(move) === JSON.stringify(mctsResponse.result.move)),
+        'MCTS worker must return a legal move with Move Hunter selected');
+      assert.ok(workerContext.__mctsEvaluationContexts.some(context =>
+        context && context.personalityId === 'move_hunter' && context.side === 'w' && context.phase === phase),
+        `the worker must pass the configured ${phase} context into MCTS playout evaluation`);
+    }
     const mctsBaseline = workerContext.__mctsMoveHunterEvaluate(s);
     const mctsHunter = workerContext.__mctsMoveHunterEvaluate(s,
       { personalityId: 'move_hunter', side: 'w', phase: 'midgame' });
     assert.ok(Math.abs(mctsHunter - mctsBaseline - 0.95) < 1e-9,
       'the serialized MCTS evaluator must receive attacked() and award one target bonus');
 
-    const unsupportedPhaseRequest = EngineContract.createRequest({
-      requestId: 'mcts-move-hunter-worker-opening',
-      generation: 303,
-      engineId: 'mcts',
-      position: s,
-      limits: { depth: 1, timeMs: 1000 },
-      config: { strength: 'easy', settings: { playouts: 50, capDepth: 1, temperature: 0 },
-        personalityId: 'move_hunter', phase: 'opening' }
-    });
-    const unsupportedPhaseResponse = await new Promise(resolve => {
-      worker.onmessage = event => resolve(event.data);
-      worker.postMessage({ id: 303, contractRequest: unsupportedPhaseRequest });
-    });
-    assert.equal(unsupportedPhaseResponse.result.status, EngineContract.statuses.FAILED);
-    assert.equal(unsupportedPhaseResponse.result.error.code, 'UNSUPPORTED_PERSONALITY',
-      'structured worker dispatch must reject the profile outside midgame');
+
   } finally {
     sandbox.api.resetAIWorker();
     sandbox.URL.createObjectURL = previousCreateObjectURL;
@@ -436,22 +418,20 @@ test('Move Hunter attack evaluation is preserved through structured worker dispa
   }
 });
 
-test('MinMax contract accepts Move Hunter in midgame and rejects it in other phases', () => {
-  const makeRequest = phase => EngineContract.createRequest({
-    requestId: 'move-hunter-' + phase,
-    generation: 1,
-    engineId: 'minmax_legacy',
-    position: position(),
-    limits: { depth: 1, timeMs: 1000 },
-    config: { strength: 'medium', settings: {}, personalityId: 'move_hunter', phase }
-  });
-  const validRequest = makeRequest('midgame');
-  const validResult = sandbox.api.MinMaxLegacy.search(validRequest);
-  assert.equal(validResult.status, EngineContract.statuses.COMPLETED, JSON.stringify(validResult));
-
-  const invalidResult = sandbox.api.MinMaxLegacy.search(makeRequest('opening'));
-  assert.equal(invalidResult.status, EngineContract.statuses.FAILED);
-  assert.equal(invalidResult.error.code, 'UNSUPPORTED_PERSONALITY');
+test('MinMax contract accepts Move Hunter in all three phases', () => {
+  for (const phase of ['opening', 'midgame', 'endgame']) {
+    const request = EngineContract.createRequest({
+      requestId: 'move-hunter-' + phase,
+      generation: 1,
+      engineId: 'minmax_legacy',
+      position: position(),
+      limits: { depth: 1, timeMs: 1000 },
+      config: { strength: 'medium', settings: {}, personalityId: 'move_hunter', phase }
+    });
+    const result = sandbox.api.MinMaxLegacy.search(request);
+    assert.equal(result.status, EngineContract.statuses.COMPLETED,
+      `MinMax contract must accept Move Hunter in ${phase}: ${JSON.stringify(result)}`);
+  }
 });
 
 test('MinMax returns a legal move without mutating its input', () => {
@@ -1471,7 +1451,8 @@ test('engine configuration defaults cover every side and phase independently', (
   assert.equal(sandbox.api.PERSONALITY_PROFILES.default.name, 'Default');
   assert.deepEqual(Array.from(sandbox.api.enginePlugins.get('minmax_legacy').supportedPersonalities), ['default', 'move_hunter']);
   assert.deepEqual(Array.from(sandbox.api.enginePlugins.get('mcts').supportedPersonalities), ['default', 'move_hunter']);
-  assert.deepEqual(Array.from(sandbox.api.PERSONALITY_PROFILES.move_hunter.phases), ['midgame']);
+  assert.equal(sandbox.api.PERSONALITY_PROFILES.move_hunter.phases, undefined,
+    'Move Hunter is available in every detected game phase');
   for (const side of ['white', 'black']) {
     for (const phase of ['opening', 'midgame', 'endgame']) {
       assert.equal(JSON.stringify(config.sides[side].phases[phase]), JSON.stringify({
