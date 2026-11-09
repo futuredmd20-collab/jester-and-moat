@@ -4,7 +4,7 @@ Purpose: define the architectural investigation and staged direction for adding 
 
 ## Status
 
-**Status: In progress (2026-11-09).** Stages A–D and the initial E.4/E.5 implementations are complete and merged. PR #144 added MinMax Pjäsjägaren for midgame; PR #146 added the same profile to MCTS for midgame. Both passed CI and manual PWA verification. The current task branch extends the existing profile to opening, midgame, and endgame for both engines. GitHub Actions run #568 passed 158 tests (0 failures); manual PWA verification across all three phases remains pending. Additional engines and alternative-board work remain unstarted.
+**Status: In progress (2026-11-09).** Stages A–D and the initial E.4/E.5 implementations are complete and merged. PR #144 added MinMax Pjäsjägaren for midgame; PR #146 added the same profile to MCTS for midgame. Both passed CI and manual PWA verification. The current task branch extends the existing profile to opening, midgame, and endgame for both engines. GitHub Actions run #575 passed 158 tests (0 failures); manual PWA verification across all three phases remains pending. Additional engines and alternative-board work remain unstarted.
 
 ## Goal
 
@@ -191,6 +191,6 @@ Browser/mobile verification must be recorded separately from automated tests and
 
 ## Change log
 
-- **2026-11-09:** Extended the existing Pjäsjägaren profile to opening, midgame, and endgame for both MinMax and MCTS on `feat/move-hunter-all-phases`; CI and PWA verification are pending.
+- **2026-11-09:** Extended the existing Pjäsjägaren profile to opening, midgame, and endgame for both MinMax and MCTS on `feat/move-hunter-all-phases`; CI passed 158 tests (0 failures); PWA verification remains pending.
 - **2026-11-08:** PR #143 merged Stage E.3's minimal personality contract; CI passed 153 tests and manual PWA verification was approved. PR #144 completed the initial MinMax midgame profile; CI passed 157 tests and manual PWA verification was approved. PR #146 added the same midgame profile to MCTS; CI passed 158 tests and manual PWA verification was approved.
 - **2026-11-07:** Created after Engine Configuration PR #138 merged. Records a planning direction only; no extension implementation is authorized by this document.
