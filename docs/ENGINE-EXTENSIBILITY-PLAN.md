@@ -145,14 +145,6 @@ Recommended implementation order after the design gates above:
 
 The ordering may be revised if the dependency audit demonstrates a lower-risk sequence. A new engine does not need to wait for every personality or board variant if its scope is compatible with the current game.
 
-### E.6. Implement inherited engine configuration
-
-**Agreed model (2026-11-09):** one general configuration per side, with sparse field-level phase overrides. Engine, strength, and personality resolve independently. Advanced settings inherit with the general engine; a phase engine override starts with the new engine's strength defaults and uses only phase-local Advanced overrides.
-
-**Implementation scope:** schema version 2, deterministic effective-assignment resolution, strict validation of every effective side × phase combination, presets based on general settings, version-1 reset to defaults (no migration), and UI controls for general values plus explicit per-phase inheritance/overrides.
-
-**Progress:** Implementation is underway on `feat/inherited-engine-configuration`. The schema-v2 model, resolver, validation, persistence reset, presets, and inherited/override UI are implemented. Contract tests and CI verification are in progress; do not mark this stage complete until those checks pass.
-
 ### E.4. First non-default profile: Pjäsjägaren (Piece Hunter)
 
 **Agreed behavior (2026-11-08):**
@@ -183,6 +175,14 @@ The ordering may be revised if the dependency audit demonstrates a lower-risk se
 **Implementation gate:** Cover White/Black scoring, defended and multiply-attacked targets, king exclusion, all-phase validation, unchanged Default evaluation, and structured worker dispatch. Record CI and manual PWA verification only after they actually pass.
 
 **Progress:** Complete. PR #146 added MCTS support, and PR #147 extended it to opening, midgame, and endgame. CI passed 158 tests, and manual PWA verification was approved.
+
+### E.6. Implement inherited engine configuration
+
+**Agreed model (2026-11-09):** one general configuration per side, with sparse field-level phase overrides. Engine, strength, and personality resolve independently. Advanced settings inherit with the general engine; a phase engine override starts with the new engine's strength defaults and uses only phase-local Advanced overrides.
+
+**Implementation scope:** schema version 2, deterministic effective-assignment resolution, strict validation of every effective side × phase combination, presets based on general settings, version-1 reset to defaults (no migration), and UI controls for general values plus explicit per-phase inheritance/overrides.
+
+**Progress:** Implementation is underway on `feat/inherited-engine-configuration`. The schema-v2 model, resolver, validation, persistence reset, presets, and inherited/override UI are implemented. Contract tests and CI verification are in progress; do not mark this stage complete until those checks pass.
 
 ## Cross-cutting verification
 
