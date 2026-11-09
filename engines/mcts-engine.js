@@ -18,7 +18,7 @@
  * INTEGRATION CONDITIONS (what must be true for this file to work as-is)
  *   1. It relies on canonical rule/search helpers serialized by
  *      ensureAIWorker in script.js (clone, other, allLegalState, applyRaw,
- *      inCheck, evaluateBoard, ROWS, COLS). It defines no copies of those,
+ *      inCheck, attacked, getJesterValue, evaluateBoard, ROWS, COLS). It defines no copies of those,
  *      so it cannot drift from the real rules.
  *   2. Structured protocol-v1 worker messages dispatch by engineId. The
  *      legacy { id, state, depth, workerFn } transport remains as a compatibility path.
@@ -89,11 +89,34 @@ function mctsApplyMove(s, m) {
   }
 }
 
+/* MCTS owns its interpretation of Move Hunter while retaining the shared
+ * Default position score. The configured side remains fixed for the search,
+ * even as each random playout alternates turns. */
+function mctsEvaluateBoard(s, evaluationContext = null) {
+  var score = evaluateBoard(s);
+  if (!evaluationContext || evaluationContext.personalityId !== 'move_hunter' ||
+      evaluationContext.phase !== 'midgame' || !attacked) return score;
+
+  var hunterSide = evaluationContext.side;
+  var pieceValues = { p: 1.0, n: 3.0, b: 3.5, r: 5.0, q: 9.5, k: 200.0, j: getJesterValue(s) };
+  for (var r = 0; r < ROWS; r++) {
+    for (var c = 0; c < COLS; c++) {
+      var target = s.board[r][c];
+      if (!target || target.color === hunterSide || target.type === 'k') continue;
+      if (attacked(r, c, hunterSide, s.board, s.moats)) {
+        var bonus = (pieceValues[target.type] || 0) * 0.10;
+        score += hunterSide === 'w' ? bonus : -bonus;
+      }
+    }
+  }
+  return score;
+}
+
 /* One random playout from s. Returns white's win probability in [0,1].
  * Terminal states: side to move mated -> that side loses; no legal moves
- * without check -> stalemate, 0.5. Cap reached -> evaluateBoard squashed
- * through a sigmoid so scores map smoothly into [0,1]. */
-function mctsPlayout(s, capDepth, shouldStop) {
+ * without check -> stalemate, 0.5. Cap reached -> the selected MCTS
+ * evaluation is squashed through a sigmoid so scores map smoothly into [0,1]. */
+function mctsPlayout(s, capDepth, shouldStop, evaluationContext = null) {
   var d = 0;
   while (d < capDepth) {
     // Keep long playouts cooperative with the search budget/cancellation.
@@ -117,7 +140,7 @@ function mctsPlayout(s, capDepth, shouldStop) {
     return 0.5;
   }
 
-  var score = evaluateBoard(s);
+  var score = mctsEvaluateBoard(s, evaluationContext);
   return 1 / (1 + Math.exp(-score / 2));
 }
 
@@ -147,6 +170,8 @@ function mctsUctChild(node) {
  * the side to move has no legal moves. */
 function mctsSearch(st, cfg) {
   var rootState = clone(st);
+  var evaluationContext = cfg.personalityId === 'move_hunter'
+    ? { personalityId: cfg.personalityId, side: rootState.turn, phase: cfg.phase } : null;
   var root = mctsNode(rootState, null, null, other(rootState.turn));
   root.untried = allLegalState(rootState, rootState.turn);
   if (root.untried.length === 0) return null;
@@ -181,7 +206,7 @@ function mctsSearch(st, cfg) {
     // 3. Simulation (playout), from the mover's perspective.
     var white = mctsPlayout(clone(child.state), cfg.capDepth, function () {
       return cfg.timeBudgetMs > 0 && Date.now() - startedAt >= cfg.timeBudgetMs;
-    });
+    }, evaluationContext);
     var res = child.playerJustMoved === 'w' ? white : 1 - white;
 
     // 4. Backpropagation; perspective alternates up the tree.
@@ -213,6 +238,8 @@ function mctsSearch(st, cfg) {
  * cfg.capDepth. The synchronous search remains available for direct callers. */
 async function mctsSearchAsync(st, cfg, shouldCancel, yieldControl) {
   var rootState = clone(st);
+  var evaluationContext = cfg.personalityId === 'move_hunter'
+    ? { personalityId: cfg.personalityId, side: rootState.turn, phase: cfg.phase } : null;
   var root = mctsNode(rootState, null, null, other(rootState.turn));
   root.untried = allLegalState(rootState, rootState.turn);
   if (root.untried.length === 0) return { move: null, cancelled: false };
@@ -240,7 +267,7 @@ async function mctsSearchAsync(st, cfg, shouldCancel, yieldControl) {
 
     var white = mctsPlayout(clone(child.state), cfg.capDepth, function () {
       return shouldCancel() || (cfg.timeBudgetMs > 0 && Date.now() - startedAt >= cfg.timeBudgetMs);
-    });
+    }, evaluationContext);
     if (shouldCancel()) return { move: null, cancelled: true };
     var res = child.playerJustMoved === 'w' ? white : 1 - white;
     var n = child;
@@ -285,7 +312,7 @@ function mctsEngine(level) {
     name: 'MCTS',
     phases: ['opening', 'midgame', 'endgame'],
     supportedVariants: [{ id: 'jester-moat', versions: [1] }],
-    supportedPersonalities: [DEFAULT_PERSONALITY_ID],
+    supportedPersonalities: [DEFAULT_PERSONALITY_ID, 'move_hunter'],
     capabilities: ['playouts', 'capDepth', 'temperature', 'timeBudgetMs'],
     strength: cfg,
     strengths: {
@@ -310,10 +337,10 @@ function mctsEngine(level) {
           return EngineContract.failed(request, 'INVALID_CONFIG', 'MCTS received unsupported configuration.');
         }
         var personalityId = config && config.personalityId != null ? config.personalityId : DEFAULT_PERSONALITY_ID;
-        if (!Object.prototype.hasOwnProperty.call(PERSONALITY_PROFILES, personalityId) || !Array.isArray(this.supportedPersonalities) ||
-            !this.supportedPersonalities.includes(personalityId)) {
-          return EngineContract.failed(request, 'UNSUPPORTED_PERSONALITY',
-            'Engine ' + this.id + ' does not support personality profile ' + (personalityId || 'missing') + '.');
+        try {
+          assertEnginePersonalityCompatibility(this, personalityId, this.id, config && config.phase);
+        } catch (error) {
+          return EngineContract.failed(request, error.code || 'UNSUPPORTED_PERSONALITY', error.message);
         }
         var searchLevel = mctsLevelFor(request.limits && request.limits.depth);
         var settings = config && config.settings;
@@ -325,7 +352,10 @@ function mctsEngine(level) {
             (settings.timeBudgetMs != null && (!Number.isInteger(settings.timeBudgetMs) || settings.timeBudgetMs < 250 || settings.timeBudgetMs > 12000)))) {
           return EngineContract.failed(request, 'INVALID_CONFIG', 'MCTS received invalid or unsupported settings.');
         }
-        var searchConfig = Object.assign({}, MCTS_LEVELS[searchLevel], settings || {});
+        var searchConfig = Object.assign({}, MCTS_LEVELS[searchLevel], settings || {}, {
+          personalityId: personalityId,
+          phase: config && config.phase
+        });
         if (request.limits && request.limits.timeMs > 0) searchConfig.timeBudgetMs = request.limits.timeMs;
         var startedAt = Date.now();
         var move = mctsSearch(JSON.parse(JSON.stringify(request.position)), searchConfig);
