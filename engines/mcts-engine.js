@@ -89,7 +89,7 @@ function mctsApplyMove(s, m) {
   }
 }
 
-/* MCTS owns its interpretation of Move Hunter while retaining the shared
+/* MCTS owns its interpretation of Piece Hunter while retaining the shared
  * Default position score. The configured side remains fixed for the search,
  * even as each random playout alternates turns. */
 function mctsEvaluateBoard(s, evaluationContext = null) {
