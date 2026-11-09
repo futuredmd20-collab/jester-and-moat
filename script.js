@@ -1579,6 +1579,13 @@ function handleEngineConfigurationChange(event) {
         if (!PERSONALITY_PROFILES[value] || !(engine.supportedPersonalities || []).includes(value)) return;
       }
       destination[setting] = value;
+      if (setting === 'engineId') {
+        destination.advanced = {};
+        for (const phaseName of Object.values(ENGINE_PHASES)) {
+          const phaseOverrides = engineConfiguration.sides[side].phases[phaseName];
+          if (!Object.prototype.hasOwnProperty.call(phaseOverrides, 'engineId')) phaseOverrides.advanced = {};
+        }
+      }
     } else if (value === '__inherit__') {
       delete destination[setting];
       if (setting === 'engineId') destination.advanced = {};
