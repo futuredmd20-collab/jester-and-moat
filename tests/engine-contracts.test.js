@@ -1711,8 +1711,9 @@ test('presets populate general settings and manual phase overrides mark the conf
   assert.equal(config.sides.black.general.strength, 'easy');
   assert.equal(JSON.stringify(config.sides.white.phases), JSON.stringify({ opening: {}, midgame: {}, endgame: {} }));
 
-  config.sides.white.phases.opening.engineId = 'mcts';
-  sandbox.api.setEngineConfiguration(config);
+  sandbox.api.handleEngineConfigurationChange({
+    target: { dataset: { side: 'white', scope: 'phase', phase: 'opening', setting: 'engineId' }, value: 'mcts' }
+  });
   assert.equal(sandbox.api.getEngineConfiguration().presetId, null);
   assert.equal(sandbox.api.applyEnginePreset('balanced'), true);
   config = sandbox.api.getEngineConfiguration();
