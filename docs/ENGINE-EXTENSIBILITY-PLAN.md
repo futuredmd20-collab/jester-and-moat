@@ -4,7 +4,7 @@ Purpose: define the architectural investigation and staged direction for adding 
 
 ## Status
 
-**Status: In progress (2026-11-09).** Stages A–D and the initial E.4/E.5 implementations are complete and merged. PR #144 added MinMax Dragjägaren for midgame; PR #146 added the same profile to MCTS for midgame. Both passed CI and manual PWA verification. The current task branch extends the existing profile to opening, midgame, and endgame for both engines. Additional engines and alternative-board work remain unstarted.
+**Status: In progress (2026-11-09).** Stages A–D and the initial E.4/E.5 implementations are complete and merged. PR #144 added MinMax Dragjägaren for midgame; PR #146 added the same profile to MCTS for midgame. Both passed CI and manual PWA verification. The current task branch extends the existing profile to opening, midgame, and endgame for both engines. GitHub Actions run #568 passed 158 tests (0 failures); manual PWA verification across all three phases remains pending. Additional engines and alternative-board work remain unstarted.
 
 ## Goal
 
