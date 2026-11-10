@@ -126,13 +126,13 @@ Use game results, not the candidate's own evaluation score, as fitness.
 - Use the canonical game terminal-state logic. A game still running at the fixed ply cap is a draw. An engine failure, invalid move, or protocol violation invalidates that candidate's evaluation and is recorded as an error; it is not silently scored as a draw.
 - Do not use candidate-vs-candidate matches in v1. Fixed opponents make fitness easier to interpret and reduce generation-to-generation opponent drift.
 
-At the end of a run, evaluate the best candidates on a separate holdout set of seeds not used for selection. The holdout result must not feed back into that run's selection. Include the same opponent and colour balance, and vary the opening layout/seed fixtures. Use two explicit references during validation:
+After training, select one candidate for explicit final evaluation; do not use holdout results for evolutionary selection. Each candidate submitted for final evaluation receives its own pre-generated, independent holdout fixture set. Never reuse a candidate's holdout set for another candidate. If a candidate fails, a later candidate requires a newly generated holdout set. Keep each candidate's holdout fixtures balanced across opponent, colour, and opening layout. Use two explicit references during validation:
 1. **Primary reference:** the new MinMax/Alpha-Beta engine with the frozen equal-weight start parameters. This isolates the effect of evolution while keeping the search algorithm and settings the same.
 2. **Secondary reference:** the existing MinMax Medium engine. This indicates whether the evolutionary engine is competitive with the current baseline implementation.
 
-A candidate is eligible for export only if it demonstrates a statistically supported improvement over the primary frozen-weight reference on the independent holdout set. Define the statistical method, confidence level, and minimum practical improvement before the trainer implementation/first confirmatory run; do not choose them after inspecting holdout outcomes. Always report the secondary MinMax Medium comparison, but do not substitute it for the primary test of whether evolution improved the new engine. Treat all results as estimates with uncertainty, not definitive strength ratings.
+A candidate does not need to beat either reference. It must meet a predeclared minimum performance floor against both the primary frozen equal-weight reference and the secondary MinMax Medium reference. Establish the floors empirically from balanced baseline measurements completed before the first evolutionary run. Before any confirmatory holdout is inspected, lock the statistical method, confidence level, minimum practical floor, and candidate-specific holdout schedule. Apply the same candidate-specific fixtures to the candidate and both references. Report uncertainty and both comparisons; do not present a small sample as a definitive strength rating.
 
-The existing calibration runner is useful as a source of match-scheduling and reporting concepts, but it currently compares only the six shipped MinMax/MCTS presets. Do not assume it can evaluate evolutionary candidates or be reused unchanged. Inspect its harness and the candidate engine interface before deciding what can be shared.
+The existing calibration runner is useful as a source of match-scheduling and reporting concepts, but it currently compares only the six shipped MinMax/MCTS presets. Its seeded PRNG, Node VM setup, initial-position construction, and canonical game loop are potential reuse points; its fixed profile lookup and tournament orchestration are not directly reusable for evolutionary candidates. Factor shared helpers only where doing so avoids duplication and remains covered by focused tests; do not build a second rules engine.
 
 ### Reproducibility and stopping
 
@@ -152,7 +152,7 @@ The existing calibration runner is useful as a source of match-scheduling and re
 - Fitness is colour-balanced, layout-balanced, opponent-balanced, seed-recorded, and handles draws and failures explicitly.
 - A small dry-run can reproduce its initialization, generation sequence, and fixture schedule from its recorded configuration.
 - The frozen-weight primary reference and MinMax Medium secondary reference are both reported on independent validation fixtures.
-- The statistical acceptance method and practical improvement threshold are defined before confirmatory validation; no parameter package is exported without passing the primary comparison.
+- Empirical minimum performance floors against both references are established from baseline measurements before the first evolutionary run; the statistical method, confidence level, and practical margins are locked before confirmatory holdout evaluation. A candidate that fails either floor is not exportable.
 - No feature weights or strength targets are declared optimal until controlled experiments and holdout results support that conclusion.
 
 ## Data and artifact boundaries
@@ -160,14 +160,14 @@ The existing calibration runner is useful as a source of match-scheduling and re
 | Data | Purpose | Initial direction |
 | --- | --- | --- |
 | Candidate parameters | Current population and selected candidates | Compact structured data managed by the CLI |
-| Run history/results | Generations, seeds, match outcomes, fitness summaries, run metadata, and code version | JSONL; uploaded as a GitHub Actions artifact for initial runs |
-| Resume checkpoint | Enough state to continue an interrupted run | Generation-boundary checkpoint, validated against the original run configuration; uploaded as a GitHub Actions artifact |
-| Exported parameter package | Runtime input for the evolutionary engine | Versioned JSON; small, validated, and reviewed before being committed to the game repo |
+| Run history/results | Generations, seeds, match outcomes, fitness summaries, run metadata, and code version | Append-only JSONL plus a machine-readable JSON report and Markdown summary; uploaded as a GitHub Actions artifact for initial runs |
+| Resume checkpoint | Enough state to continue an interrupted run | Full generation-boundary checkpoint, atomically written and validated against the original run configuration; uploaded as a separate GitHub Actions artifact |
+| Exported parameter package | Runtime input and permanent record of an approved model | Versioned JSON plus provenance metadata, attached to a versioned GitHub Release after manual approval; the exact approved package is also included in the PWA source/precache when adopted for offline runtime |
 | Temporary match data | Positions and per-game details needed for diagnostics | Keep only what is useful; avoid retaining every full trace by default |
 
-Initial Actions runs are started manually through a dedicated `workflow_dispatch` workflow, separate from ordinary PR contract-test jobs. The workflow should expose only bounded run options, record the triggering commit and effective configuration, and upload run metadata/results and checkpoints as artifacts. A resume run must explicitly select/download a prior checkpoint artifact and verify that its schema, source commit compatibility, and experiment configuration match; it must not silently mix configurations. Artifact retention limits must be visible in the workflow/CLI guidance. A local Node.js run on the Mac mini M1 should use the same CLI and checkpoint format, with a user-controlled local storage location.
+Initial Actions runs use a dedicated manual `workflow_dispatch` workflow, separate from ordinary PR contract-test jobs. It invokes the same Node.js CLI as local runs and supports bounded `train`, `resume`, and explicitly requested `evaluate` operations. Inputs expose only bounded population/generation limits, an explicit non-negative seed for new runs, and the source run/artifact and candidate identity required for resume/evaluation. Record the triggering commit, run ID, effective configuration, Node.js version, runner OS, and relevant runtime details. Upload run outputs and the latest checkpoint as separate artifacts with documented finite retention. A resume/evaluation operation must explicitly identify its source artifact. The workflow validates the artifact and run metadata before invoking the CLI. A local Node.js run on the Mac mini M1 uses the same CLI, schemas, and checkpoint format with a user-controlled local output directory; the trainer itself requires no network access.
 
-Training history and checkpoints must not be committed to the ordinary game repository by default. Only selected, reviewed runtime parameter packages belong in the game source/release path.
+Training history, reports, and checkpoints must not be committed to the ordinary game repository. Only a manually approved, validated model package and its provenance metadata are attached to a versioned GitHub Release as permanent experiment outputs. When a package is adopted by the offline PWA, the exact package is separately committed as a runtime asset and included in the service-worker precache; the app must not fetch its active model from GitHub at runtime.
 
 ## Staged work
 
@@ -184,23 +184,56 @@ Specify:
 - Primary and secondary references, holdout separation, and the statistical acceptance principle.
 - How to avoid overfitting to one opening, colour, seed, or opponent.
 
-**Progress:** Model v1 decisions approved on 2026-11-10. The semantic feature definitions, bounded normalized weights, MinMax/Alpha-Beta runtime search, seedable training design, opponent schedule, dual validation references, and package baseline identity are recorded above. Exact statistical test settings and CLI/persistence details remain for Stage 2.
+**Progress:** Model v1 decisions approved on 2026-11-10. The semantic feature definitions, bounded normalized weights, MinMax/Alpha-Beta runtime search, seedable training design, opponent schedule, dual validation references, and package baseline identity are recorded above.
 
 ### 2. Specify the CLI, GitHub Actions workflow, and persistence contract
 
-Inspect the current Node.js scripts, test conventions, game loading approach, and calibration runner before choosing code reuse or file layout.
+#### CLI contract
 
-Define:
-- CLI commands and bounded run options for smoke/pilot runs and larger experiments.
-- Manual `workflow_dispatch` inputs, runner environment, concurrency/cancellation behavior, and separation from automatic PR gates.
-- Seed handling, unique run IDs, and capture of commit/runtime/configuration metadata.
-- JSONL record structure and compatibility/version fields.
-- Checkpoint structure, generation-boundary write safety, resume validation, artifact selection/download, retention guidance, and behavior after a partial/corrupt record.
-- Output summaries, statistical method/threshold fixed before confirmatory validation, and export validation.
-- How to stop cleanly and resume without silently changing the experiment configuration.
-- Local M1 execution using the same CLI and persistence format after the Actions path is established.
+Use one Node.js CLI entry point with four subcommands:
 
-The trainer must use the canonical game rules and move application rather than implementing a second rules engine. The Actions workflow must not turn long evolutionary training into an automatic PR/CI gate.
+| Command | Responsibility |
+| --- | --- |
+| `train` | Start a new, bounded evolutionary run from an explicit seed and immutable run configuration. |
+| `resume` | Continue from an explicitly supplied, validated generation checkpoint. |
+| `evaluate` | Run the separately requested final holdout evaluation for one named candidate; never run automatically at the end of training. |
+| `export` | Validate and write a candidate's versioned JSON parameter package and provenance metadata after the user has reviewed and approved its evaluation. It does not publish a GitHub Release or modify the game source. |
+
+The same CLI implementation and data formats are used locally and in GitHub Actions. The CLI has no network dependency. `train` requires an explicit non-negative safe-integer seed; it generates and records a unique run ID. All run options are validated against documented bounds before work begins. `--seed` is mandatory for `train`; `--population` is bounded to 4–8 evolving candidates and defaults to 8; `--generations` is bounded to 1–8 and defaults to 8; `--output-dir` selects local storage. The first Actions pilot uses 4 candidates and 2 generations, then measures runtime before any increase. The frozen equal-weight control is additional and excluded from the population count, selection, elitism, and mutation. Effective limits are always recorded and cannot change during a run. Fixture count, opponents, and per-candidate match balance remain fixed by model v1 rather than being silently tuned through CLI flags.
+
+#### Run records and reports
+
+Write an append-only `run.jsonl` event stream. Every record includes `recordSchemaVersion`, `runId`, monotonically increasing `sequence`, event type, generation where applicable, and a payload. Version the record schema independently from the feature and parameter-package schemas. Events cover run start/configuration, generation start/completion, completed matches, candidate fitness summaries, interruption, and run completion/failure. Include the exact fixture seed and opponent/configuration identity in each match record.
+
+Also write:
+- `report.json`: complete run metadata, effective configuration, per-generation population/fitness summaries, best candidate and fitness breakdowns, match outcomes, status, and any holdout evaluation results.
+- `summary.md`: concise human-readable run summary, warnings, candidate ranking, reference comparisons, runtime details, and artifact identifiers where available.
+
+A run ID is unique and includes enough human-readable context to identify the run; the authoritative identity is the full stored value, not a filename-derived guess. Record the source commit, trainer/schema versions, Node.js version, OS/runner, base seed, PRNG identity/state, opponent versions and settings, fixture schedule, search limits, terminal rules, timestamps, and final status. Do not claim bit-for-bit identical timed searches across different devices.
+
+#### Checkpoint and resume contract
+
+Write one complete checkpoint after each completed generation. Write to a temporary file, flush/close it, then atomically replace the previous checkpoint so interruption cannot leave a half-written checkpoint as the latest valid state. The checkpoint contains its own schema version; run ID; source commit and trainer version; feature and parameter schema versions; complete immutable run configuration; base seed and full PRNG state; generation index; population and candidate IDs/weights; completed fitness and match records; generation/overall best candidates and breakdowns; fixture schedule; and all state required to continue without regenerating a different experiment.
+
+`resume` requires an explicit checkpoint path locally or source Actions run/artifact identifier remotely; its CLI input also identifies the artifact and checkpoint file. `evaluate` identifies the source run/artifact and candidate ID. Reject with a clear error if the checkpoint is malformed, incomplete, has an unsupported schema, or differs in source-code compatibility or any immutable run setting. Do not migrate checkpoints automatically in v1. The checkpoint is authoritative for the last completed generation. A trailing incomplete JSONL record may be discarded with a recorded warning; a malformed complete record or invalid checkpoint stops recovery without overwriting source data. If a run is interrupted mid-generation, resume repeats that generation from its last complete checkpoint using the same deterministic fixtures and PRNG state; partial results from the interrupted generation are marked abandoned and are not mixed into the resumed generation.
+
+#### GitHub Actions execution and cancellation
+
+Use a dedicated workflow file with `workflow_dispatch` only for evolutionary training operations. Keep the existing engine-contract workflow and its PR/push gates unchanged. Use a bounded Ubuntu runner and a pinned Node.js major matching the repository's supported test environment. Do not use a matrix or parallel candidate jobs in v1: one run executes sequentially so resource use and seeded ordering remain predictable. Prevent overlapping evolutionary runs; do not cancel an active run merely because another dispatch is requested. A user-requested cancellation signals the CLI to stop at a safe generation boundary where possible. If the runner is forcibly terminated, the last atomically completed generation checkpoint remains the recovery point. Cancellation never converts an incomplete run into a successful result.
+
+Upload run outputs and checkpoints as separate named Actions artifacts. Use finite, explicitly configured retention for both; display retention guidance in the workflow summary and CLI help. A resume/evaluate workflow invocation must select the source run/artifact explicitly and verify its contents before use. No training workflow runs automatically on pushes or pull requests, and no full tournament is an automatic CI gate.
+
+#### Holdout and export workflow
+
+A completed training run does not automatically evaluate or export its best candidate. The user explicitly selects one candidate for `evaluate`. Before the first evolutionary run, perform balanced baseline measurements: frozen equal-weight self-play to characterize the primary-reference baseline and its observed variance, plus frozen equal-weight versus MinMax Medium to characterize the secondary baseline. Use these measurements to set minimum acceptable performance floors for candidate-versus-primary and candidate-versus-secondary comparisons. Before opening any candidate-specific holdout results, predeclare the statistical method, confidence level, practical margins, fixture-generation rules, and a sequential-testing correction for the possibility that more than one candidate may be evaluated. Generate a fresh holdout set for each candidate evaluated; never reuse it for another candidate. Within a candidate's evaluation, compare the candidate and both references on the same fixtures. The candidate passes only if it meets both predeclared floors; it is not required to beat either reference. Failed candidates are not exported.
+
+After explicit human approval, `export` writes a validated versioned JSON package and provenance metadata, including the run ID, candidate ID, source commit, schema versions, seed, effective configuration, baseline/holdout methodology, sample counts, results, and limitations. The user then attaches the approved files to a versioned GitHub Release following the repository release procedure. The package's runtime copy, if adopted, is committed and precached separately so the PWA remains fully offline.
+
+#### Local execution and implementation boundary
+
+Local execution on the Mac mini M1 uses the same commands, run schema, checkpoint schema, and validation rules as Actions, with a configurable local output directory. Local execution is enabled after the Actions path is established; it is not a separate implementation. The trainer must use canonical game rules and move application rather than implementing a second rules engine. The Actions workflow must not turn long evolutionary training into an automatic PR/CI gate.
+
+**Stage 2 progress:** CLI, Actions, persistence, holdout, and release decisions approved on 2026-11-10 and specified above. Exact statistical method and numeric performance floors are intentionally set from baseline measurements before confirmatory holdout evaluation.
 
 ### 3. Implement the offline trainer
 
@@ -218,7 +251,7 @@ The runtime engine must work without the trainer or training history being prese
 
 Run controlled, modest experiments. Begin with a small GitHub Actions pilot, measure runtime and feature costs, and increase the run budget only when the measurements justify it. Compare candidates with the frozen-weight primary reference and existing MinMax Medium secondary reference on balanced, independent fixtures. Record sample sizes, seeds, code/runtime conditions, and uncertainty; do not describe small samples as definitive strength ratings.
 
-Export only a selected candidate that passes the predeclared primary holdout acceptance criterion. Store the resulting versioned `Default` parameter package in the game source/release path. Keep raw training data and checkpoints outside the shipped PWA and ordinary source history.
+Export only a manually approved candidate that meets both empirically established performance floors on its own independent holdout set. Attach the versioned `Default` JSON package and provenance metadata to a GitHub Release. If adopted by the offline PWA, commit the exact runtime package separately and include it in the service-worker precache. Keep raw training data and checkpoints outside the shipped PWA and ordinary source history.
 
 ### 6. Explore further profiles and future training modes
 
@@ -237,7 +270,7 @@ After the engine has a stable baseline:
 - Initial training and smoke execution work through a manually dispatched GitHub Actions workflow; local M1 execution can use the same CLI and artifact/checkpoint format.
 - Training artifacts remain separate from PWA assets and normal runtime storage.
 - Automated tests cover feature semantics/purity/performance, core evolutionary operations, scoring, persistence/recovery, package validation, engine contract behavior, and relevant worker lifecycle behavior.
-- Export requires statistically supported improvement over the frozen-weight primary reference on independent holdout data; the existing MinMax Medium secondary comparison is reported.
+- Export requires a manually approved candidate to meet predeclared, empirically established minimum performance floors against both the frozen-weight primary reference and MinMax Medium on a candidate-specific independent holdout set; the candidate need not outperform either reference.
 - Any strength claims identify the exact opponents, sample size, seeds, runtime conditions, and limitations.
 - Future in-game evolution and personality training remain possible design directions, but are not required or implemented by this plan's first version.
 
@@ -263,5 +296,6 @@ After the engine has a stable baseline:
 
 ## Change log
 
-- **2026-11-10:** Recorded the approved v1 decisions: MinMax/Alpha-Beta runtime search; pure, representation-independent feature extraction with per-feature cost measurement; seedable training; `Default` baseline parameters; GitHub Actions as the initial manual training environment; Actions artifacts for run outputs/checkpoints; dual validation references; independent holdout acceptance; reproducible run metadata; and locked feature-schema v1.
+- **2026-11-10:** Specified the Stage 2 CLI, Actions, persistence, and release contract: one shared CLI (`train`, `resume`, `evaluate`, `export`); manually dispatched sequential Actions runs; JSONL, JSON, and Markdown outputs; full generation checkpoints; strict resume validation; separate finite-retention run/checkpoint artifacts; candidate-specific holdout sets; empirical minimum floors against both references; manual export approval; and versioned GitHub Release assets.
+- **2026-11-10:** Recorded the approved v1 model decisions: MinMax/Alpha-Beta runtime search; pure, representation-independent feature extraction with per-feature cost measurement; seedable training; `Default` baseline parameters; GitHub Actions as the initial manual training environment; Actions artifacts for run outputs/checkpoints; dual validation references; independent holdout acceptance; reproducible run metadata; and locked feature-schema v1.
 - **2026-11-09:** Added a representation-independent semantic feature boundary so future bitboard or other internal representation work can proceed without coupling evolutionary weights or training data to storage details.
