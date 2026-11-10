@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const { execFileSync } = require('node:child_process');
 const core = require('./evolutionary-core');
 const persistence = require('./evolutionary-persistence');
 
@@ -74,7 +75,9 @@ function helpText() {
 }
 
 function currentCommit() {
-  return process.env.GITHUB_SHA || process.env.SOURCE_COMMIT || 'local-uncommitted';
+  if (process.env.GITHUB_SHA || process.env.SOURCE_COMMIT) return process.env.GITHUB_SHA || process.env.SOURCE_COMMIT;
+  try { return execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); }
+  catch (_) { return 'local-uncommitted'; }
 }
 
 function makeRunId(seed) {
@@ -250,7 +253,8 @@ function train(options) {
   fs.mkdirSync(directory, { recursive: true });
   const report = createReport(runId, seed, config, currentCommit());
   const initial = core.createInitialPopulation(seed, config.populationSize);
-  append(report, directory, 1, 'run-started', { config, sourceCommit: report.sourceCommit });
+  report.prng.initialState = initial.randomState;
+  append(report, directory, 1, 'run-started', { config, sourceCommit: report.sourceCommit, prngInitialState: initial.randomState });
   const final = runTraining(report, directory, initial, 0, 2);
   process.stdout.write(JSON.stringify({ runId: final.runId, status: final.status, outputDirectory: directory, completedGenerations: final.completedGenerations.length }) + '\n');
   return final;
