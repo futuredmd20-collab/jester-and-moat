@@ -101,8 +101,19 @@ function validateCheckpoint(checkpoint, expected = {}) {
       !Array.isArray(checkpoint.population) || !Array.isArray(checkpoint.completedGenerations) ||
       !checkpoint.config || typeof checkpoint.config !== 'object' ||
       !checkpoint.fixtureSchedule || typeof checkpoint.fixtureSchedule !== 'object' ||
-      !checkpoint.reportSnapshot || typeof checkpoint.reportSnapshot !== 'object') {
+      !checkpoint.reportSnapshot || typeof checkpoint.reportSnapshot !== 'object' ||
+      typeof checkpoint.sourceCommit !== 'string' || !checkpoint.sourceCommit ||
+      !checkpoint.control || typeof checkpoint.control.id !== 'string' ||
+      !Array.isArray(checkpoint.fixtureSchedule.fixtures) || checkpoint.fixtureSchedule.fixtures.length !== 8) {
     throw new Error('Checkpoint is malformed or incomplete.');
+  }
+  if (checkpoint.population.length < 4 || checkpoint.population.length > 8 ||
+      checkpoint.completedGenerations.length !== checkpoint.completedGeneration + 1 ||
+      checkpoint.reportSnapshot.runId !== checkpoint.runId ||
+      !sameConfig(checkpoint.reportSnapshot.config, checkpoint.config) ||
+      !Array.isArray(checkpoint.reportSnapshot.completedGenerations) ||
+      checkpoint.reportSnapshot.completedGenerations.length !== checkpoint.completedGenerations.length) {
+    throw new Error('Checkpoint generation history or report snapshot is inconsistent.');
   }
   if (expected.runId && checkpoint.runId !== expected.runId) throw new Error('Checkpoint run ID does not match the requested run.');
   if (expected.sourceCommit && checkpoint.sourceCommit !== expected.sourceCommit) throw new Error('Checkpoint source commit is incompatible with this checkout.');
@@ -111,6 +122,9 @@ function validateCheckpoint(checkpoint, expected = {}) {
     if (!candidate || typeof candidate.id !== 'string') throw new Error('Checkpoint population contains an invalid candidate.');
     normalizeWeights(candidate.weights);
   }
+  if (!checkpoint.overallBest) throw new Error('Checkpoint is missing its overall-best candidate.');
+  if (checkpoint.control.id !== 'equal-weight-control') throw new Error('Checkpoint equal-weight control identity is invalid.');
+  normalizeWeights(checkpoint.control.weights);
   if (checkpoint.overallBest) {
     normalizeWeights(checkpoint.overallBest.weights);
     if (!Number.isFinite(checkpoint.overallBest.fitness) || checkpoint.overallBest.fitness < 0 || checkpoint.overallBest.fitness > 1) {
