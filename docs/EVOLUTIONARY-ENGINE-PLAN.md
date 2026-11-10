@@ -4,7 +4,7 @@ Purpose: plan a small, independently trainable evolutionary engine and its offli
 
 ## Status
 
-**Status: Planned.** The user selected an evolutionary engine as the next engine direction and approved the initial v1 model decisions recorded below. Initial training is offline and separate from normal PWA gameplay. No engine, trainer, or evolutionary-training workflow has been implemented or authorized by this plan update.
+**Status: In progress.** The user selected an evolutionary engine as the next engine direction and approved the initial v1 model decisions recorded below. Initial training is offline and separate from normal PWA gameplay. No engine, trainer, or evolutionary-training workflow has been implemented or authorized by this plan update.
 
 ## Goal
 
@@ -238,6 +238,8 @@ Local execution on the Mac mini M1 uses the same commands, run schema, checkpoin
 ### 3. Implement the offline trainer
 
 Build a minimal CLI workflow with small default pilot limits and no network requirement for the trainer itself. Add focused tests for deterministic components, parameter bounds, match scoring, feature purity/performance, persistence, interrupted-run recovery, and export validation.
+
+**Progress (Stage 3A — trainer core):** Initial implementation is on `feat/evolutionary-trainer-core`: schema-v1 semantic feature extraction, bounded candidate Alpha-Beta search, seeded population/mutation/selection, balanced fixed fixtures, and a real-rule match path against MinMax Medium and MCTS Medium. Focused regression coverage includes feature semantics/purity/cost reporting, restorable PRNG state, bounded operators, balanced fixtures, candidate search, and short real-rule matches against both opponents. GitHub Actions run #622 passed all 173 tests (0 failures). CLI, persistence/checkpointing, Actions workflow, and export remain outside this first core step.
 
 Use GitHub Actions for initial smoke and pilot execution. Keep long or confirmatory runs manually started and explicitly bounded; do not make full tournaments or long training runs an automatic CI gate. Add local M1 execution without changing the experiment or checkpoint semantics.
 
