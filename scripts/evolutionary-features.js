@@ -22,6 +22,7 @@ const MATERIAL_LIMITS = Object.freeze({
   queen: 1,
   jester: 2
 });
+const MATERIAL_PIECE_TYPES = Object.freeze({ pawn: 'p', knight: 'n', bishop: 'b', rook: 'r', queen: 'q', jester: 'j' });
 const CENTRAL_BOUNDS = Object.freeze({ minRow: 2, maxRow: 5, minCol: 3, maxCol: 6 });
 const FEATURE_LIMITS = Object.freeze({ mobility: 40, central: 16, jester: 24 });
 
@@ -90,8 +91,8 @@ function createFeatureExtractor(adapter) {
 
     for (const [type, cap] of Object.entries(MATERIAL_LIMITS)) {
       features['material.' + type] = difference(
-        countMaterial(position, 'w', type),
-        countMaterial(position, 'b', type),
+        countMaterial(position, 'w', MATERIAL_PIECE_TYPES[type]),
+        countMaterial(position, 'b', MATERIAL_PIECE_TYPES[type]),
         cap
       );
     }
@@ -142,8 +143,8 @@ function createFeatureExtractor(adapter) {
     for (let iteration = 0; iteration < iterations; iteration++) {
       let start = now();
       for (const [type] of Object.entries(MATERIAL_LIMITS)) {
-        countMaterial(position, 'w', type);
-        countMaterial(position, 'b', type);
+        countMaterial(position, 'w', MATERIAL_PIECE_TYPES[type]);
+        countMaterial(position, 'b', MATERIAL_PIECE_TYPES[type]);
         costs['material.' + type] += now() - start;
         start = now();
       }
@@ -191,6 +192,7 @@ module.exports = {
   FEATURE_SCHEMA_VERSION,
   FEATURE_IDS,
   MATERIAL_LIMITS,
+  MATERIAL_PIECE_TYPES,
   FEATURE_LIMITS,
   CENTRAL_BOUNDS,
   createFeatureExtractor,
