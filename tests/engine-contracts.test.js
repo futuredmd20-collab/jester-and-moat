@@ -1397,6 +1397,10 @@ test('structured MCTS worker routes requests through the engine contract', async
 
 test('worker dispatches Evolutionary requests with the cooperative search path', async () => {
   const workerBlobs = new Map();
+  const previousWorker = sandbox.Worker;
+  const previousWindowWorker = sandbox.window.Worker;
+  const previousCreateObjectURL = sandbox.URL.createObjectURL;
+  const previousRevokeObjectURL = sandbox.URL.revokeObjectURL;
   sandbox.api.resetAIWorker();
   sandbox.URL.createObjectURL = blob => {
     const url = `blob:evolutionary-worker-${workerBlobs.size}`;
@@ -1445,8 +1449,10 @@ test('worker dispatches Evolutionary requests with the cooperative search path',
     assert.ok(allLegalState(s).some(move => JSON.stringify(move) === JSON.stringify(response.result.move)));
   } finally {
     sandbox.api.resetAIWorker();
-    sandbox.Worker = undefined;
-    sandbox.window.Worker = undefined;
+    sandbox.Worker = previousWorker;
+    sandbox.window.Worker = previousWindowWorker;
+    sandbox.URL.createObjectURL = previousCreateObjectURL;
+    sandbox.URL.revokeObjectURL = previousRevokeObjectURL;
   }
 });
 
