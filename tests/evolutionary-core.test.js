@@ -15,6 +15,7 @@ const {
   createNextGeneration,
   scoreMatches,
   createFixtures,
+  validateFixtures,
   runMatch
 } = require('../scripts/evolutionary-core');
 const { searchBestMove } = require('../scripts/evolutionary-search');
@@ -147,6 +148,9 @@ test('fixture schedule is reproducible and balanced across both opponents, layou
     assert.deepEqual(group.map(fixture => fixture.candidateColor).sort(), ['b', 'b', 'w', 'w']);
   }
   assert.notDeepEqual(fixtures, createFixtures(43, 3));
+  const unbalanced = fixtures.slice();
+  unbalanced[0] = { ...unbalanced[0], candidateColor: unbalanced[1].candidateColor };
+  assert.throws(() => validateFixtures(unbalanced), /each opponent\/layout\/colour combination/);
 });
 
 test('fitness uses game scores and requires four matches against each fixed opponent', () => {
