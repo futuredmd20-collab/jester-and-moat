@@ -3,8 +3,8 @@
 
 const FEATURE_API = typeof module !== 'undefined' && module.exports
   ? require('./evolutionary-features') : globalThis.EvolutionaryFeatures;
-const SEARCH_SEARCH_FEATURE_IDS = FEATURE_API.FEATURE_IDS;
-const createFeatureExtractor = FEATURE_API.createFeatureExtractor;
+const SEARCH_FEATURE_IDS = FEATURE_API.FEATURE_IDS;
+const SEARCH_CREATE_FEATURE_EXTRACTOR = FEATURE_API.createFeatureExtractor;
 
 const MATE_SCORE = 100000;
 
@@ -84,7 +84,7 @@ function searchBestMove(position, weights, adapter, options = {}) {
     throw new RangeError('Search node limit must be 1–1000000.');
   }
 
-  const featureExtractor = createFeatureExtractor(rules);
+  const featureExtractor = SEARCH_CREATE_FEATURE_EXTRACTOR(rules);
   let nodes = 0;
   let limitReached = false;
   const deadline = options.timeMs > 0 ? Date.now() + options.timeMs : Infinity;
@@ -179,7 +179,7 @@ async function searchBestMoveAsync(position, weights, adapter, options = {}) {
   const shouldCancel = typeof options.shouldCancel === 'function' ? options.shouldCancel : () => false;
   const yieldControl = typeof options.yieldControl === 'function'
     ? options.yieldControl : () => new Promise(resolve => setTimeout(resolve, 0));
-  const featureExtractor = createFeatureExtractor(rules);
+  const featureExtractor = SEARCH_CREATE_FEATURE_EXTRACTOR(rules);
   let nodes = 0;
   let limitReached = false;
   let cancelled = false;
