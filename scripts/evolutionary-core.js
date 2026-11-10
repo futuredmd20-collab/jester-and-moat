@@ -26,8 +26,9 @@ function validateSeed(seed) {
   return seed;
 }
 
-function createSeededRandom(seed, state = seed) {
+function createSeededRandom(seed, state) {
   validateSeed(seed);
+  if (state === undefined) state = seed >>> 0;
   if (!Number.isSafeInteger(state) || state < 0 || state > 0xffffffff) {
     throw new RangeError('PRNG state must be an unsigned 32-bit integer.');
   }
