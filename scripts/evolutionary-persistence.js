@@ -108,8 +108,13 @@ function validateCheckpoint(checkpoint, expected = {}) {
       !Array.isArray(checkpoint.fixtureSchedule.fixtures) || checkpoint.fixtureSchedule.fixtures.length !== 8) {
     throw new Error('Checkpoint is malformed or incomplete.');
   }
-  if (checkpoint.config.populationSize !== checkpoint.population.length ||
+  if (!Number.isInteger(checkpoint.config.populationSize) || checkpoint.config.populationSize < 4 || checkpoint.config.populationSize > 8 ||
+      checkpoint.config.populationSize !== checkpoint.population.length ||
       !Number.isInteger(checkpoint.config.generations) || checkpoint.config.generations < 1 || checkpoint.config.generations > 8 ||
+      !Number.isInteger(checkpoint.config.maxPlies) || checkpoint.config.maxPlies < 2 || checkpoint.config.maxPlies > 120 ||
+      !Number.isInteger(checkpoint.config.searchDepth) || checkpoint.config.searchDepth < 1 || checkpoint.config.searchDepth > 4 ||
+      !Number.isInteger(checkpoint.config.searchNodeLimit) || checkpoint.config.searchNodeLimit < 100 || checkpoint.config.searchNodeLimit > 20000 ||
+      !Number.isFinite(checkpoint.config.opponentBudgetScale) || checkpoint.config.opponentBudgetScale <= 0 || checkpoint.config.opponentBudgetScale > 1 ||
       checkpoint.completedGeneration >= checkpoint.config.generations ||
       validateFixtures(checkpoint.fixtureSchedule.fixtures) !== checkpoint.completedGeneration ||
       checkpoint.fixtureSchedule.generation !== checkpoint.completedGeneration ||
@@ -118,7 +123,9 @@ function validateCheckpoint(checkpoint, expected = {}) {
       checkpoint.reportSnapshot.runId !== checkpoint.runId ||
       !sameConfig(checkpoint.reportSnapshot.config, checkpoint.config) ||
       !Array.isArray(checkpoint.reportSnapshot.completedGenerations) ||
-      checkpoint.reportSnapshot.completedGenerations.length !== checkpoint.completedGenerations.length) {
+      checkpoint.reportSnapshot.completedGenerations.length !== checkpoint.completedGenerations.length ||
+      !sameConfig(checkpoint.completedGenerations, checkpoint.reportSnapshot.completedGenerations) ||
+      !checkpoint.reportSnapshot.prng || checkpoint.reportSnapshot.prng.finalState !== checkpoint.randomState) {
     throw new Error('Checkpoint generation history or report snapshot is inconsistent.');
   }
   if (expected.runId && checkpoint.runId !== expected.runId) throw new Error('Checkpoint run ID does not match the requested run.');
@@ -129,7 +136,7 @@ function validateCheckpoint(checkpoint, expected = {}) {
     normalizeWeights(candidate.weights);
   }
   if (!checkpoint.overallBest) throw new Error('Checkpoint is missing its overall-best candidate.');
-  if (checkpoint.control.id !== 'equal-weight-control') throw new Error('Checkpoint equal-weight control identity is invalid.');
+  if (checkpoint.control.id !== 'equal-weight-control' || checkpoint.control.frozen !== true) throw new Error('Checkpoint equal-weight control identity is invalid.');
   normalizeWeights(checkpoint.control.weights);
   if (checkpoint.overallBest) {
     normalizeWeights(checkpoint.overallBest.weights);
