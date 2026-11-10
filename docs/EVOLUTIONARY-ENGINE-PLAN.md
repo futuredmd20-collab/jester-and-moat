@@ -269,6 +269,7 @@ All 52 logged Black Evolutionary searches completed; the log reports no Evolutio
 These timings describe response/search duration in this particular game and device session. They do not measure move quality, win rate, or relative engine strength. The user's comparison with MCTS is retained as a practical impression only; the log does not provide a controlled head-to-head comparison with matched positions, budgets, colours, and configurations.
 
 **Verification conclusion:** Stage 4's automated contract/worker coverage and the reported manual cross-variant/mode runtime check are complete. Further training and controlled strength evaluation remain separate Stage 5 work; this manual test does not satisfy the training baseline or holdout acceptance gates.
+
 The runtime engine must work without the trainer or training history being present. Its normal gameplay path must not use the training PRNG or require training-only dependencies.
 
 ### 5. Evaluate and package a first result
