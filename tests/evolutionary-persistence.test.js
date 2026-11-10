@@ -34,6 +34,7 @@ function checkpoint(overrides = {}) {
     completedGenerations: [{ generation: 0 }],
     overallBest: { id: 'g0-c01', weights: equalWeights(), fitness: 0.75 },
     fixtureSchedule: { generation: 0, fixtures: [] },
+    reportSnapshot: { runId: 'run-test', status: 'running', sourceCommit: 'abc123', config: { populationSize: 4, generations: 2 } },
     ...overrides
   };
 }
