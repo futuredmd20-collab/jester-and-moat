@@ -54,12 +54,15 @@ jobs:
       - name: Validate seed
         shell: bash
         run: |
-          node -e "const n=Number(process.env.SEED); if (!Number.isSafeInteger(n) || n < 0) process.exit(1)" 
+          node -e "const n=Number(process.env.SEED); if (!Number.isSafeInteger(n) || n < 0) process.exit(1)"
         env:
           SEED: ${{ inputs.seed }}
       - name: Run bounded pilot
-        run: node scripts/evolutionary-trainer.js train --seed "${{ inputs.seed }}" --population 4 --generations 2 --output-dir evolutionary-output
+        run: node scripts/evolutionary-trainer.js train --seed "$SEED" --population 4 --generations 2 --output-dir evolutionary-output
+        env:
+          SEED: ${{ inputs.seed }}
       - name: Upload run history and report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: evolutionary-run
@@ -70,6 +73,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
       - name: Upload latest generation checkpoint
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: evolutionary-checkpoint
@@ -95,7 +99,9 @@ jobs:
       - name: Validate source run ID
         shell: bash
         run: |
-          [[ "${{ inputs.source_run_id }}" =~ ^[0-9]+$ ]] || { echo "A numeric source_run_id is required." >&2; exit 1; }
+          [[ "$SOURCE_RUN_ID" =~ ^[0-9]+$ ]] || { echo "A numeric source_run_id is required." >&2; exit 1; }
+        env:
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
       - name: Download source run history
         uses: actions/download-artifact@v4
         with:
@@ -124,6 +130,7 @@ jobs:
       - name: Resume from latest complete generation
         run: node scripts/evolutionary-trainer.js resume --checkpoint source-run/checkpoint.json --output-dir source-run
       - name: Upload resumed run history and report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: evolutionary-run
@@ -134,6 +141,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
       - name: Upload latest generation checkpoint
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: evolutionary-checkpoint
@@ -149,9 +157,13 @@ jobs:
       - name: Validate source run and candidate
         shell: bash
         run: |
-          [[ "${{ inputs.source_run_id }}" =~ ^[0-9]+$ ]] || { echo "A numeric source_run_id is required." >&2; exit 1; }
-          test -n "${{ inputs.candidate_id }}" || { echo "candidate_id is required." >&2; exit 1; }
-          test -n "${{ inputs.protocol_path }}" || { echo "protocol_path is required." >&2; exit 1; }
+          [[ "$SOURCE_RUN_ID" =~ ^[0-9]+$ ]] || { echo "A numeric source_run_id is required." >&2; exit 1; }
+          test -n "$CANDIDATE_ID" || { echo "candidate_id is required." >&2; exit 1; }
+          test -n "$PROTOCOL_PATH" || { echo "protocol_path is required." >&2; exit 1; }
+        env:
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          CANDIDATE_ID: ${{ inputs.candidate_id }}
+          PROTOCOL_PATH: ${{ inputs.protocol_path }}
       - name: Download source run report
         uses: actions/download-artifact@v4
         with:
@@ -165,4 +177,7 @@ jobs:
         with:
           node-version: 20
       - name: Evaluate selected candidate
-        run: node scripts/evolutionary-trainer.js evaluate --report source-run/report.json --candidate-id "${{ inputs.candidate_id }}" --protocol "${{ inputs.protocol_path }}"
+        run: node scripts/evolutionary-trainer.js evaluate --report source-run/report.json --candidate-id "$CANDIDATE_ID" --protocol "$PROTOCOL_PATH"
+        env:
+          CANDIDATE_ID: ${{ inputs.candidate_id }}
+          PROTOCOL_PATH: ${{ inputs.protocol_path }}
