@@ -208,6 +208,36 @@ test('Evolutionary runtime validates the frozen Default package and returns a le
   assert.equal(JSON.stringify(s), before, 'runtime search must not mutate its input position');
 });
 
+test('Evolutionary cooperative search observes cancellation at yield boundaries', async () => {
+  const s = position();
+  for (const [r, col, type, color] of [
+    [5, 0, 'r', 'w'], [5, 8, 'r', 'w'], [5, 2, 'n', 'w'], [5, 6, 'n', 'w'],
+    [4, 1, 'b', 'w'], [4, 7, 'b', 'w'],
+    [2, 0, 'r', 'b'], [2, 8, 'r', 'b'], [2, 2, 'n', 'b'], [2, 6, 'n', 'b'],
+    [3, 1, 'b', 'b'], [3, 7, 'b', 'b']
+  ]) s.board[r][col] = { type, color, moved: false };
+  let yieldCount = 0;
+  const outcome = await sandbox.EvolutionarySearch.searchBestMoveAsync(
+    s,
+    evolutionaryDefaultPackage.weights,
+    {
+      clonePosition: state => JSON.parse(JSON.stringify(state)),
+      allLegalState: sandbox.api.allLegalState,
+      inCheck: sandbox.api.inCheck,
+      applyRaw: sandbox.api.applyRaw
+    },
+    {
+      depth: 3,
+      nodeLimit: 10000,
+      timeMs: 5000,
+      shouldCancel: () => yieldCount > 0,
+      yieldControl: async () => { yieldCount += 1; }
+    }
+  );
+  assert.equal(yieldCount, 1, 'search should yield cooperatively after a bounded node batch');
+  assert.equal(outcome.cancelled, true);
+});
+
 test('Evolutionary runtime rejects incompatible package schemas and invalid weights', () => {
   const valid = evolutionaryDefaultPackage;
   assert.throws(() => sandbox.validateEvolutionaryParameterPackage(
