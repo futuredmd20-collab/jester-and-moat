@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "modelId": "evolutionary-default-v1",
+  "variant": {
+    "id": "jester-moat",
+    "version": 1
+  },
+  "featureSchemaVersion": 1,
+  "weights": {
+    "material.pawn": 0.1,
+    "material.knight": 0.1,
+    "material.bishop": 0.1,
+    "material.rook": 0.1,
+    "material.queen": 0.1,
+    "material.jester": 0.1,
+    "activity.mobility": 0.1,
+    "activity.central": 0.1,
+    "activity.jester": 0.1,
+    "safety.king-in-check": 0.1
+  },
+  "metadata": {
+    "kind": "frozen-equal-weight-control",
+    "description": "Initial schema-v1 reference package; not an empirically calibrated or evolved strength profile."
+  }
+}
