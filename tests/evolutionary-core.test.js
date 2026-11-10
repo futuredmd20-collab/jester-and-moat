@@ -10,6 +10,7 @@ const {
 const {
   DEFAULTS,
   equalWeights,
+  createSeededRandom,
   createInitialPopulation,
   mutateWeights,
   createNextGeneration,
@@ -99,6 +100,16 @@ test('feature costs are reported separately and remain finite', () => {
   const costs = createFeatureExtractor(fakeAdapter()).measureFeatureCosts(samplePosition(), 2);
   assert.deepEqual(Object.keys(costs), FEATURE_IDS);
   for (const value of Object.values(costs)) assert.ok(Number.isFinite(value) && value >= 0);
+});
+
+test('evolutionary PRNG state can be restored exactly', () => {
+  const random = createSeededRandom(0x123456789);
+  random();
+  const checkpointState = random.getState();
+  const expectedNext = random();
+  const resumed = createSeededRandom(0x123456789, checkpointState);
+  assert.equal(resumed(), expectedNext);
+  assert.throws(() => createSeededRandom(1, -1), /unsigned 32-bit/);
 });
 
 test('initial population is seeded and keeps equal-weight control outside evolving candidates', () => {
