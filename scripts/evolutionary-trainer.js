@@ -96,7 +96,10 @@ function createReport(runId, seed, config, sourceCommit) {
     baseSeed: seed,
     prng: { algorithm: 'mulberry32', initialSeed: seed },
     config,
-    opponents: ['minmax-2', 'mcts-2'],
+    opponents: [
+      { id: 'minmax-2', engine: 'minmax', level: 2, budgetScale: config.opponentBudgetScale },
+      { id: 'mcts-2', engine: 'mcts', level: 2, budgetScale: config.opponentBudgetScale }
+    ],
     fixtureSchedule: { fixturesPerCandidate: 8, layouts: ['edges', 'center'], candidateColours: ['w', 'b'] },
     terminalRules: { maxPlies: config.maxPlies, unfinishedGame: 'draw', engineFailure: 'invalid-evaluation' },
     runtime: { node: process.version, platform: os.platform(), arch: os.arch(), runner: process.env.RUNNER_NAME || 'local' },
@@ -195,6 +198,9 @@ function runTraining(report, directory, initialState, startGeneration, nextSeque
         generation + 1,
         random
       );
+      report.prng.generationStates = report.prng.generationStates || [];
+      report.prng.generationStates.push({ generation, state: random.getState() });
+      report.prng.finalState = random.getState();
       const checkpoint = checkpointFrom(report, {
         randomState: random.getState(),
         control
@@ -204,6 +210,14 @@ function runTraining(report, directory, initialState, startGeneration, nextSeque
       population = nextPopulation;
       if (stopRequested) break;
     }
+  } catch (error) {
+    report.status = 'failed';
+    report.completedAt = new Date().toISOString();
+    report.warnings.push('Training failed: ' + error.message);
+    try { append(report, directory, sequence++, 'run-failed', { message: error.message }); } catch (_) {}
+    report.finalEventSequence = sequence - 1;
+    persistence.writeReport(directory, report);
+    throw error;
   } finally {
     process.removeListener('SIGINT', onSignal);
     process.removeListener('SIGTERM', onSignal);
