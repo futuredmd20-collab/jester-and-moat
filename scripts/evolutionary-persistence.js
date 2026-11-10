@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { FEATURE_IDS, FEATURE_SCHEMA_VERSION } = require('./evolutionary-features');
 const { normalizeWeights } = require('./evolutionary-search');
+const { validateFixtures } = require('./evolutionary-core');
 
 const RECORD_SCHEMA_VERSION = 1;
 const CHECKPOINT_SCHEMA_VERSION = 1;
@@ -107,7 +108,12 @@ function validateCheckpoint(checkpoint, expected = {}) {
       !Array.isArray(checkpoint.fixtureSchedule.fixtures) || checkpoint.fixtureSchedule.fixtures.length !== 8) {
     throw new Error('Checkpoint is malformed or incomplete.');
   }
-  if (checkpoint.population.length < 4 || checkpoint.population.length > 8 ||
+  if (checkpoint.config.populationSize !== checkpoint.population.length ||
+      !Number.isInteger(checkpoint.config.generations) || checkpoint.config.generations < 1 || checkpoint.config.generations > 8 ||
+      checkpoint.completedGeneration >= checkpoint.config.generations ||
+      validateFixtures(checkpoint.fixtureSchedule.fixtures) !== checkpoint.completedGeneration ||
+      checkpoint.fixtureSchedule.generation !== checkpoint.completedGeneration ||
+      checkpoint.population.length < 4 || checkpoint.population.length > 8 ||
       checkpoint.completedGenerations.length !== checkpoint.completedGeneration + 1 ||
       checkpoint.reportSnapshot.runId !== checkpoint.runId ||
       !sameConfig(checkpoint.reportSnapshot.config, checkpoint.config) ||
