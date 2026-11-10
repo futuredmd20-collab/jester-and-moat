@@ -152,6 +152,15 @@ test('index.html provides a real host and inline marker for the Minimal sprite',
   assert.match(buildSource, /"<!-- PIECE-MINIMAL-SPRITE:INLINE -->"[\s\S]*?piecesMinimalSvg\.trimEnd\(\)/);
 });
 
+test('single-file build embeds the evolutionary runtime package and dependencies before script.js', () => {
+  for (const sourcePath of [
+    'scripts/evolutionary-features.js', 'scripts/evolutionary-search.js',
+    'engines/evolutionary-engine.js', 'engines/evolutionary-default-v1.json'
+  ]) assert.ok(buildSource.includes(sourcePath), `build should include ${sourcePath}`);
+  assert.match(buildSource, /evolutionaryPackageScript/);
+  assert.match(buildSource, /evolutionaryFeaturesBody[\s\S]*evolutionarySearchBody[\s\S]*evolutionaryEngineBody[\s\S]*scriptBody/);
+});
+
 test('multi-file startup loads both sprites and MCTS before script.js', async () => {
   const result = await runBoot();
   assert.deepEqual(result.fetchCalls, ['pieces.svg', 'pieces-flat.svg', 'pieces-minimal.svg', 'engines/evolutionary-default-v1.json']);
