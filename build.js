@@ -10,6 +10,10 @@ const piecesMinimalSvg = fs.readFileSync(path.join(__dirname, "pieces-minimal.sv
 const scriptJs = fs.readFileSync(path.join(__dirname, "script.js"), "utf8");
 const mctsEngineJs = fs.readFileSync(path.join(__dirname, "engines", "mcts-engine.js"), "utf8");
 const minmaxEngineJs = fs.readFileSync(path.join(__dirname, "engines", "minmax-engine.js"), "utf8");
+const evolutionaryFeaturesJs = fs.readFileSync(path.join(__dirname, "scripts", "evolutionary-features.js"), "utf8");
+const evolutionarySearchJs = fs.readFileSync(path.join(__dirname, "scripts", "evolutionary-search.js"), "utf8");
+const evolutionaryEngineJs = fs.readFileSync(path.join(__dirname, "engines", "evolutionary-engine.js"), "utf8");
+const evolutionaryDefaultPackage = JSON.parse(fs.readFileSync(path.join(__dirname, "engines", "evolutionary-default-v1.json"), "utf8"));
 
 let combined = indexHtml.replace(
   '<link rel="stylesheet" href="style.css">',
@@ -45,9 +49,13 @@ const strictDirective = '"use strict";';
 const scriptBody = scriptJs.replace(/^"use strict";\s*/, "");
 const mctsBody = mctsEngineJs.replace(/^'use strict;'\s*/, "");
 const minmaxBody = minmaxEngineJs.replace(/^'use strict;'\s*/, "");
+const evolutionaryFeaturesBody = evolutionaryFeaturesJs.replace(/^'use strict';\s*/, "");
+const evolutionarySearchBody = evolutionarySearchJs.replace(/^'use strict';\s*/, "");
+const evolutionaryEngineBody = evolutionaryEngineJs.replace(/^'use strict';\s*/, "");
+const evolutionaryPackageScript = `globalThis.EVOLUTIONARY_DEFAULT_PACKAGE = ${JSON.stringify(evolutionaryDefaultPackage)};`;
 combined = combined.replace(
   /<!-- GAME-BOOT:BEGIN[\s\S]*?<!-- GAME-BOOT:END -->/,
-  `<script>\n${strictDirective}\n${mctsBody}\n${minmaxBody}\n${scriptBody}\n</script>`
+  `<script>\n${strictDirective}\n${mctsBody}\n${minmaxBody}\n${evolutionaryPackageScript}\n${evolutionaryFeaturesBody}\n${evolutionarySearchBody}\n${evolutionaryEngineBody}\n${scriptBody}\n</script>`
 );
 
 fs.writeFileSync(path.join(__dirname, "jester-and-moat.html"), combined, "utf8");
