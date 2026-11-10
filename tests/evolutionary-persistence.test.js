@@ -53,7 +53,9 @@ test('generation checkpoints are atomically written and strictly read back', () 
 test('checkpoint validation rejects unsupported, incomplete, and invalid population data', () => {
   assert.throws(() => validateCheckpoint(checkpoint({ checkpointSchemaVersion: 99 })), /Unsupported checkpoint/);
   assert.throws(() => validateCheckpoint(checkpoint({ randomState: -1 })), /malformed or incomplete/);
-  assert.throws(() => validateCheckpoint(checkpoint({ population: [{ id: 'bad', weights: [1, 2] }] })), /schema-v1 feature set/);
+  const invalidPopulation = createInitialPopulation(17, 4).population;
+  invalidPopulation[0] = { id: 'bad', weights: [1, 2] };
+  assert.throws(() => validateCheckpoint(checkpoint({ population: invalidPopulation })), /schema-v1 feature set/);
 });
 
 test('JSONL events enforce schema, run identity, and monotonic sequence', () => {
