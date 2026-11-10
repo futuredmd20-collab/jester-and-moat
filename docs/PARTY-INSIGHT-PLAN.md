@@ -138,7 +138,7 @@ The repository investigation at the start of each implementation stage must conf
 - [Position Evaluation and Sparring Quality Plan](POSITION-EVALUATION-PLAN.md): position-based competence measures and the broader goal of useful, engaging sparring.
 
 - [Engine Configuration Plan](ENGINE-CONFIGURATION-PLAN.md): current per-side/per-phase engine, strength, personality, and advanced settings.
-- [Engine Extensibility Plan](ENGINE-EXTENSIBILITY-PLAN.md): future engines, reusable personalities, variants, and board configurations.
+- [Engine Extensibility Plan](ENGINE-EXTENSIBILITY-PLAN.md): future engines, reusable personalities, variants, board configurations, the separate personality decision layer, and dynamic in-game state.
 - [Undo/Redo and Save/Load Consistency](UNDO-REDO-SAVE-TESTING.md): save/load and history consistency baseline.
 - [Engine Plugins](ENGINE-PLUGINS.md): engine integration and verification procedures.
 
