@@ -8,7 +8,7 @@ Purpose: plan party-specific configuration records, event-log context and export
 
 ## Goal
 
-Make each game understandable during play and inspectable afterward:
+Make each game understandable during play and inspectable afterward, and let the opponent communicate restrained, personality-consistent reactions to meaningful events:
 
 - Identify which game is being viewed or exported.
 - Preserve the configuration that governed that game.
@@ -35,7 +35,7 @@ The debug event-log export and the game save/export are separate existing paths.
 1. **Party record is authoritative for that game.** Later changes to global engine settings must not rewrite the recorded setup of a game that has already started.
 2. **Record facts, do not infer them.** Configuration and event records must reflect values actually used or events actually observed.
 3. **Show the active assignment.** The AI overview must distinguish the current game phase and the configuration applicable to each side. Do not display an unrelated future-phase assignment as if it were active.
-4. **Keep presentation outside engine decision logic.** Recaps and expressions must not change legal moves, evaluation, search settings, timing, cancellation, or worker behavior.
+4. **Keep presentation outside engine decision logic.** Recaps and expressions must not change legal moves, evaluation, search settings, timing, cancellation, or worker behavior. Any personality-driven decision effect belongs to the separate personality layer defined by Engine Extensibility; this plan consumes its observable events/state for presentation only.
 5. **Respect engine differences.** Advanced settings are engine-specific. Do not force all engines into a shared list of tuning parameters.
 6. **Keep the offline PWA usable.** Any stored party data and presentation must work without a network connection.
 
@@ -87,16 +87,17 @@ Create a concise recap from recorded game events and state transitions, for exam
 
 Define a small, testable set of notable-event rules before expanding the recap. Distinguish observed facts from any later evaluative or interpretive language. Do not claim to know why an engine chose a move unless that information is explicitly and reliably provided.
 
-### E. Side expressions and thought bubbles
+### E. Personality reactions and visible expressions
 
-As an optional presentation layer, allow White and Black to show short expressions or emojis in response to defined game events.
+As an optional presentation layer, allow White and Black to show short phrases, emojis, or restrained visual reactions in response to meaningful game events and the opponent's current personality state.
 
-- Expressions are triggered by observable events, not fabricated engine thoughts.
-- Keep expression selection separate from move selection and engine evaluation.
-- Reuse personality identity only where a deliberate mapping is defined; do not assume every engine personality automatically has dialogue or emotional behavior.
-- Provide a restrained default behavior and avoid obscuring the board or essential controls.
+- Reactions are grounded in observable game events and the personality-state interface; they must not fabricate claims about hidden engine reasoning.
+- The personality layer may use dynamic emotional state to influence decisions, but this plan only presents the resulting expression. It must not feed presentation choices back into move selection or engine evaluation.
+- The player may see expressive cues without being shown an exact internal emotion value or status meter.
+- Different personalities may react differently to the same event. Do not assume every engine/profile supports the same reaction vocabulary.
+- Provide restrained defaults, optional/quiet behaviour where appropriate, and ensure expressions never obscure the board or essential controls.
 
-This stage may be implemented independently of the recap, but should reuse the same event vocabulary where appropriate.
+This stage may be implemented independently of the recap, but should reuse the same event vocabulary and a deliberately defined personality-state boundary.
 
 ## Recommended implementation order
 
@@ -126,14 +127,18 @@ The repository investigation at the start of each implementation stage must conf
 - Changes to engine algorithms, strength calibration, search strategy, or move ordering.
 - A generalized analytics or telemetry service.
 - Cloud sync, accounts, or online storage; the feature must remain offline-first.
-- A claim that expressions reveal actual internal AI thoughts.
+- A claim that expressions reveal actual internal AI reasoning or expose an exact emotional state.
+- Implementing the personality decision filter or dynamic emotional-state model; those belong to Engine Extensibility.
 - A broad personality redesign or a requirement that every engine support the same personality features.
 - Unrelated event-log cleanup or save/load refactoring.
 
 ## Related plans and references
 
+- [Engine Extensibility Plan](ENGINE-EXTENSIBILITY-PLAN.md): the separate personality decision layer and dynamic in-game state that may drive expressions.
+- [Position Evaluation and Sparring Quality Plan](POSITION-EVALUATION-PLAN.md): position-based competence measures and the broader goal of useful, engaging sparring.
+
 - [Engine Configuration Plan](ENGINE-CONFIGURATION-PLAN.md): current per-side/per-phase engine, strength, personality, and advanced settings.
-- [Engine Extensibility Plan](ENGINE-EXTENSIBILITY-PLAN.md): future engines, reusable personalities, variants, and board configurations.
+- [Engine Extensibility Plan](ENGINE-EXTENSIBILITY-PLAN.md): future engines, reusable personalities, variants, board configurations, the separate personality decision layer, and dynamic in-game state.
 - [Undo/Redo and Save/Load Consistency](UNDO-REDO-SAVE-TESTING.md): save/load and history consistency baseline.
 - [Engine Plugins](ENGINE-PLUGINS.md): engine integration and verification procedures.
 

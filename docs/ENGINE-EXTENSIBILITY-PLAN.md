@@ -38,8 +38,9 @@ This is a baseline, not a promise that every current implementation detail is su
 3. **The game core owns rules.** Engines search positions and return canonical moves; the game core validates and applies them. Variant support must not let engines mutate live state or bypass legality checks.
 4. **Engine compatibility is declared.** An engine must identify which variants or required rule capabilities it supports. Selection and dispatch must reject incompatible combinations before search.
 5. **Optional features stay optional.** Engines may differ in supported phases, strengths, advanced settings, personalities, and capabilities. Do not assume all engines expose the same controls.
-6. **Separate competence from style.** A personality may influence style, but must not override move legality or cause the engine to ignore an immediate forced win merely to express a style.
-7. **Avoid premature universality.** Keep the current game and existing saves/configuration behavior stable unless a separately approved change explicitly changes them.
+6. **Separate competence from style.** A personality is a decision layer above the underlying engine: it filters or ranks candidate decisions using a recognizable style rather than relying only on random move deviations. It must not override move legality or discard an immediate forced win merely to express a style.
+7. **Allow dynamic personality state.** A stable base personality may react to observable events and changes in the game (for example, a failed attack, lost initiative, a successful sacrifice, or an unexpected threat). The resulting emotional state may influence decisions as well as player-facing expression. Do not assume a universal numeric emotion model or make randomness the sole mechanism.
+8. **Avoid premature universality.** Keep the current game and existing saves/configuration behavior stable unless a separately approved change explicitly changes them.
 
 ## Staged direction
 
@@ -131,6 +132,25 @@ Keep the personality contract small. It should establish stable profile identity
 
 **Design acceptance gate: complete (2026-11-09).** The resolved model and deterministic inheritance rules are implemented in the current task branch. The existing completed Engine Configuration plan remains the record of the shipped schema-v1 side × phase configuration; this section describes the schema-v2 model that supersedes it.
 
+### D.2. Dynamic personality behaviour and emotional state
+
+**Design direction agreed (2026-11-10; design only, not implemented):**
+
+- The underlying engine remains responsible for position analysis and producing legal candidate decisions. A personality layer sits above it and filters or ranks those decisions according to the selected style.
+- Personality must be more than random deviations. It should express coherent preferences such as risk tolerance, aggression, caution, persistence, or overconfidence through decision-making.
+- Personality has a relatively stable base identity and a dynamic in-game state. The dynamic state may change in response to observed events and position changes, and may influence subsequent decisions.
+- Different personalities may react differently to the same event. Examples include a successful or failed attack, a material sacrifice, a lost initiative, an unexpected defensive resource, or a sudden material advantage.
+- The layer may intentionally select a strategically understandable but objectively inferior move to express its style. It must still preserve legal move constraints and the project's safety rules for immediate forced wins and critical tactical obligations.
+- The same underlying state can drive player-facing expressions, but expression is not itself the decision mechanism. The player may see emojis, short phrases, or other restrained reactions without being shown a precise internal emotion meter.
+- Keep personality implementation engine-aware where necessary. Do not impose a universal set of numeric emotional or style parameters before concrete engines demonstrate shared semantics.
+
+**Design work still required before implementation:**
+- Define the boundary and data flow between engine candidate analysis, personality filtering, dynamic state updates, and event/presentation consumers.
+- Define which game events and position changes may update state, how state persists or resets, and how reactions are made deterministic/reproducible for tests.
+- Define safeguards for legality, forced wins, defensive necessities, search budgets, cancellation, and worker/main-thread parity.
+- Decide how much state is visible to the player and how expressions avoid claiming to expose exact engine reasoning.
+- Validate behaviour in controlled positions and evaluate its effect on both playing style and sparring quality.
+
 ### E. Implement incrementally
 
 Recommended implementation order after the design gates above:
@@ -219,6 +239,9 @@ Browser/mobile verification must be recorded separately from automated tests and
 - No unrelated editor fixes, strength recalibration, or engine algorithm optimization.
 
 ## Related plans and references
+
+- [Position Evaluation and Sparring Quality Plan](POSITION-EVALUATION-PLAN.md): shared problem positions and separate measures of engine competence and sparring quality.
+- [Party Insight and Match Experience Plan](PARTY-INSIGHT-PLAN.md): player-facing reactions and match presentation driven by observable events and personality state.
 
 - [Engine Interface Architecture Plan](ENGINE-INTERFACE-PLAN.md): completed protocol-v1 contract baseline.
 - [Engine Configuration Plan](ENGINE-CONFIGURATION-PLAN.md): completed current side × phase engine configuration.

@@ -272,6 +272,12 @@ These timings describe response/search duration in this particular game and devi
 
 The runtime engine must work without the trainer or training history being present. Its normal gameplay path must not use the training PRNG or require training-only dependencies.
 
+### Relationship to position-based evaluation
+
+The match-based fitness, baseline, and independent holdout methodology defined in this plan remains the approved Stage 5 acceptance path. The separate [Position Evaluation and Sparring Quality Plan](POSITION-EVALUATION-PLAN.md) defines a complementary diagnostic library for reusable problem positions and separate offensive, defensive, and initiative/momentum measures.
+
+Position-based tests may later help diagnose candidate strengths, weaknesses, and phase-specific behaviour, or inform a separately approved training design. They do not replace whole-game matches, alter the two existing validation references, or change the predeclared performance-floor and holdout requirements. Any such change requires an explicit decision and an update to this plan before implementation.
+
 ### 5. Evaluate and package a first result
 
 Run controlled, modest experiments. Begin with a small GitHub Actions pilot, measure runtime and feature costs, and increase the run budget only when the measurements justify it. Compare candidates with the frozen-weight primary reference and existing MinMax Medium secondary reference on balanced, independent fixtures. Record sample sizes, seeds, code/runtime conditions, and uncertainty; do not describe small samples as definitive strength ratings.
@@ -313,6 +319,8 @@ After the engine has a stable baseline:
 
 ## Related documents
 
+- [Position Evaluation and Sparring Quality Plan](POSITION-EVALUATION-PLAN.md) — complementary reusable position fixtures and multi-dimensional diagnostic evaluation; it does not replace Stage 5 match-based acceptance.
+
 - [Engine Extensibility Plan](ENGINE-EXTENSIBILITY-PLAN.md) — cross-engine, personality, variant, and board architecture.
 - [Engine Plugins](ENGINE-PLUGINS.md) — current engine integration and verification record.
 - [Engine Strength Calibration](ENGINE-STRENGTH-CALIBRATION.md) — existing MinMax/MCTS comparison runner and methodology.
@@ -320,6 +328,8 @@ After the engine has a stable baseline:
 - [Engine and Board Ideas](ENGINE-IDEAS.md) — exploratory ideas and future personality examples.
 
 ## Change log
+
+- **2026-11-10:** Clarified that the shared position-based evaluation plan is complementary to, and does not change, the approved match-based Stage 5 baseline and holdout acceptance methodology.
 
 - **2026-11-10:** Specified the Stage 2 CLI, Actions, persistence, and release contract: one shared CLI (`train`, `resume`, `evaluate`, `export`); manually dispatched sequential Actions runs; JSONL, JSON, and Markdown outputs; full generation checkpoints; strict resume validation; separate finite-retention run/checkpoint artifacts; candidate-specific holdout sets; empirical minimum floors against both references; manual export approval; and versioned GitHub Release assets.
 - **2026-11-10:** Recorded the approved v1 model decisions: MinMax/Alpha-Beta runtime search; pure, representation-independent feature extraction with per-feature cost measurement; seedable training; `Default` baseline parameters; GitHub Actions as the initial manual training environment; Actions artifacts for run outputs/checkpoints; dual validation references; independent holdout acceptance; reproducible run metadata; and locked feature-schema v1.
