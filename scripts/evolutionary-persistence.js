@@ -174,9 +174,19 @@ function writeReport(directory, report) {
   for (const generation of report.completedGenerations) {
     lines.push('| ' + generation.generation + ' | ' + generation.best.fitness.toFixed(4) + ' | ' +
       generation.best.id + ' | ' + generation.control.fitness.toFixed(4) + ' |');
+    lines.push('', '### Generation ' + generation.generation + ' candidate ranking', '',
+      '| Rank | Candidate | Fitness | MinMax Medium | MCTS Medium | W-D-L |',
+      '| ---: | --- | ---: | ---: | ---: | ---: |');
+    const ranked = generation.candidates.slice().sort((a, b) => b.fitness - a.fitness || a.id.localeCompare(b.id));
+    ranked.forEach((candidate, index) => lines.push('| ' + (index + 1) + ' | ' + candidate.id + ' | ' +
+      candidate.fitness.toFixed(4) + ' | ' + candidate.byOpponent['minmax-2'].toFixed(4) + ' | ' +
+      candidate.byOpponent['mcts-2'].toFixed(4) + ' | ' + candidate.wins + '-' + candidate.draws + '-' + candidate.losses + ' |'));
+    lines.push('', 'Equal-weight control: MinMax Medium ' + generation.control.byOpponent['minmax-2'].toFixed(4) +
+      '; MCTS Medium ' + generation.control.byOpponent['mcts-2'].toFixed(4) + '.');
   }
   lines.push('', '## Warnings', '', ...(report.warnings.length ? report.warnings.map(w => '- ' + w) : ['- None']),
     '', '## Notes', '', '- Fitness is an experimental training signal, not a strength rating.',
+    '- Reference comparisons are training fitness breakdowns, not independent holdout results.',
     '- No holdout evaluation or export is implied by a completed training run.', '');
   fs.writeFileSync(path.join(directory, 'summary.md'), lines.join('\n'), { encoding: 'utf8', mode: 0o600 });
 }
