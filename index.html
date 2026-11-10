@@ -430,17 +430,50 @@
 <!-- GAME-BOOT:BEGIN — build.js swaps this block for an inline script in the single-file build. -->
 <script>
 (function () {
+  function loadScript(src) {
+    return new Promise(function (resolve) {
+      var script = document.createElement("script");
+      script.src = src;
+      script.onload = function () { resolve(true); };
+      script.onerror = function () { console.error("Optional runtime module failed to load:", src); resolve(false); };
+      document.body.appendChild(script);
+    });
+  }
+  function loadEvolutionaryRuntime(startGame) {
+    fetch("engines/evolutionary-default-v1.json")
+      .then(function (response) { return response.ok ? response.json() : Promise.reject(response.status); })
+      .then(function (parameterPackage) {
+        window.EVOLUTIONARY_DEFAULT_PACKAGE = parameterPackage;
+        return loadScript("scripts/evolutionary-features.js");
+      })
+      .then(function (loaded) {
+        if (!loaded) throw new Error("Evolutionary feature module unavailable.");
+        return loadScript("scripts/evolutionary-search.js");
+      })
+      .then(function (loaded) {
+        if (!loaded) throw new Error("Evolutionary search module unavailable.");
+        return loadScript("engines/evolutionary-engine.js");
+      })
+      .then(function (loaded) {
+        if (!loaded) console.warn("Evolutionary engine unavailable; continuing with other engines.");
+      })
+      .catch(function (error) {
+        console.warn("Evolutionary engine could not be loaded; continuing with other engines.", error);
+      })
+      .then(startGame);
+  }
   function boot() {
     function startGame() {
       var script = document.createElement("script");
       script.src = "script.js";
       document.body.appendChild(script);
     }
-    if (typeof MinMaxSearchCoreFactory === "function") { startGame(); return; }
+    function startWithOptionalEvolutionary() { loadEvolutionaryRuntime(startGame); }
+    if (typeof MinMaxSearchCoreFactory === "function") { startWithOptionalEvolutionary(); return; }
     var minmaxScript = document.createElement("script");
     minmaxScript.src = "engines/minmax-engine.js";
-    minmaxScript.onload = startGame;
-    minmaxScript.onerror = function () { console.error("MinMax engine failed to load."); startGame(); };
+    minmaxScript.onload = startWithOptionalEvolutionary;
+    minmaxScript.onerror = function () { console.error("MinMax engine failed to load."); startWithOptionalEvolutionary(); };
     document.body.appendChild(minmaxScript);
   }
   // The single-file build inlines the symbols above, so it boots straight away.
