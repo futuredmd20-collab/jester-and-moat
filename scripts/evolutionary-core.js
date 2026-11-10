@@ -311,7 +311,7 @@ function runMatch(candidate, fixture, options = {}) {
 
 function validateFixtures(fixtures) {
   if (!Array.isArray(fixtures) || fixtures.length !== 8) {
-    throw new TypeError('Candidate evaluation requires the fixed eight-fixture v1 schedule.');
+    throw new TypeError('Candidate evaluation requires exactly eight fixtures in the fixed v1 schedule.');
   }
   const generation = fixtures[0].generation;
   if (!Number.isInteger(generation) || fixtures.some(fixture =>
