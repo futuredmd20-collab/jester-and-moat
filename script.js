@@ -1213,6 +1213,23 @@ if (typeof mctsEngine === 'function') {
   // Keep the board and legacy engine usable if the optional MCTS module fails to load.
   console.warn('MCTS engine failed to load; falling back to MinMax.');
 }
+let EvolutionaryRuntimeEngine = null;
+if (typeof EvolutionaryEngineFactory === 'function' &&
+    globalThis.EvolutionaryFeatures && globalThis.EvolutionarySearch &&
+    globalThis.EVOLUTIONARY_DEFAULT_PACKAGE) {
+  try {
+    EvolutionaryRuntimeEngine = EvolutionaryEngineFactory({
+      EngineContract,
+      featureApi: EvolutionaryFeatures,
+      searchApi: EvolutionarySearch,
+      adapter: { clonePosition: clone, allLegalState, inCheck, applyRaw, getPositionKey },
+      parameterPackage: globalThis.EVOLUTIONARY_DEFAULT_PACKAGE
+    });
+    enginePlugins.set(EvolutionaryRuntimeEngine.id, EvolutionaryRuntimeEngine);
+  } catch (error) {
+    console.warn('Evolutionary engine failed to initialize; continuing without it.', error);
+  }
+}
 
 /* Engine configuration: general per-side values with sparse phase overrides. */
 const ENGINE_STRENGTHS = Object.freeze(['easy', 'medium', 'hard']);
@@ -1730,7 +1747,7 @@ if (resetEngineButton) resetEngineButton.addEventListener('click', () => applyEn
 loadEngineConfig();
 function ensureAIWorker() {
   if (aiWorker || !('Worker' in window)) return aiWorker;
-  const engineFunctions = [clone, inside, other, pieceAt, getMoatCells, isMoatCell, checkMoatDestructionState, attacked, kingPos, inCheck, pseudoMoves, applyRaw, cloneForMoveLegality, legalMovesFromState, allLegalState, getJesterValue, evaluateBoard, minimax, getBestMove, MinMaxSearchCoreFactory];
+  const engineFunctions = [clone, inside, other, pieceAt, getMoatCells, isMoatCell, checkMoatDestructionState, attacked, kingPos, inCheck, pseudoMoves, applyRaw, cloneForMoveLegality, legalMovesFromState, allLegalState, getPositionKey, getJesterValue, evaluateBoard, minimax, getBestMove, MinMaxSearchCoreFactory];
   // MCTS helpers live in engines/mcts-engine.js. Serialize them only when that module loaded.
   if (typeof mctsGetMove === 'function' && typeof mctsSearch === 'function') {
     engineFunctions.push(mctsLevelFor, mctsApplyMove, mctsEvaluateBoard, mctsPlayout, mctsNode, mctsUctChild, mctsSearch, mctsSearchAsync, mctsGetMove, mctsEngine);
@@ -1759,6 +1776,37 @@ const ENGINE_RESULT_STATUS = EngineContract.statuses;
 const ENGINE_ERROR_CODES = EngineContract.errorCodes;
 const MinMaxSearchCore = MinMaxSearchCoreFactory({ clone, other, applyRaw, allLegalState, inCheck, attacked, getJesterValue, EngineContract });
 const MinMaxLegacy = { id: 'minmax_legacy', search: ${MinMaxLegacy.search.toString()} };
+${typeof EvolutionaryEngineFactory === 'function' && EvolutionaryRuntimeEngine ? `
+const FEATURE_SCHEMA_VERSION = ${EvolutionaryFeatures.FEATURE_SCHEMA_VERSION};
+const FEATURE_IDS = Object.freeze(${JSON.stringify(EvolutionaryFeatures.FEATURE_IDS)});
+const MATERIAL_LIMITS = Object.freeze(${JSON.stringify(EvolutionaryFeatures.MATERIAL_LIMITS)});
+const MATERIAL_PIECE_TYPES = Object.freeze(${JSON.stringify(EvolutionaryFeatures.MATERIAL_PIECE_TYPES)});
+const CENTRAL_BOUNDS = Object.freeze(${JSON.stringify(EvolutionaryFeatures.CENTRAL_BOUNDS)});
+const FEATURE_LIMITS = Object.freeze(${JSON.stringify(EvolutionaryFeatures.FEATURE_LIMITS)});
+${EvolutionaryFeatures.clamp.toString()}
+${EvolutionaryFeatures.difference.toString()}
+${EvolutionaryFeatures.assertPosition.toString()}
+${EvolutionaryFeatures.createFeatureExtractor.toString()}
+const EvolutionaryFeatures = Object.freeze({ FEATURE_SCHEMA_VERSION, FEATURE_IDS, MATERIAL_LIMITS,
+  MATERIAL_PIECE_TYPES, CENTRAL_BOUNDS, FEATURE_LIMITS, clamp, difference, assertPosition, createFeatureExtractor });
+const SEARCH_FEATURE_IDS = FEATURE_IDS;
+const SEARCH_CREATE_FEATURE_EXTRACTOR = createFeatureExtractor;
+const MATE_SCORE = ${EvolutionarySearch.MATE_SCORE};
+${EvolutionarySearch.normalizeWeights.toString()}
+${EvolutionarySearch.createSearchAdapter.toString()}
+${EvolutionarySearch.applySearchMove.toString()}
+${EvolutionarySearch.terminalScore.toString()}
+${EvolutionarySearch.searchBestMove.toString()}
+${EvolutionarySearch.searchBestMoveAsync.toString()}
+const EvolutionarySearch = Object.freeze({ MATE_SCORE, normalizeWeights, createSearchAdapter,
+  applySearchMove, terminalScore, searchBestMove, searchBestMoveAsync });
+const EvolutionaryEngineFactory = ${EvolutionaryEngineFactory.toString()};
+const evolutionaryWorkerEngine = EvolutionaryEngineFactory({
+  EngineContract, featureApi: EvolutionaryFeatures, searchApi: EvolutionarySearch,
+  adapter: { clonePosition: clone, allLegalState, inCheck, applyRaw, getPositionKey },
+  parameterPackage: ${JSON.stringify(EvolutionaryRuntimeEngine.parameterPackage)}
+});
+` : ''}
 // MCTS constants must be defined inside the serialized worker scope too.
 const MCTS_LEVELS = {
   1: { playouts: 200, capDepth: 10, temperature: 0.35, rating: '~800', timeBudgetMs: 2500 },
@@ -1787,7 +1835,7 @@ onmessage = async function(event) {
     if (data.contractRequest) {
       const request = data.contractRequest;
       state = clone(request.position);
-      if (!['minmax_legacy', 'mcts'].includes(request.engineId))
+      if (!['minmax_legacy', 'mcts', 'evolutionary'].includes(request.engineId))
         throw new Error('Unsupported structured engine selector.');
       assertEngineVariantCompatibility(WORKER_ENGINE_METADATA[request.engineId], request.position, request.engineId);
       const validatedConfig = validateEngineRequestConfig(request.engineId, request.config, ENGINE_SETTINGS_SCHEMAS, WORKER_ENGINE_METADATA);
@@ -1795,7 +1843,17 @@ onmessage = async function(event) {
       const key = String(request.requestId);
       activeSearches.set(key, control);
       let result;
-      if (request.engineId === 'mcts') {
+      if (request.engineId === 'evolutionary') {
+        result = await evolutionaryWorkerEngine.searchAsync(request, control);
+        if (result.status === ENGINE_RESULT_STATUS.CANCELLED) {
+          activeSearches.delete(key);
+          finishedSearches.add(key);
+          postMessage({ id: data.id, cancellationAck: EngineContract.createCancellationAcknowledgment(
+            { type: 'cancel', protocolVersion: request.protocolVersion, engineId: request.engineId,
+              requestId: request.requestId, generation: request.generation, reason: 'cancelled' }, 'cancelled') });
+          return;
+        }
+      } else if (request.engineId === 'mcts') {
         const mctsConfig = Object.assign({}, MCTS_LEVELS[mctsLevelFor(request.limits && request.limits.depth)],
           validatedConfig.settings || {}, {
             personalityId: validatedConfig.personalityId,
