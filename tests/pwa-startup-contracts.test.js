@@ -50,7 +50,9 @@ async function runBoot({ inline = false, spriteFailure = false, mctsFailure = fa
     body: {
       appendChild(script) {
         appendedScripts.push(script.src);
-        if (script.src === 'engines/mcts-engine.js' || script.src === 'engines/minmax-engine.js') {
+        if (script.src === 'engines/mcts-engine.js' || script.src === 'engines/minmax-engine.js' ||
+            script.src === 'scripts/evolutionary-features.js' || script.src === 'scripts/evolutionary-search.js' ||
+            script.src === 'engines/evolutionary-engine.js') {
           setImmediate(() => {
             if (mctsFailure && script.src === 'engines/mcts-engine.js') script.onerror && script.onerror();
             else script.onload && script.onload();
@@ -62,15 +64,23 @@ async function runBoot({ inline = false, spriteFailure = false, mctsFailure = fa
   const fetch = async url => {
     fetchCalls.push(url);
     if (spriteFailure && url === 'pieces-flat.svg') return { ok: false, status: 404, text: async () => '' };
-    return { ok: true, text: async () => `<svg id="${url}"></svg>` };
+    return { ok: true, text: async () => `<svg id="${url}"></svg>`,
+      json: async () => ({ schemaVersion: 1, modelId: 'evolutionary-default-v1' }) };
   };
-  vm.runInNewContext(bootSource, {
+  const context = {
     document,
     fetch,
     Promise,
-    console: { error: (...args) => errors.push(args) },
+    console: { error: (...args) => errors.push(args), warn: (...args) => errors.push(args) },
     setImmediate
-  }, { filename: 'index.html:GAME-BOOT' });
+  };
+  if (inline) {
+    context.MinMaxSearchCoreFactory = function () {};
+    context.EvolutionaryEngineFactory = function () {};
+    context.EVOLUTIONARY_DEFAULT_PACKAGE = { schemaVersion: 1 };
+  }
+  context.window = context;
+  vm.runInNewContext(bootSource, context, { filename: 'index.html:GAME-BOOT' });
   // Let the sprite-fetch promise chain and each sequential script onload settle.
   for (let i = 0; i < 10 && !appendedScripts.includes('script.js'); i += 1) {
     await new Promise(resolve => setImmediate(resolve));
@@ -144,8 +154,9 @@ test('index.html provides a real host and inline marker for the Minimal sprite',
 
 test('multi-file startup loads both sprites and MCTS before script.js', async () => {
   const result = await runBoot();
-  assert.deepEqual(result.fetchCalls, ['pieces.svg', 'pieces-flat.svg', 'pieces-minimal.svg']);
-  assert.deepEqual(result.appendedScripts, ['engines/mcts-engine.js', 'engines/minmax-engine.js', 'script.js']);
+  assert.deepEqual(result.fetchCalls, ['pieces.svg', 'pieces-flat.svg', 'pieces-minimal.svg', 'engines/evolutionary-default-v1.json']);
+  assert.deepEqual(result.appendedScripts, ['engines/mcts-engine.js', 'engines/minmax-engine.js',
+    'scripts/evolutionary-features.js', 'scripts/evolutionary-search.js', 'engines/evolutionary-engine.js', 'script.js']);
   assert.match(result.elements.get('pieceSprite').innerHTML, /pieces\.svg/);
   assert.match(result.elements.get('pieceFlatSprite').innerHTML, /pieces-flat\.svg/);
   assert.match(result.elements.get('pieceMinimalSprite').innerHTML, /pieces-minimal\.svg/);
@@ -154,20 +165,22 @@ test('multi-file startup loads both sprites and MCTS before script.js', async ()
 test('single-file startup skips sprite and MCTS fetches when symbols are inline', async () => {
   const result = await runBoot({ inline: true });
   assert.deepEqual(result.fetchCalls, []);
-  assert.deepEqual(result.appendedScripts, ['engines/minmax-engine.js', 'script.js']);
+  assert.deepEqual(result.appendedScripts, ['script.js']);
 });
 
 test('sprite fetch failure logs an error and still starts script.js', async () => {
   const result = await runBoot({ spriteFailure: true });
-  assert.deepEqual(result.fetchCalls, ['pieces.svg', 'pieces-flat.svg', 'pieces-minimal.svg']);
-  assert.deepEqual(result.appendedScripts, ['engines/minmax-engine.js', 'script.js']);
+  assert.deepEqual(result.fetchCalls, ['pieces.svg', 'pieces-flat.svg', 'pieces-minimal.svg', 'engines/evolutionary-default-v1.json']);
+  assert.deepEqual(result.appendedScripts, ['engines/minmax-engine.js',
+    'scripts/evolutionary-features.js', 'scripts/evolutionary-search.js', 'engines/evolutionary-engine.js', 'script.js']);
   assert.equal(result.errors.length, 1);
   assert.match(String(result.errors[0][0]), /Piece sprite failed to load/);
 });
 
 test('MCTS load failure still starts script.js as a MinMax fallback', async () => {
   const result = await runBoot({ mctsFailure: true });
-  assert.deepEqual(result.appendedScripts, ['engines/mcts-engine.js', 'engines/minmax-engine.js', 'script.js']);
+  assert.deepEqual(result.appendedScripts, ['engines/mcts-engine.js', 'engines/minmax-engine.js',
+    'scripts/evolutionary-features.js', 'scripts/evolutionary-search.js', 'engines/evolutionary-engine.js', 'script.js']);
   assert.equal(result.errors.length, 1);
   assert.match(String(result.errors[0][0]), /MCTS engine failed to load/);
 });
@@ -197,7 +210,9 @@ test('service-worker precache covers the shipped multi-file app, not source art 
   for (const file of [
     './', './index.html', './style.css', './pieces.css', './pieces.svg',
     './pieces-flat.svg', './script.js', './manifest.json',
-    './engines/mcts-engine.js', './engines/minmax-engine.js', './icon-192.png', './icon-512.png',
+    './engines/mcts-engine.js', './engines/minmax-engine.js', './engines/evolutionary-engine.js',
+    './engines/evolutionary-default-v1.json', './scripts/evolutionary-features.js', './scripts/evolutionary-search.js',
+    './icon-192.png', './icon-512.png',
     './icon-maskable-512.png', './apple-touch-icon.png'
   ]) assert.ok(context.__precache.includes(file), `precache should include ${file}`);
   assert.ok(!context.__precache.some(file => /(?:light|flat)-.*\.svg$/.test(file)));
