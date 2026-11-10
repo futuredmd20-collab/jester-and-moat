@@ -4,6 +4,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const baseline = require('../scripts/evolutionary-baseline');
+const core = require('../scripts/evolutionary-core');
 
 test('baseline fixtures are deterministic and fully balanced across layouts and colours', () => {
   const fixtures = baseline.createFixtures(20261110, 8);
@@ -16,6 +17,19 @@ test('baseline fixtures are deterministic and fully balanced across layouts and 
     }
   }
   assert.throws(() => baseline.createFixtures(1, 6), /multiple of four/);
+});
+
+test('frozen equal-weight self-play completes legal real-rule plies', () => {
+  const fixture = baseline.createFixtures(123, 4)[0];
+  const result = core.runSelfPlayMatch(
+    { id: 'equal-weight-control', weights: core.equalWeights(), frozen: true },
+    fixture,
+    { maxPlies: 2, searchDepth: 1, searchNodeLimit: 200 }
+  );
+  assert.equal(result.plies, 2);
+  assert.equal(result.opponent, 'equal-weight-control');
+  assert.equal(result.termination, 'max-plies');
+  assert.ok([0, 0.5, 1].includes(result.candidateScore));
 });
 
 test('baseline summary scores wins, draws, and losses without claiming a strength rating', () => {
