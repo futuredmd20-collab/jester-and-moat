@@ -10,6 +10,10 @@ const root = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(root, 'script.js'), 'utf8');
 const mcts = fs.readFileSync(path.join(root, 'engines/mcts-engine.js'), 'utf8');
 const minmax = fs.readFileSync(path.join(root, 'engines/minmax-engine.js'), 'utf8');
+const evolutionaryFeatures = fs.readFileSync(path.join(root, 'scripts/evolutionary-features.js'), 'utf8');
+const evolutionarySearch = fs.readFileSync(path.join(root, 'scripts/evolutionary-search.js'), 'utf8');
+const evolutionaryEngine = fs.readFileSync(path.join(root, 'engines/evolutionary-engine.js'), 'utf8');
+const evolutionaryDefaultPackage = JSON.parse(fs.readFileSync(path.join(root, 'engines/evolutionary-default-v1.json'), 'utf8'));
 const marker = "\nif (document.readyState === 'loading')";
 const boundary = source.indexOf(marker);
 if (boundary < 0) throw new Error('Browser startup boundary not found');
@@ -83,7 +87,11 @@ const sandbox = {
   }
 };
 vm.createContext(sandbox);
+sandbox.EVOLUTIONARY_DEFAULT_PACKAGE = evolutionaryDefaultPackage;
 vm.runInContext(minmax, sandbox);
+vm.runInContext(evolutionaryFeatures, sandbox, { filename: 'scripts/evolutionary-features.js' });
+vm.runInContext(evolutionarySearch, sandbox, { filename: 'scripts/evolutionary-search.js' });
+vm.runInContext(evolutionaryEngine, sandbox, { filename: 'engines/evolutionary-engine.js' });
 vm.runInContext(source.slice(0, boundary) + `
 globalThis.api = { GAME_VARIANT, GAME_SETUP_IDS, createGameIdentity, EngineContract, PERSONALITY_PROFILES, DEFAULT_PERSONALITY_ID, assertEnginePersonalityCompatibility, MinMaxLegacy, cancelActiveAIRequest, setActiveAIForTest(worker, request) { aiWorker = worker; pendingAIRequest = request; aiRequestId = request.id; isAIThinking = true; }, getActiveAIForTest() { return { worker: aiWorker, request: pendingAIRequest, thinking: isAIThinking, id: aiRequestId }; }, allLegalState, inCheck, findLegalMoveMatch, MinMaxSearchCore, getBestMove: MinMaxSearchCore.getBestMove, getBestMoveAsync: MinMaxSearchCore.getBestMoveAsync, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout); aiWorkerTimeout = null; if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; gameOver = false; gameOverMessage = ''; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getEngineConfiguration() { return engineCopy(engineConfiguration); }, setEngineConfiguration(config) { engineConfiguration = validateEngineConfiguration(config); updateEngineConfigUI(); }, validateEngineConfiguration, getEngineAssignment, handleEngineConfigurationChange, applyEnginePreset, isAIMode, updateModeUI, stepNextMove, toggleAutoPlay, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, applyLoadedGame, resumeLoadedGamePlayback, getAutoPlayForTest() { return autoPlayInterval; }, stopAutoPlayForTest: stopAutoPlay, ENGINE_PHASES, debugLogger, DebugLogger, status };
 `, sandbox, { filename: 'script.js' });
@@ -92,7 +100,7 @@ vm.runInContext(mcts, sandbox, { filename: 'engines/mcts-engine.js' });
 // because this test harness evaluates script.js first to expose the test API.
 sandbox.api.enginePlugins.set('mcts', sandbox.mctsEngine(2));
 sandbox.api.updateEngineConfigUI();
-const canonicalEngineMetadata = new Map(['minmax_legacy', 'mcts'].map(engineId => {
+const canonicalEngineMetadata = new Map(['minmax_legacy', 'mcts', 'evolutionary'].map(engineId => {
   const engine = sandbox.api.enginePlugins.get(engineId);
   return [engineId, { capabilities: engine.capabilities, strengths: engine.strengths, settings: engine.settings,
     supportedVariants: engine.supportedVariants, supportedPersonalities: engine.supportedPersonalities }];
@@ -171,6 +179,44 @@ test('sliding attacks use the attacking piece origin when applying moat passage 
   allowed.moats.b = { r: 5, c: 2 };
   assert.equal(sandbox.api.inCheck('w', allowed.board, allowed.moats), true,
     'an attacker starting on a moat can pass through that same moat');
+});
+
+test('Evolutionary runtime validates the frozen Default package and returns a legal move', () => {
+  const engine = sandbox.api.enginePlugins.get('evolutionary');
+  assert.ok(engine, 'Evolutionary should register when its runtime package and modules are available');
+  assert.equal(engine.parameterPackage.modelId, 'evolutionary-default-v1');
+  assert.equal(engine.parameterPackage.featureSchemaVersion, 1);
+  assert.deepEqual(Array.from(engine.supportedPersonalities), ['default']);
+
+  const s = position();
+  s.board[6][0] = { type: 'r', color: 'w', moved: false };
+  const before = JSON.stringify(s);
+  const request = EngineContract.createRequest({
+    requestId: 'evolutionary-runtime-main',
+    generation: 1,
+    engineId: 'evolutionary',
+    position: s,
+    limits: { depth: 1, timeMs: 1000 },
+    config: { strength: 'easy', settings: { depth: 1, nodeLimit: 1200, timeMs: 1000 },
+      personalityId: 'default', phase: 'midgame' }
+  });
+  const result = engine.search(request);
+  assert.equal(result.status, EngineContract.statuses.COMPLETED, JSON.stringify(result));
+  assert.ok(result.move, 'Evolutionary should return a best-so-far legal move');
+  assert.ok(allLegalState(s).some(move => JSON.stringify(move) === JSON.stringify(result.move)));
+  assert.equal(result.metadata.modelId, 'evolutionary-default-v1');
+  assert.equal(JSON.stringify(s), before, 'runtime search must not mutate its input position');
+});
+
+test('Evolutionary runtime rejects incompatible package schemas and invalid weights', () => {
+  const valid = evolutionaryDefaultPackage;
+  assert.throws(() => sandbox.validateEvolutionaryParameterPackage(
+    { ...valid, featureSchemaVersion: 99 }, sandbox.EvolutionaryFeatures, sandbox.EvolutionarySearch),
+  /unsupported schema or variant/);
+  assert.throws(() => sandbox.validateEvolutionaryParameterPackage(
+    { ...valid, weights: { ...valid.weights, 'material.pawn': 0.9 } },
+    sandbox.EvolutionaryFeatures, sandbox.EvolutionarySearch),
+  /sum to 1/);
 });
 
 function terminalPosition(kind) {
@@ -1347,6 +1393,61 @@ test('structured MCTS worker routes requests through the engine contract', async
   assert.equal(response.result.requestId, invalidRequest.requestId);
   assert.equal(response.result.generation, invalidRequest.generation);
   assert.equal(response.result.engineId, invalidRequest.engineId);
+});
+
+test('worker dispatches Evolutionary requests with the cooperative search path', async () => {
+  const workerBlobs = new Map();
+  sandbox.api.resetAIWorker();
+  sandbox.URL.createObjectURL = blob => {
+    const url = `blob:evolutionary-worker-${workerBlobs.size}`;
+    workerBlobs.set(url, blob);
+    return url;
+  };
+  sandbox.URL.revokeObjectURL = () => {};
+  sandbox.Worker = class {
+    constructor(url) { this.url = url; this.onmessage = null; this.onerror = null; }
+    async postMessage(data) {
+      const source = await workerBlobs.get(this.url).text();
+      let response;
+      const workerContext = {
+        postMessage(message) { response = message; },
+        setTimeout(callback) { callback(); return 1; }
+      };
+      vm.createContext(workerContext);
+      vm.runInContext(source, workerContext, { filename: 'ai-worker.js' });
+      await workerContext.onmessage({ data });
+      if (this.onmessage) this.onmessage({ data: response });
+      return response;
+    }
+    terminate() {}
+  };
+  sandbox.window.Worker = sandbox.Worker;
+  try {
+    const worker = ensureAIWorker();
+    const s = position();
+    s.board[6][0] = { type: 'r', color: 'w', moved: false };
+    const request = EngineContract.createRequest({
+      requestId: 'evolutionary-runtime-worker',
+      generation: 11,
+      engineId: 'evolutionary',
+      position: s,
+      limits: { depth: 1, timeMs: 1000 },
+      config: { strength: 'easy', settings: { depth: 1, nodeLimit: 1200, timeMs: 1000 },
+        personalityId: 'default', phase: 'opening' }
+    });
+    const response = await new Promise(resolve => {
+      worker.onmessage = event => resolve(event.data);
+      worker.postMessage({ id: 401, contractRequest: request });
+    });
+    assert.equal(response.result.status, EngineContract.statuses.COMPLETED, JSON.stringify(response.result));
+    assert.equal(response.result.engineId, 'evolutionary');
+    assert.equal(response.result.metadata.modelId, 'evolutionary-default-v1');
+    assert.ok(allLegalState(s).some(move => JSON.stringify(move) === JSON.stringify(response.result.move)));
+  } finally {
+    sandbox.api.resetAIWorker();
+    sandbox.Worker = undefined;
+    sandbox.window.Worker = undefined;
+  }
 });
 
 test('worker keeps legacy MCTS selector available during migration', async () => {
