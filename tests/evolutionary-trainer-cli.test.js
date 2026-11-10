@@ -8,10 +8,11 @@ const { parseArgs, helpText, evaluate } = require('../scripts/evolutionary-train
 test('CLI help and subcommand parsing expose the four approved operations', () => {
   assert.equal(parseArgs(['--help']).command, 'help');
   assert.equal(parseArgs(['train', '--seed', '17', '--population', '4']).command, 'train');
+  assert.equal(parseArgs(['baseline', '--seed', '17', '--games', '4']).command, 'baseline');
   assert.equal(parseArgs(['resume', '--checkpoint', 'checkpoint.json']).command, 'resume');
   assert.equal(parseArgs(['evaluate', '--report', 'report.json', '--candidate-id', 'candidate-1', '--protocol', 'protocol.json']).command, 'evaluate');
   assert.equal(parseArgs(['export', '--report', 'report.json', '--candidate-id', 'candidate-1', '--approval-file', 'approval.json', '--output', 'model.json']).command, 'export');
-  for (const command of ['train', 'resume', 'evaluate', 'export']) assert.match(helpText(), new RegExp(command));
+  for (const command of ['train', 'resume', 'evaluate', 'export', 'baseline']) assert.match(helpText(), new RegExp(command));
 });
 
 test('CLI rejects unknown, duplicate, and missing options', () => {
