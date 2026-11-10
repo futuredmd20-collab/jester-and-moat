@@ -26,6 +26,23 @@ function validateSeed(seed) {
   return seed;
 }
 
+function createSeededRandom(seed, state = seed) {
+  validateSeed(seed);
+  if (!Number.isSafeInteger(state) || state < 0 || state > 0xffffffff) {
+    throw new RangeError('PRNG state must be an unsigned 32-bit integer.');
+  }
+  let currentState = state >>> 0;
+  const random = () => {
+    currentState = (currentState + 0x6D2B79F5) >>> 0;
+    let value = currentState;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+  };
+  random.getState = () => currentState;
+  return random;
+}
+
 function equalWeights() {
   return FEATURE_IDS.map(() => 1 / FEATURE_IDS.length);
 }
@@ -51,14 +68,15 @@ function createInitialPopulation(seed, populationSize = DEFAULTS.populationSize)
   if (!Number.isInteger(populationSize) || populationSize < 4 || populationSize > 8) {
     throw new RangeError('Population size must be 4–8 evolving candidates.');
   }
-  const random = calibration.seededRandom(seed);
+  const random = createSeededRandom(seed);
   const population = Array.from({ length: populationSize }, (_, index) => ({
     id: 'g0-c' + String(index + 1).padStart(2, '0'),
     weights: randomWeights(random)
   }));
   return {
     population,
-    control: { id: 'equal-weight-control', weights: equalWeights(), frozen: true }
+    control: { id: 'equal-weight-control', weights: equalWeights(), frozen: true },
+    randomState: random.getState()
   };
 }
 
@@ -333,6 +351,7 @@ function runGeneration(population, control, fixtures, matchRunner = runMatch, op
 module.exports = {
   DEFAULTS,
   OPPONENTS,
+  createSeededRandom,
   equalWeights,
   randomWeights,
   validateCandidate,
