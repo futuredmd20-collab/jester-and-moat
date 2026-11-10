@@ -237,9 +237,10 @@ function terminalResult(api, state) {
 
 function runMatch(candidate, fixture, options = {}) {
   validateCandidate(candidate);
+  const selfPlay = options.selfPlay === true;
   if (!fixture || !Number.isSafeInteger(fixture.seed) || fixture.seed < 0 ||
-      !OPPONENTS.includes(fixture.opponent) || !LAYOUTS.includes(fixture.layout) ||
-      !COLOURS.includes(fixture.candidateColor)) {
+      !(OPPONENTS.includes(fixture.opponent) || (selfPlay && fixture.opponent === 'equal-weight-control')) ||
+      !LAYOUTS.includes(fixture.layout) || !COLOURS.includes(fixture.candidateColor)) {
     throw new TypeError('Match fixture is invalid.');
   }
 
@@ -272,6 +273,14 @@ function runMatch(candidate, fixture, options = {}) {
       candidateNodes += result.nodes;
       move = api.findLegalMoveMatch(state, result.move);
       if (!move) throw new Error('Candidate ' + candidate.id + ' failed to return a canonical legal move.');
+    } else if (selfPlay) {
+      const result = searchBestMove(state, candidate.weights, adapter, {
+        depth: searchDepth,
+        nodeLimit: searchNodeLimit
+      });
+      candidateNodes += result.nodes;
+      move = api.findLegalMoveMatch(state, result.move);
+      if (!move) throw new Error('Self-play control ' + candidate.id + ' failed to return a canonical legal move.');
     } else {
       const result = calibration.searchMove(sandbox, state, fixture.opponent, opponentBudgetScale);
       if (!result.move) throw new Error(fixture.opponent + ' failed to return a move in a non-terminal position.');
@@ -307,6 +316,14 @@ function runMatch(candidate, fixture, options = {}) {
     plies,
     candidateNodes
   };
+}
+
+function runSelfPlayMatch(candidate, fixture, options = {}) {
+  if (!fixture || !Number.isSafeInteger(fixture.seed) || fixture.seed < 0 ||
+      !LAYOUTS.includes(fixture.layout) || !COLOURS.includes(fixture.candidateColor)) {
+    throw new TypeError('Self-play fixture is invalid.');
+  }
+  return runMatch(candidate, { ...fixture, opponent: 'equal-weight-control' }, { ...options, selfPlay: true });
 }
 
 function validateFixtures(fixtures) {
@@ -364,6 +381,8 @@ module.exports = {
   createFixtures,
   validateFixtures,
   runMatch,
+  runSelfPlayMatch,
+  createMatchAdapter,
   evaluateCandidate,
   runGeneration
 };
