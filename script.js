@@ -1790,6 +1790,7 @@ ${EvolutionaryFeatures.createFeatureExtractor.toString()}
 const EvolutionaryFeatures = Object.freeze({ FEATURE_SCHEMA_VERSION, FEATURE_IDS, MATERIAL_LIMITS,
   MATERIAL_PIECE_TYPES, CENTRAL_BOUNDS, FEATURE_LIMITS, clamp, difference, assertPosition, createFeatureExtractor });
 const SEARCH_FEATURE_IDS = FEATURE_IDS;
+const SEARCH_CREATE_FEATURE_EXTRACTOR = createFeatureExtractor;
 const MATE_SCORE = ${EvolutionarySearch.MATE_SCORE};
 ${EvolutionarySearch.normalizeWeights.toString()}
 ${EvolutionarySearch.createSearchAdapter.toString()}
