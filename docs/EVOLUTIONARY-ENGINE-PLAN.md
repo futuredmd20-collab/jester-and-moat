@@ -4,7 +4,7 @@ Purpose: record the staged plan, approved model decisions, and implementation pr
 
 ## Status
 
-**Status: In progress.** Stage 3A trainer core and Stage 3B CLI/persistence are merged (PR #157; CI passed 182 tests). Stage 4 runtime-engine integration is underway on `feat/evolutionary-runtime-engine`. The shipped `Default` package is a frozen equal-weight control, not an empirically calibrated or evolved result. No training pilot, baseline measurement, holdout evaluation, or model export has been completed.
+**Status: In progress.** Stages 3A (trainer core), 3B (CLI/persistence), and 4 (runtime-engine integration) are merged. Stage 4 was merged in PR #158; CI passed 187 tests, and manual browser/PWA testing was completed on 2026-11-10 (see the Stage 4 verification record below). The shipped `Default` package is a frozen equal-weight control, not an empirically calibrated or evolved result. No training pilot, baseline measurement, holdout evaluation, or model export has been completed.
 
 ## Goal
 
@@ -247,7 +247,28 @@ Use GitHub Actions for initial smoke and pilot execution. Keep long or confirmat
 
 Add the evolutionary engine through the existing engine contract. Implement its own MinMax/Alpha-Beta search using the validated `Default` parameter package; enforce variant compatibility; provide bounded search and cancellation behavior; and test worker and main-thread paths.
 
-**Progress:** Runtime integration is underway on `feat/evolutionary-runtime-engine`. The branch adds a versioned schema-v1 equal-weight `Default` package, a standalone engine adapter, browser-loadable feature/search modules, bounded synchronous and cooperative search, Engine Contract registration, worker dispatch, PWA precaching, and single-file build inclusion. GitHub Actions run #42889183108 passed 186 tests (0 failures), and the final branch diff has been reviewed. Manual browser verification remains pending.
+**Progress:** Runtime integration was merged into `main` in PR #158. It adds a versioned schema-v1 equal-weight `Default` package, a standalone engine adapter, browser-loadable feature/search modules, bounded synchronous and cooperative search, Engine Contract registration, worker dispatch, PWA precaching, and single-file build inclusion. GitHub Actions run #42889552554 passed 187 tests (0 failures). Manual browser/PWA verification was completed on 2026-11-10; observations are recorded below.
+
+
+#### Manual runtime verification — 2026-11-10
+
+The user manually tested the Evolutionary engine and reported that it works against all available variants and in all modes. In practical play, the user judged its capacity to be already close to MCTS while responding faster, but noted that it needs further training. This is a qualitative gameplay assessment, not a controlled strength result.
+
+The supplied session log includes several engine/side test sequences. The relevant sequence for this observation is the third one: the user played White and the Evolutionary engine played Black with the user-reported `Piece hunter` personality. Therefore, the White-side over-budget search events earlier in the log belong to other test sequences and must not be attributed to the Black Evolutionary engine.
+
+Black Evolutionary search observations from that sequence:
+
+| Phase | Searches | Observed duration | 2,500 ms budget |
+| --- | ---: | ---: | --- |
+| Opening | #361–#386 (26) | 457–2,502 ms | Two searches reached the budget: 2,501 and 2,502 ms |
+| Midgame | #387–#403 (17) | 39–2,064 ms | No budget warnings |
+| Endgame | #404–#412 (9) | 38–1,269 ms | No budget warnings |
+
+All 52 logged Black Evolutionary searches completed; the log reports no Evolutionary motor errors. The phase transitions were opening → midgame at ply 46 with 33 pieces, and midgame → endgame at ply 81 with 16 pieces.
+
+These timings describe response/search duration in this particular game and device session. They do not measure move quality, win rate, or relative engine strength. The user's comparison with MCTS is retained as a practical impression only; the log does not provide a controlled head-to-head comparison with matched positions, budgets, colours, and configurations.
+
+**Verification conclusion:** Stage 4's automated contract/worker coverage and the reported manual cross-variant/mode runtime check are complete. Further training and controlled strength evaluation remain separate Stage 5 work; this manual test does not satisfy the training baseline or holdout acceptance gates.
 
 The runtime engine must work without the trainer or training history being present. Its normal gameplay path must not use the training PRNG or require training-only dependencies.
 
@@ -302,4 +323,5 @@ After the engine has a stable baseline:
 
 - **2026-11-10:** Specified the Stage 2 CLI, Actions, persistence, and release contract: one shared CLI (`train`, `resume`, `evaluate`, `export`); manually dispatched sequential Actions runs; JSONL, JSON, and Markdown outputs; full generation checkpoints; strict resume validation; separate finite-retention run/checkpoint artifacts; candidate-specific holdout sets; empirical minimum floors against both references; manual export approval; and versioned GitHub Release assets.
 - **2026-11-10:** Recorded the approved v1 model decisions: MinMax/Alpha-Beta runtime search; pure, representation-independent feature extraction with per-feature cost measurement; seedable training; `Default` baseline parameters; GitHub Actions as the initial manual training environment; Actions artifacts for run outputs/checkpoints; dual validation references; independent holdout acceptance; reproducible run metadata; and locked feature-schema v1.
+- **2026-11-10:** Recorded manual Stage 4 runtime verification across variants and modes, including phase-specific search timings, the two opening-budget overruns, and the limitation that the MCTS comparison is qualitative rather than a controlled strength measurement.
 - **2026-11-09:** Added a representation-independent semantic feature boundary so future bitboard or other internal representation work can proceed without coupling evolutionary weights or training data to storage details.
