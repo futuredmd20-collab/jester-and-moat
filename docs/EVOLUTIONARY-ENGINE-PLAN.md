@@ -4,7 +4,7 @@ Purpose: record the staged plan, approved model decisions, and implementation pr
 
 ## Status
 
-**Status: In progress.** The user selected an evolutionary engine as the next engine direction and approved the initial v1 model decisions recorded below. Initial training is offline and separate from normal PWA gameplay. Stage 3A trainer core and Stage 3B CLI/persistence infrastructure are implemented; no training pilot, baseline measurement, holdout evaluation, model export, or runtime evolutionary engine has been completed.
+**Status: In progress.** Stage 3A trainer core and Stage 3B CLI/persistence are merged (PR #157; CI passed 182 tests). Stage 4 runtime-engine integration is underway on `feat/evolutionary-runtime-engine`. The shipped `Default` package is a frozen equal-weight control, not an empirically calibrated or evolved result. No training pilot, baseline measurement, holdout evaluation, or model export has been completed.
 
 ## Goal
 
@@ -239,13 +239,15 @@ Local execution on the Mac mini M1 uses the same commands, run schema, checkpoin
 
 Build a minimal CLI workflow with small default pilot limits and no network requirement for the trainer itself. Add focused tests for deterministic components, parameter bounds, match scoring, feature purity/performance, persistence, interrupted-run recovery, and export validation.
 
-**Progress (Stage 3A — trainer core):** Merged into `main` in PR #156. The implementation provides schema-v1 semantic feature extraction, bounded candidate Alpha-Beta search, seeded population/mutation/selection, balanced fixed fixtures, and real-rule matches against MinMax Medium and MCTS Medium. GitHub Actions run #622 passed all 173 tests (0 failures).\n\n**Progress (Stage 3B — CLI and persistence):** Implemented on `feat/evolutionary-trainer-cli-persistence` in Draft PR #157: shared `train`, `resume`, `evaluate`, and `export` CLI entry points; append-only JSONL run events; JSON/Markdown reports; strict, atomic generation checkpoints with source/configuration validation; guarded model export requiring independent passing holdout evidence and explicit approval; and a separate manual Actions workflow with sequential bounded pilot settings and separate finite-retention run/checkpoint artifacts. Holdout evaluation intentionally fails closed until baseline floors and the statistical protocol are predeclared. No training pilot has been run. CI verification is pending.
+**Progress (Stage 3A — trainer core):** Merged into `main` in PR #156. The implementation provides schema-v1 semantic feature extraction, bounded candidate Alpha-Beta search, seeded population/mutation/selection, balanced fixed fixtures, and real-rule matches against MinMax Medium and MCTS Medium. GitHub Actions run #622 passed all 173 tests (0 failures).\n\n**Progress (Stage 3B — CLI and persistence):** Merged in PR #157. The shared `train`, `resume`, `evaluate`, and `export` CLI, append-only JSONL events, JSON/Markdown reports, strict atomic generation checkpoints, guarded export, and manual bounded Actions workflow are implemented. CI passed 182 tests. Holdout evaluation intentionally fails closed until baseline floors and the statistical protocol are predeclared. No training pilot has been run.
 
 Use GitHub Actions for initial smoke and pilot execution. Keep long or confirmatory runs manually started and explicitly bounded; do not make full tournaments or long training runs an automatic CI gate. Add local M1 execution without changing the experiment or checkpoint semantics.
 
 ### 4. Implement the runtime engine
 
 Add the evolutionary engine through the existing engine contract. Implement its own MinMax/Alpha-Beta search using the validated `Default` parameter package; enforce variant compatibility; provide bounded search and cancellation behavior; and test worker and main-thread paths.
+
+**Progress:** Runtime integration is underway on `feat/evolutionary-runtime-engine`. The branch adds a versioned schema-v1 equal-weight `Default` package, a standalone engine adapter, browser-loadable feature/search modules, bounded synchronous and cooperative search, Engine Contract registration, worker dispatch, PWA precaching, and single-file build inclusion. Automated verification and final diff review remain pending.
 
 The runtime engine must work without the trainer or training history being present. Its normal gameplay path must not use the training PRNG or require training-only dependencies.
 
