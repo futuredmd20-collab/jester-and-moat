@@ -92,7 +92,7 @@ A candidate is a stable ID plus one weight for each feature ID above, in a fixed
 - The weights are normalized to sum to `1`; a zero-sum or malformed vector is invalid.
 - There is no bias term, no per-colour weight set, and no phase-specific weight set in v1. The feature vector itself is colour-relative; the same weights evaluate either side.
 - Search algorithm, search depth/budget, and engine configuration are held constant across candidates in a run. They are not genes.
-- Initialize one equal-weight candidate as the frozen primary reference for the run. Initialize the remaining candidates with seeded random non-negative weights normalized to sum to one. Record the initialization method and seed. The reference candidate is never mutated or selected as an evolving candidate.
+- Initialize one equal-weight candidate as the frozen primary reference for the run. Initialize the remaining candidates with seeded random non-negative weights normalized to sum to one. Record the initialization method and seed. The frozen reference is a separate control and is never mutated or selected as an evolving candidate. Stage 2 must make explicit whether the reported population count includes or excludes this control; do not leave that accounting implicit.
 - Do not copy current MinMax constants into the genome unless a mathematically equivalent mapping to this feature schema is demonstrated. Existing MinMax Medium is a separate secondary comparison reference, not automatically a compatible candidate.
 
 ### Population and evolutionary operators
