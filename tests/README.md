@@ -12,7 +12,7 @@ node --test tests/*.test.js
 
 The engine contract suite evaluates canonical rule/search functions from `script.js` in a small VM context and skips browser UI startup. It loads the MinMax, MCTS, and Evolutionary runtime modules to verify their protocol and search paths. The PWA startup suite exercises the boot script and service worker with lightweight mocks; it does not require a browser or network access.
 
-The separate engine-strength calibration runner has a short smoke test and a full tournament mode; see [Engine Strength Calibration](../docs/ENGINE-STRENGTH-CALIBRATION.md). Run `node scripts/engine-strength-calibration.js --self-test` to check its local harness. This smoke test is not a strength result.
+The separate engine-strength calibration runner has a short smoke test and a full tournament mode; see [Engine Strength Calibration](../docs/ENGINE-STRENGTH-CALIBRATION.md). Run `node scripts/engine-strength-calibration.js --self-test` to check its local harness. This smoke test is not a strength result. The evolutionary baseline is a separate manual operation: `node scripts/evolutionary-trainer.js baseline --seed 20261110 --games 4`. It records equal-weight self-play, equal-weight versus MinMax Medium, and per-feature costs; it does not train or set performance floors.
 
 ## Current coverage
 
@@ -60,6 +60,7 @@ The separate engine-strength calibration runner has a short smoke test and a ful
 - Evolutionary feature schema v1 extracts normalized semantic material, mobility, central activity, Jester mobility, and king-check values through injected canonical rule helpers; tests cover colour perspective, bounds, read-only extraction, and separate feature-cost reporting.
 - Evolutionary runtime validates its versioned equal-weight Default package, rejects incompatible package schemas/weights, returns legal moves through the main-thread contract, dispatches cooperative bounded searches through the worker, and observes cancellation at cooperative yield boundaries.
 - Evolutionary population initialization, equal-weight control separation, mutation normalization, elitist generation replacement, balanced eight-fixture scheduling, fitness scoring, bounded Alpha-Beta search, and short real-rule matches against MinMax Medium and MCTS Medium.
+- Evolutionary baseline fixtures are reproducible and balanced across both colours and opening layouts; equal-weight self-play and equal-weight versus MinMax Medium use the same fixtures, and feature costs are measured separately for each semantic feature and opening layout.
 - Evolutionary CLI parsing and operation contracts for `train`, `resume`, `evaluate`, and `export`; holdout evaluation fails closed until its baseline and statistical gates are approved.
 - Evolutionary JSONL event schema and sequence validation, incomplete trailing-record recovery, atomic generation checkpoint writes, strict checkpoint/source/configuration validation, and resume-state consistency.
 - Model export validation requires a completed run, a candidate-specific independent holdout pass against both reference floors, and explicit human approval.
