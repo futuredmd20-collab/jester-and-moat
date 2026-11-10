@@ -58,8 +58,7 @@ function createInitialPopulation(seed, populationSize = DEFAULTS.populationSize)
   }));
   return {
     population,
-    control: { id: 'equal-weight-control', weights: equalWeights(), frozen: true },
-    randomState: null
+    control: { id: 'equal-weight-control', weights: equalWeights(), frozen: true }
   };
 }
 
@@ -89,9 +88,15 @@ function mutateWeights(weights, random, settings = {}) {
 }
 
 function rankPopulation(population) {
-  return population.map(validateCandidate).slice().sort((a, b) => {
-    const fitnessDifference = (b.fitness || 0) - (a.fitness || 0);
-    return fitnessDifference || a.id.localeCompare(b.id);
+  return population.map(candidate => {
+    validateCandidate(candidate);
+    if (!Number.isFinite(candidate.fitness) || candidate.fitness < 0 || candidate.fitness > 1) {
+      throw new RangeError('Every evaluated candidate must have fitness in [0, 1].');
+    }
+    return candidate;
+  }).slice().sort((a, b) => {
+    const fitnessDifference = b.fitness - a.fitness;
+    return fitnessDifference || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
   });
 }
 
@@ -99,11 +104,15 @@ function tournamentSelect(population, random, tournamentSize = DEFAULTS.tourname
   if (!Array.isArray(population) || population.length < 2) throw new TypeError('Tournament requires at least two candidates.');
   if (typeof random !== 'function') throw new TypeError('A seeded random function is required.');
   if (!Number.isInteger(tournamentSize) || tournamentSize < 2) throw new RangeError('Tournament size must be at least 2.');
+  if (population.some(candidate => !Number.isFinite(candidate.fitness) || candidate.fitness < 0 || candidate.fitness > 1)) {
+    throw new RangeError('Tournament candidates must have fitness in [0, 1].');
+  }
   let winner = null;
   for (let i = 0; i < tournamentSize; i++) {
     const candidate = population[Math.floor(random() * population.length)];
-    if (!winner || (candidate.fitness || 0) > (winner.fitness || 0) ||
-        ((candidate.fitness || 0) === (winner.fitness || 0) && candidate.id < winner.id)) winner = candidate;
+    if (!candidate) throw new RangeError('Random source returned an invalid tournament index.');
+    if (!winner || candidate.fitness > winner.fitness ||
+        (candidate.fitness === winner.fitness && candidate.id < winner.id)) winner = candidate;
   }
   return winner;
 }
@@ -283,11 +292,31 @@ function runMatch(candidate, fixture, options = {}) {
   };
 }
 
-function evaluateCandidate(candidate, fixtures, matchRunner = runMatch, options = {}) {
-  validateCandidate(candidate);
-  if (!Array.isArray(fixtures) || fixtures.length !== 8 || typeof matchRunner !== 'function') {
+function validateFixtures(fixtures) {
+  if (!Array.isArray(fixtures) || fixtures.length !== 8) {
     throw new TypeError('Candidate evaluation requires the fixed eight-fixture v1 schedule.');
   }
+  const generation = fixtures[0].generation;
+  if (!Number.isInteger(generation) || fixtures.some(fixture =>
+      !fixture || fixture.generation !== generation || !OPPONENTS.includes(fixture.opponent) ||
+      !LAYOUTS.includes(fixture.layout) || !COLOURS.includes(fixture.candidateColor) ||
+      !Number.isSafeInteger(fixture.seed) || fixture.seed < 0)) {
+    throw new TypeError('Fixture schedule contains invalid or mixed-generation entries.');
+  }
+  const keys = fixtures.map(fixture =>
+    [fixture.opponent, fixture.layout, fixture.candidateColor].join('|'));
+  const expected = OPPONENTS.flatMap(opponent =>
+    LAYOUTS.flatMap(layout => COLOURS.map(colour => [opponent, layout, colour].join('|'))));
+  if (new Set(keys).size !== 8 || expected.some(key => !keys.includes(key))) {
+    throw new Error('Fixture schedule must cover each opponent/layout/colour combination exactly once.');
+  }
+  return generation;
+}
+
+function evaluateCandidate(candidate, fixtures, matchRunner = runMatch, options = {}) {
+  validateCandidate(candidate);
+  validateFixtures(fixtures);
+  if (typeof matchRunner !== 'function') throw new TypeError('A match runner is required.');
   const matches = fixtures.map(fixture => matchRunner(candidate, fixture, options));
   return { candidate: { id: candidate.id, weights: normalizeWeights(candidate.weights) }, ...scoreMatches(matches), matches };
 }
@@ -296,10 +325,11 @@ function runGeneration(population, control, fixtures, matchRunner = runMatch, op
   if (!Array.isArray(population) || population.length < 4 || population.length > 8) {
     throw new RangeError('Generation requires 4–8 evolving candidates.');
   }
+  const generation = validateFixtures(fixtures);
   validateCandidate(control);
   const evaluated = population.map(candidate => evaluateCandidate(candidate, fixtures, matchRunner, options));
   const controlEvaluation = evaluateCandidate(control, fixtures, matchRunner, options);
-  return { generation: fixtures[0].generation, evaluated, control: controlEvaluation };
+  return { generation, evaluated, control: controlEvaluation };
 }
 
 module.exports = {
@@ -314,6 +344,7 @@ module.exports = {
   createNextGeneration,
   scoreMatches,
   createFixtures,
+  validateFixtures,
   runMatch,
   evaluateCandidate,
   runGeneration
