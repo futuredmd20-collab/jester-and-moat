@@ -154,9 +154,11 @@ test('index.html provides a real host and inline marker for the Minimal sprite',
 
 test('single-file build embeds the evolutionary runtime package and dependencies before script.js', () => {
   for (const sourcePath of [
-    'scripts/evolutionary-features.js', 'scripts/evolutionary-search.js',
-    'engines/evolutionary-engine.js', 'engines/evolutionary-default-v1.json'
-  ]) assert.ok(buildSource.includes(sourcePath), `build should include ${sourcePath}`);
+    /evolutionaryFeaturesJs = fs\.readFileSync\(path\.join\(__dirname, "scripts", "evolutionary-features\.js"\)/,
+    /evolutionarySearchJs = fs\.readFileSync\(path\.join\(__dirname, "scripts", "evolutionary-search\.js"\)/,
+    /evolutionaryEngineJs = fs\.readFileSync\(path\.join\(__dirname, "engines", "evolutionary-engine\.js"\)/,
+    /evolutionaryDefaultPackage = JSON\.parse\(fs\.readFileSync\(path\.join\(__dirname, "engines", "evolutionary-default-v1\.json"\)/
+  ]) assert.match(buildSource, sourcePath);
   assert.match(buildSource, /evolutionaryPackageScript/);
   assert.match(buildSource, /evolutionaryFeaturesBody[\s\S]*evolutionarySearchBody[\s\S]*evolutionaryEngineBody[\s\S]*scriptBody/);
 });
