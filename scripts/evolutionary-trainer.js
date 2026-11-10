@@ -272,18 +272,23 @@ function resume(options) {
   const reportPath = path.join(directory, 'report.json');
   const eventPath = path.join(directory, 'run.jsonl');
   if (!fs.existsSync(eventPath)) throw new Error('Resume requires the matching run.jsonl event history beside the checkpoint.');
+  let storedReport = null;
+  let reportWarning = null;
   if (fs.existsSync(reportPath)) {
-    const storedReport = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
-    if (storedReport.runId !== checkpoint.runId || storedReport.sourceCommit !== checkpoint.sourceCommit ||
-        !persistence.sameConfig(storedReport.config, checkpoint.config)) throw new Error('Run report does not match checkpoint identity/configuration.');
+    try { storedReport = JSON.parse(fs.readFileSync(reportPath, 'utf8')); }
+    catch (_) { reportWarning = 'Reconstructed report.json from the authoritative checkpoint snapshot.'; }
+    if (storedReport && (storedReport.runId !== checkpoint.runId || storedReport.sourceCommit !== checkpoint.sourceCommit ||
+        !persistence.sameConfig(storedReport.config, checkpoint.config))) throw new Error('Run report does not match checkpoint identity/configuration.');
+    if (storedReport && storedReport.status === 'completed') throw new Error('Completed runs cannot be resumed.');
   }
   const report = checkpoint.reportSnapshot;
   if (report.runId !== checkpoint.runId || report.sourceCommit !== checkpoint.sourceCommit ||
       !persistence.sameConfig(report.config, checkpoint.config)) throw new Error('Checkpoint report snapshot is incompatible.');
-  if (report.status === 'completed') throw new Error('Completed runs cannot be resumed.');
-  if (!fs.existsSync(reportPath)) persistence.writeReport(directory, report);
   const events = persistence.readEvents(eventPath, checkpoint.runId);
+  if (events.events.some(event => event.type === 'run-completed')) throw new Error('Completed runs cannot be resumed.');
   if (events.warning) report.warnings.push(events.warning);
+  if (reportWarning) report.warnings.push(reportWarning);
+  if (!storedReport || reportWarning) persistence.writeReport(directory, report);
   const abandoned = events.events.filter(event => event.type === 'generation-started' && event.generation > checkpoint.completedGeneration);
   if (abandoned.length) append(report, directory, events.nextSequence++, 'generation-abandoned', {
     generations: [...new Set(abandoned.map(event => event.generation))]
