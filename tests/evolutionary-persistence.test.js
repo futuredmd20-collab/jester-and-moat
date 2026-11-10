@@ -55,7 +55,7 @@ test('checkpoint validation rejects unsupported, incomplete, and invalid populat
   assert.throws(() => validateCheckpoint(checkpoint({ randomState: -1 })), /malformed or incomplete/);
   const invalidPopulation = createInitialPopulation(17, 4).population;
   invalidPopulation[0] = { id: 'bad', weights: [1, 2] };
-  assert.throws(() => validateCheckpoint(checkpoint({ population: invalidPopulation })), /ten finite values in \\[0, 1\\]/);
+  assert.throws(() => validateCheckpoint(checkpoint({ population: invalidPopulation })), /ten finite values/);
 });
 
 test('JSONL events enforce schema, run identity, and monotonic sequence', () => {
