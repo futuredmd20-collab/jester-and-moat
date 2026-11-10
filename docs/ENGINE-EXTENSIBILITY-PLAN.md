@@ -108,25 +108,6 @@ Keep the personality contract small. It should establish stable profile identity
 
 **Progress:** Complete. PR #143 merged the minimal runtime contract: `Default` is registered, both current engines declare support, profile IDs are stored in the then-current side × phase configuration, and unsupported profiles are rejected during configuration and dispatch. CI passed with 153 tests and the user approved the PWA test.
 
-### D.2. Dynamic personality behaviour and emotional state
-
-**Design direction agreed (2026-11-10; design only, not implemented):**
-
-- The underlying engine remains responsible for position analysis and producing legal candidate decisions. A personality layer sits above it and filters or ranks those decisions according to the selected style.
-- Personality must be more than random deviations. It should express coherent preferences such as risk tolerance, aggression, caution, persistence, or overconfidence through decision-making.
-- Personality has a relatively stable base identity and a dynamic in-game state. The dynamic state may change in response to observed events and position changes, and may influence subsequent decisions.
-- Different personalities may react differently to the same event. Examples include a successful or failed attack, a material sacrifice, a lost initiative, an unexpected defensive resource, or a sudden material advantage.
-- The layer may intentionally select a strategically understandable but objectively inferior move to express its style. It must still preserve legal move constraints and the project's safety rules for immediate forced wins and critical tactical obligations.
-- The same underlying state can drive player-facing expressions, but expression is not itself the decision mechanism. The player may see emojis, short phrases, or other restrained reactions without being shown a precise internal emotion meter.
-- Keep personality implementation engine-aware where necessary. Do not impose a universal set of numeric emotional or style parameters before concrete engines demonstrate shared semantics.
-
-**Design work still required before implementation:**
-- Define the boundary and data flow between engine candidate analysis, personality filtering, dynamic state updates, and event/presentation consumers.
-- Define which game events and position changes may update state, how state persists or resets, and how reactions are made deterministic/reproducible for tests.
-- Define safeguards for legality, forced wins, defensive necessities, search budgets, cancellation, and worker/main-thread parity.
-- Decide how much state is visible to the player and how expressions avoid claiming to expose exact engine reasoning.
-- Validate behaviour in controlled positions and evaluate its effect on both playing style and sparring quality.
-
 ### D.1. Refine the extensible configuration and settings contract
 
 **Design decisions agreed (2026-11-09; design only, not yet implemented):**
@@ -150,6 +131,25 @@ Keep the personality contract small. It should establish stable profile identity
 - Add contract tests for inheritance, field-level overrides, engine changes/defaults, setting applicability, shared-setting compatibility, and isolation between sides/phases.
 
 **Design acceptance gate: complete (2026-11-09).** The resolved model and deterministic inheritance rules are implemented in the current task branch. The existing completed Engine Configuration plan remains the record of the shipped schema-v1 side × phase configuration; this section describes the schema-v2 model that supersedes it.
+
+### D.2. Dynamic personality behaviour and emotional state
+
+**Design direction agreed (2026-11-10; design only, not implemented):**
+
+- The underlying engine remains responsible for position analysis and producing legal candidate decisions. A personality layer sits above it and filters or ranks those decisions according to the selected style.
+- Personality must be more than random deviations. It should express coherent preferences such as risk tolerance, aggression, caution, persistence, or overconfidence through decision-making.
+- Personality has a relatively stable base identity and a dynamic in-game state. The dynamic state may change in response to observed events and position changes, and may influence subsequent decisions.
+- Different personalities may react differently to the same event. Examples include a successful or failed attack, a material sacrifice, a lost initiative, an unexpected defensive resource, or a sudden material advantage.
+- The layer may intentionally select a strategically understandable but objectively inferior move to express its style. It must still preserve legal move constraints and the project's safety rules for immediate forced wins and critical tactical obligations.
+- The same underlying state can drive player-facing expressions, but expression is not itself the decision mechanism. The player may see emojis, short phrases, or other restrained reactions without being shown a precise internal emotion meter.
+- Keep personality implementation engine-aware where necessary. Do not impose a universal set of numeric emotional or style parameters before concrete engines demonstrate shared semantics.
+
+**Design work still required before implementation:**
+- Define the boundary and data flow between engine candidate analysis, personality filtering, dynamic state updates, and event/presentation consumers.
+- Define which game events and position changes may update state, how state persists or resets, and how reactions are made deterministic/reproducible for tests.
+- Define safeguards for legality, forced wins, defensive necessities, search budgets, cancellation, and worker/main-thread parity.
+- Decide how much state is visible to the player and how expressions avoid claiming to expose exact engine reasoning.
+- Validate behaviour in controlled positions and evaluate its effect on both playing style and sparring quality.
 
 ### E. Implement incrementally
 
