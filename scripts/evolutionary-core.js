@@ -142,9 +142,7 @@ function createNextGeneration(evaluatedPopulation, generation, random, settings 
 }
 
 function scoreMatches(matches) {
-  if (!Array.isArray(matches) || matches.length !== 8) {
-    throw new RangeError('Each candidate requires exactly eight completed v1 fixtures.');
-  }
+  validateFixtures(matches);
   if (matches.some(match => !match || match.valid === false ||
       ![0, 0.5, 1].includes(match.candidateScore) || !OPPONENTS.includes(match.opponent))) {
     throw new Error('Candidate evaluation contains an invalid match result.');
