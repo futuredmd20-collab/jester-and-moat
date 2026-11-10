@@ -102,7 +102,7 @@ function createReport(runId, seed, config, sourceCommit) {
     ],
     fixtureSchedule: { fixturesPerCandidate: 8, layouts: ['edges', 'center'], candidateColours: ['w', 'b'] },
     terminalRules: { maxPlies: config.maxPlies, unfinishedGame: 'draw', engineFailure: 'invalid-evaluation' },
-    runtime: { node: process.version, platform: os.platform(), arch: os.arch(), runner: process.env.RUNNER_NAME || 'local' },
+    runtime: { node: process.version, platform: os.platform(), arch: os.arch(), runner: process.env.RUNNER_NAME || 'local', actionsRunId: process.env.GITHUB_RUN_ID || null, actionsRunAttempt: process.env.GITHUB_RUN_ATTEMPT || null, githubRef: process.env.GITHUB_REF || null },
     startedAt: new Date().toISOString(),
     completedAt: null,
     completedGenerations: [],
@@ -266,15 +266,19 @@ function resume(options) {
     throw new Error('Resume output directory must be the checkpoint directory to preserve the run record stream.');
   }
   const reportPath = path.join(directory, 'report.json');
-  if (!fs.existsSync(reportPath)) throw new Error('Resume requires the matching report.json beside the checkpoint.');
-  const storedReport = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
-  if (storedReport.runId !== checkpoint.runId || storedReport.sourceCommit !== checkpoint.sourceCommit ||
-      !persistence.sameConfig(storedReport.config, checkpoint.config)) throw new Error('Run report does not match checkpoint identity/configuration.');
+  const eventPath = path.join(directory, 'run.jsonl');
+  if (!fs.existsSync(eventPath)) throw new Error('Resume requires the matching run.jsonl event history beside the checkpoint.');
+  if (fs.existsSync(reportPath)) {
+    const storedReport = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+    if (storedReport.runId !== checkpoint.runId || storedReport.sourceCommit !== checkpoint.sourceCommit ||
+        !persistence.sameConfig(storedReport.config, checkpoint.config)) throw new Error('Run report does not match checkpoint identity/configuration.');
+  }
   const report = checkpoint.reportSnapshot;
   if (report.runId !== checkpoint.runId || report.sourceCommit !== checkpoint.sourceCommit ||
       !persistence.sameConfig(report.config, checkpoint.config)) throw new Error('Checkpoint report snapshot is incompatible.');
   if (report.status === 'completed') throw new Error('Completed runs cannot be resumed.');
-  const events = persistence.readEvents(path.join(directory, 'run.jsonl'), checkpoint.runId);
+  if (!fs.existsSync(reportPath)) persistence.writeReport(directory, report);
+  const events = persistence.readEvents(eventPath, checkpoint.runId);
   if (events.warning) report.warnings.push(events.warning);
   const abandoned = events.events.filter(event => event.type === 'generation-started' && event.generation > checkpoint.completedGeneration);
   if (abandoned.length) append(report, directory, events.nextSequence++, 'generation-abandoned', {
