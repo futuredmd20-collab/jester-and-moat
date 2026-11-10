@@ -280,6 +280,8 @@ Position-based tests may later help diagnose candidate strengths, weaknesses, an
 
 ### 5. Evaluate and package a first result
 
+The first Stage 5 implementation step is a separate, manually invoked `baseline` CLI operation. It measures the frozen equal-weight control in balanced self-play and against MinMax Medium, using matching seeds, opening layouts, and colours, and reports per-feature extraction costs for both opening layouts. It records the effective configuration, sample outcomes, elapsed time, source commit, and runtime environment. The operation does not train candidates, inspect holdout results, or set performance floors. The baseline must be run and reviewed before the statistical method and minimum practical floors are fixed.
+
 Run controlled, modest experiments. Begin with a small GitHub Actions pilot, measure runtime and feature costs, and increase the run budget only when the measurements justify it. Compare candidates with the frozen-weight primary reference and existing MinMax Medium secondary reference on balanced, independent fixtures. Record sample sizes, seeds, code/runtime conditions, and uncertainty; do not describe small samples as definitive strength ratings.
 
 Export only a manually approved candidate that meets both empirically established performance floors on its own independent holdout set. Attach the versioned `Default` JSON package and provenance metadata to a GitHub Release. If adopted by the offline PWA, commit the exact runtime package separately and include it in the service-worker precache. Keep raw training data and checkpoints outside the shipped PWA and ordinary source history.
@@ -328,6 +330,8 @@ After the engine has a stable baseline:
 - [Engine and Board Ideas](ENGINE-IDEAS.md) — exploratory ideas and future personality examples.
 
 ## Change log
+
+- **2026-11-10:** Added the bounded baseline measurement implementation path: a separate CLI operation and manual Actions operation for balanced equal-weight self-play, equal-weight versus MinMax Medium, and per-feature costs. The actual baseline has not yet been run; no performance floors or statistical gates are established.
 
 - **2026-11-10:** Clarified that the shared position-based evaluation plan is complementary to, and does not change, the approved match-based Stage 5 baseline and holdout acceptance methodology.
 

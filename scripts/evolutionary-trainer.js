@@ -9,6 +9,7 @@ const crypto = require('node:crypto');
 const { execFileSync } = require('node:child_process');
 const core = require('./evolutionary-core');
 const persistence = require('./evolutionary-persistence');
+const baseline = require('./evolutionary-baseline');
 
 const ROOT = path.resolve(__dirname, '..');
 const DEFAULT_OUTPUT = path.join(os.homedir(), '.jester-and-moat', 'evolutionary-runs');
@@ -23,7 +24,7 @@ const DEFAULTS = Object.freeze({
 
 function parseArgs(argv) {
   const command = argv[0];
-  if (!['train', 'resume', 'evaluate', 'export'].includes(command)) {
+  if (!['train', 'resume', 'evaluate', 'export', 'baseline'].includes(command)) {
     if (command === '--help' || command === '-h' || command === undefined) return { command: 'help' };
     throw new Error('Unknown command: ' + command);
   }
@@ -42,7 +43,8 @@ function parseArgs(argv) {
     train: ['seed', 'population', 'generations', 'output-dir', 'max-plies', 'search-depth', 'node-limit', 'opponent-budget-scale'],
     resume: ['checkpoint', 'output-dir'],
     evaluate: ['report', 'candidate-id', 'protocol'],
-    export: ['report', 'candidate-id', 'approval-file', 'output']
+    export: ['report', 'candidate-id', 'approval-file', 'output'],
+    baseline: ['seed', 'games', 'max-plies', 'search-depth', 'node-limit', 'opponent-budget-scale', 'feature-iterations', 'output-dir']
   }[command];
   for (const key of Object.keys(options)) if (!allowed.includes(key)) throw new Error('Unknown option for ' + command + ': --' + key);
   return { command, options };
@@ -61,11 +63,14 @@ function helpText() {
     'train --seed N [--population 4..8] [--generations 1..8] [--output-dir DIR]',
     '      [--max-plies N] [--search-depth N] [--node-limit N] [--opponent-budget-scale N]',
     'resume --checkpoint FILE [--output-dir DIR]',
+    'baseline --seed N [--games 4..64] [--output-dir DIR]',
+    '         [--max-plies N] [--search-depth N] [--node-limit N] [--feature-iterations N]',
     'evaluate --report FILE --candidate-id ID --protocol FILE',
     'export --report FILE --candidate-id ID --approval-file FILE --output FILE',
     '',
     'Training defaults: population 8, generations 8; Actions pilot: population 4, generations 2.',
     'Each candidate plays eight fixed fixtures per generation plus a separate equal-weight control.',
+    'baseline records balanced equal-weight self-play, equal-weight vs MinMax Medium, and feature costs.',
     'Runs write run.jsonl, report.json, summary.md, and an atomic checkpoint after each generation.',
     'GitHub Actions retains run and checkpoint artifacts for 30 and 14 days respectively.',
     'evaluate fails closed until baseline floors and a predeclared statistical protocol are established.',
@@ -322,10 +327,13 @@ function exportCandidate(options) {
   return pkg;
 }
 
+function runBaseline(options) { return baseline.runBaseline(options); }
+
 function main(argv = process.argv.slice(2)) {
   const parsed = parseArgs(argv);
   if (parsed.command === 'help') { process.stdout.write(helpText()); return; }
   if (parsed.command === 'train') return train(parsed.options);
+  if (parsed.command === 'baseline') return runBaseline(parsed.options);
   if (parsed.command === 'resume') return resume(parsed.options);
   if (parsed.command === 'evaluate') return evaluate(parsed.options);
   if (parsed.command === 'export') return exportCandidate(parsed.options);
@@ -341,4 +349,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { DEFAULTS, parseArgs, helpText, createReport, generationSummary, train, resume, evaluate, exportCandidate, main };
+module.exports = { DEFAULTS, parseArgs, helpText, createReport, generationSummary, train, resume, evaluate, exportCandidate, runBaseline, main };
