@@ -55,7 +55,7 @@ test('checkpoint validation rejects unsupported, incomplete, and invalid populat
   assert.throws(() => validateCheckpoint(checkpoint({ randomState: -1 })), /malformed or incomplete/);
   const invalidPopulation = createInitialPopulation(17, 4).population;
   invalidPopulation[0] = { id: 'bad', weights: [1, 2] };
-  assert.throws(() => validateCheckpoint(checkpoint({ population: invalidPopulation })), /schema-v1 feature set/);
+  assert.throws(() => validateCheckpoint(checkpoint({ population: invalidPopulation })), /ten finite values in \\[0, 1\\]/);
 });
 
 test('JSONL events enforce schema, run identity, and monotonic sequence', () => {
@@ -80,7 +80,7 @@ test('JSONL recovery reports an incomplete trailing record without accepting mal
   assert.match(read.warning, /incomplete trailing/);
   assert.equal(fs.readFileSync(file, 'utf8').endsWith('\n'), true);
   fs.writeFileSync(file, '{"broken":true}\n');
-  assert.throws(() => readEvents(file, 'run-test'), /Malformed complete JSONL/);
+  assert.throws(() => readEvents(file, 'run-test'), /Invalid JSONL event contract/);
 });
 
 test('export is blocked without passing independent holdout evidence and explicit approval', () => {
