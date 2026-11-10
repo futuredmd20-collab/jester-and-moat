@@ -10,7 +10,7 @@ const core = require('./evolutionary-core');
 const persistence = require('./evolutionary-persistence');
 
 const ROOT = path.resolve(__dirname, '..');
-const DEFAULT_OUTPUT = path.join(ROOT, 'evolutionary-runs');
+const DEFAULT_OUTPUT = path.join(os.homedir(), '.jester-and-moat', 'evolutionary-runs');
 const DEFAULTS = Object.freeze({
   populationSize: 8,
   generations: 8,
