@@ -1,10 +1,10 @@
 # Evolutionary Engine Plan
 
-Purpose: plan a small, independently trainable evolutionary engine and its offline Node.js CLI, including initial GitHub Actions execution and later local training. This document defines intended investigation and staged work; it is not an implementation specification or evidence that the engine or trainer exists.
+Purpose: record the staged plan, approved model decisions, and implementation progress for a small, independently trainable evolutionary engine and its offline Node.js CLI. This is not a substitute for inspecting the current implementation and tests.
 
 ## Status
 
-**Status: In progress.** The user selected an evolutionary engine as the next engine direction and approved the initial v1 model decisions recorded below. Initial training is offline and separate from normal PWA gameplay. No engine, trainer, or evolutionary-training workflow has been implemented or authorized by this plan update.
+**Status: In progress.** The user selected an evolutionary engine as the next engine direction and approved the initial v1 model decisions recorded below. Initial training is offline and separate from normal PWA gameplay. Stage 3A trainer core and Stage 3B CLI/persistence infrastructure are implemented; no training pilot, baseline measurement, holdout evaluation, model export, or runtime evolutionary engine has been completed.
 
 ## Goal
 
@@ -239,7 +239,7 @@ Local execution on the Mac mini M1 uses the same commands, run schema, checkpoin
 
 Build a minimal CLI workflow with small default pilot limits and no network requirement for the trainer itself. Add focused tests for deterministic components, parameter bounds, match scoring, feature purity/performance, persistence, interrupted-run recovery, and export validation.
 
-**Progress (Stage 3A — trainer core):** Initial implementation is on `feat/evolutionary-trainer-core`: schema-v1 semantic feature extraction, bounded candidate Alpha-Beta search, seeded population/mutation/selection, balanced fixed fixtures, and a real-rule match path against MinMax Medium and MCTS Medium. Focused regression coverage includes feature semantics/purity/cost reporting, restorable PRNG state, bounded operators, balanced fixtures, candidate search, and short real-rule matches against both opponents. GitHub Actions run #622 passed all 173 tests (0 failures). CLI, persistence/checkpointing, Actions workflow, and export remain outside this first core step.
+**Progress (Stage 3A — trainer core):** Merged into `main` in PR #156. The implementation provides schema-v1 semantic feature extraction, bounded candidate Alpha-Beta search, seeded population/mutation/selection, balanced fixed fixtures, and real-rule matches against MinMax Medium and MCTS Medium. GitHub Actions run #622 passed all 173 tests (0 failures).\n\n**Progress (Stage 3B — CLI and persistence):** Implemented on `feat/evolutionary-trainer-cli-persistence` in Draft PR #157: shared `train`, `resume`, `evaluate`, and `export` CLI entry points; append-only JSONL run events; JSON/Markdown reports; strict, atomic generation checkpoints with source/configuration validation; guarded model export requiring independent passing holdout evidence and explicit approval; and a separate manual Actions workflow with sequential bounded pilot settings and separate finite-retention run/checkpoint artifacts. Holdout evaluation intentionally fails closed until baseline floors and the statistical protocol are predeclared. No training pilot has been run. CI verification is pending.
 
 Use GitHub Actions for initial smoke and pilot execution. Keep long or confirmatory runs manually started and explicitly bounded; do not make full tournaments or long training runs an automatic CI gate. Add local M1 execution without changing the experiment or checkpoint semantics.
 

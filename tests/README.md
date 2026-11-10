@@ -59,6 +59,10 @@ The separate engine-strength calibration runner has a short smoke test and a ful
 - Variant identity (`jester-moat` v1) and the selected `edges`/`center` setup are stored in position state and survive save/load and history snapshots. Legacy saves without these fields retain the current variant identity and use a null setup ID when the original setup cannot be recovered; unsupported variant IDs/versions and setup IDs are rejected.
 - Evolutionary feature schema v1 extracts normalized semantic material, mobility, central activity, Jester mobility, and king-check values through injected canonical rule helpers; tests cover colour perspective, bounds, read-only extraction, and separate feature-cost reporting.
 - Evolutionary population initialization, equal-weight control separation, mutation normalization, elitist generation replacement, balanced eight-fixture scheduling, fitness scoring, bounded Alpha-Beta search, and short real-rule matches against MinMax Medium and MCTS Medium.
+- Evolutionary CLI parsing and operation contracts for `train`, `resume`, `evaluate`, and `export`; holdout evaluation fails closed until its baseline and statistical gates are approved.
+- Evolutionary JSONL event schema and sequence validation, incomplete trailing-record recovery, atomic generation checkpoint writes, strict checkpoint/source/configuration validation, and resume-state consistency.
+- Model export validation requires a completed run, a candidate-specific independent holdout pass against both reference floors, and explicit human approval.
+- The dedicated evolutionary Actions workflow is manual-only, sequential, bounded to the initial 4-candidate/2-generation pilot, and uploads run history and checkpoints as separate finite-retention artifacts.
 
 - Board-surroundings source contract: the material balance is reflected in a thin, square-cornered board frame using the active piece palette colours; mode, points, and move count share a compact information strip; status text uses reduced sizing.
 
