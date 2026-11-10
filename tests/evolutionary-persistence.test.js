@@ -11,7 +11,7 @@ const {
   appendEvent, readEvents, writeCheckpoint, readCheckpoint, validateCheckpoint,
   validateExport, exportPackage
 } = require('../scripts/evolutionary-persistence');
-const { equalWeights } = require('../scripts/evolutionary-core');
+const { equalWeights, createInitialPopulation, createFixtures } = require('../scripts/evolutionary-core');
 
 function temporaryDirectory() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'jester-evo-'));
@@ -29,11 +29,11 @@ function checkpoint(overrides = {}) {
     baseSeed: 17,
     randomState: 99,
     completedGeneration: 0,
-    population: [{ id: 'g1-c01', weights: equalWeights() }],
+    population: createInitialPopulation(17, 4).population,
     control: { id: 'equal-weight-control', weights: equalWeights(), frozen: true },
     completedGenerations: [{ generation: 0 }],
     overallBest: { id: 'g0-c01', weights: equalWeights(), fitness: 0.75 },
-    fixtureSchedule: { generation: 0, fixtures: [] },
+    fixtureSchedule: { generation: 0, fixtures: createFixtures(17, 0) },
     reportSnapshot: { runId: 'run-test', status: 'running', sourceCommit: 'abc123', config: { populationSize: 4, generations: 2 } },
     ...overrides
   };
