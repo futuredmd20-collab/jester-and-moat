@@ -80,6 +80,7 @@ function readEvents(filePath, expectedRunId) {
     }
     events.push(record);
   }
+  if (trailing) fs.writeFileSync(filePath, completeText ? completeText + '\n' : '', 'utf8');
   return {
     events,
     nextSequence: events.length + 1,
@@ -99,7 +100,8 @@ function validateCheckpoint(checkpoint, expected = {}) {
       !Number.isInteger(checkpoint.completedGeneration) || checkpoint.completedGeneration < 0 ||
       !Array.isArray(checkpoint.population) || !Array.isArray(checkpoint.completedGenerations) ||
       !checkpoint.config || typeof checkpoint.config !== 'object' ||
-      !checkpoint.fixtureSchedule || typeof checkpoint.fixtureSchedule !== 'object') {
+      !checkpoint.fixtureSchedule || typeof checkpoint.fixtureSchedule !== 'object' ||
+      !checkpoint.reportSnapshot || typeof checkpoint.reportSnapshot !== 'object') {
     throw new Error('Checkpoint is malformed or incomplete.');
   }
   if (expected.runId && checkpoint.runId !== expected.runId) throw new Error('Checkpoint run ID does not match the requested run.');
