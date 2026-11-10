@@ -469,7 +469,14 @@
       document.body.appendChild(script);
     }
     function startWithOptionalEvolutionary() { loadEvolutionaryRuntime(startGame); }
-    if (typeof MinMaxSearchCoreFactory === "function") { startWithOptionalEvolutionary(); return; }
+    if (typeof MinMaxSearchCoreFactory === "function") {
+      if (typeof EvolutionaryEngineFactory === "function" && globalThis.EVOLUTIONARY_DEFAULT_PACKAGE) {
+        startGame();
+      } else {
+        startWithOptionalEvolutionary();
+      }
+      return;
+    }
     var minmaxScript = document.createElement("script");
     minmaxScript.src = "engines/minmax-engine.js";
     minmaxScript.onload = startWithOptionalEvolutionary;
