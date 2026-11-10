@@ -199,14 +199,18 @@ function writeReport(directory, report) {
 }
 
 function validateExport(runReport, candidateId, approval) {
-  if (!runReport || runReport.status !== 'completed') throw new Error('Export requires a completed training report.');
+  if (!runReport || runReport.status !== 'completed' || !Array.isArray(runReport.completedGenerations)) throw new Error('Export requires a completed training report.');
   if (!approval || approval.approved !== true || typeof approval.reviewer !== 'string' || !approval.reviewer.trim()) {
     throw new Error('Export requires explicit human approval with a reviewer identity.');
   }
   const evaluation = runReport.holdoutEvaluations && runReport.holdoutEvaluations[candidateId];
   if (!evaluation || evaluation.status !== 'passed' || evaluation.protocolVersion == null ||
       !evaluation.independentSetId || !evaluation.baselineFloors || evaluation.baselineFloors.primary !== true ||
-      evaluation.baselineFloors.secondary !== true) {
+      evaluation.baselineFloors.secondary !== true ||
+      !Number.isSafeInteger(evaluation.sampleCount) || evaluation.sampleCount < 1 ||
+      !evaluation.methodology || typeof evaluation.methodology !== 'object' ||
+      !evaluation.results || typeof evaluation.results !== 'object' ||
+      !Array.isArray(evaluation.limitations)) {
     throw new Error('Candidate has no passing, candidate-specific holdout evaluation against both references.');
   }
   const generation = runReport.completedGenerations.find(item => item.candidates.some(candidate => candidate.id === candidateId));
