@@ -13,6 +13,7 @@ on:
           - train
           - resume
           - evaluate
+          - baseline
       seed:
         description: Explicit non-negative seed for a new training run
         type: string
@@ -30,6 +31,21 @@ on:
         description: Predeclared protocol JSON path in the checked-out source
         type: string
         required: false
+      games:
+        description: Balanced games per baseline reference (multiple of four, 4–64)
+        type: string
+        required: false
+        default: "4"
+      max_plies:
+        description: Maximum plies per baseline game
+        type: string
+        required: false
+        default: "120"
+      feature_iterations:
+        description: Feature-cost measurement iterations per opening layout
+        type: string
+        required: false
+        default: "20"
 
 permissions:
   contents: read
@@ -40,6 +56,52 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  baseline:
+    if: inputs.operation == 'baseline'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Validate baseline inputs
+        shell: bash
+        run: |
+          node -e "const n=Number(process.env.SEED); if (!Number.isSafeInteger(n) || n < 0) process.exit(1)"
+          node -e "const n=Number(process.env.GAMES); if (!Number.isInteger(n) || n < 4 || n > 64 || n % 4 !== 0) process.exit(1)"
+          node -e "const n=Number(process.env.MAX_PLIES); if (!Number.isInteger(n) || n < 2 || n > 120) process.exit(1)"
+          node -e "const n=Number(process.env.FEATURE_ITERATIONS); if (!Number.isInteger(n) || n < 1 || n > 1000) process.exit(1)"
+        env:
+          SEED: ${{ inputs.seed }}
+          GAMES: ${{ inputs.games }}
+          MAX_PLIES: ${{ inputs.max_plies }}
+          FEATURE_ITERATIONS: ${{ inputs.feature_iterations }}
+      - name: Run balanced baseline measurement
+        run: node scripts/evolutionary-trainer.js baseline --seed "$SEED" --games "$GAMES" --max-plies "$MAX_PLIES" --feature-iterations "$FEATURE_ITERATIONS" --output-dir evolutionary-baseline-output
+        env:
+          SEED: ${{ inputs.seed }}
+          GAMES: ${{ inputs.games }}
+          MAX_PLIES: ${{ inputs.max_plies }}
+          FEATURE_ITERATIONS: ${{ inputs.feature_iterations }}
+      - name: Upload baseline report
+        uses: actions/upload-artifact@v4
+        with:
+          name: evolutionary-baseline
+          path: evolutionary-baseline-output/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Baseline limitations
+        if: always()
+        run: |
+          {
+            echo "## Evolutionary baseline"
+            echo "- This measurement does not start training or establish performance floors."
+            echo "- Record the artifact and runner details before any later statistical protocol is approved."
+          } >> "$GITHUB_STEP_SUMMARY"
+
   train:
     if: inputs.operation == 'train'
     runs-on: ubuntu-latest
