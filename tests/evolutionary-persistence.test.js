@@ -25,7 +25,7 @@ function checkpoint(overrides = {}) {
     trainerVersion: TRAINER_VERSION,
     featureSchemaVersion: 1,
     parameterSchemaVersion: PARAMETER_SCHEMA_VERSION,
-    config: { populationSize: 4, generations: 2 },
+    config: { populationSize: 4, generations: 2, maxPlies: 120, searchDepth: 2, searchNodeLimit: 5000, opponentBudgetScale: 1 },
     baseSeed: 17,
     randomState: 99,
     completedGeneration: 0,
@@ -34,7 +34,7 @@ function checkpoint(overrides = {}) {
     completedGenerations: [{ generation: 0 }],
     overallBest: { id: 'g0-c01', weights: equalWeights(), fitness: 0.75 },
     fixtureSchedule: { generation: 0, fixtures: createFixtures(17, 0) },
-    reportSnapshot: { runId: 'run-test', status: 'running', sourceCommit: 'abc123', config: { populationSize: 4, generations: 2 } },
+    reportSnapshot: { runId: 'run-test', status: 'running', sourceCommit: 'abc123', config: { populationSize: 4, generations: 2, maxPlies: 120, searchDepth: 2, searchNodeLimit: 5000, opponentBudgetScale: 1 }, completedGenerations: [{ generation: 0 }], prng: { finalState: 99 } },
     ...overrides
   };
 }
@@ -76,6 +76,7 @@ test('JSONL recovery reports an incomplete trailing record without accepting mal
   const read = readEvents(file, 'run-test');
   assert.equal(read.events.length, 1);
   assert.match(read.warning, /incomplete trailing/);
+  assert.equal(fs.readFileSync(file, 'utf8').endsWith('\n'), true);
   fs.writeFileSync(file, '{"broken":true}\n');
   assert.throws(() => readEvents(file, 'run-test'), /Malformed complete JSONL/);
 });
