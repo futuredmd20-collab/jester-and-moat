@@ -29,7 +29,13 @@ function createSearchAdapter(adapter) {
   if (!adapter || required.some(key => typeof adapter[key] !== 'function')) {
     throw new TypeError('Search adapter is missing canonical game helpers.');
   }
-  return adapter;
+  return Object.assign({}, adapter, {
+    allLegalState(position, side = position.turn) {
+      const sidePosition = adapter.clonePosition(position);
+      sidePosition.turn = side;
+      return adapter.allLegalState(sidePosition, side);
+    }
+  });
 }
 
 function applySearchMove(position, move, adapter) {
