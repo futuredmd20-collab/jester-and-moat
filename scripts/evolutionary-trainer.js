@@ -130,6 +130,7 @@ function checkpointFrom(report, state, generation, population, overallBest, fixt
     completedGenerations: report.completedGenerations,
     overallBest,
     fixtureSchedule: { generation, fixtures },
+    reportSnapshot: JSON.parse(JSON.stringify(report)),
     updatedAt: new Date().toISOString()
   };
 }
@@ -199,6 +200,7 @@ function runTraining(report, directory, initialState, startGeneration, nextSeque
         control
       }, generation, nextPopulation, overallBest, fixtures);
       persistence.writeCheckpoint(path.join(directory, 'checkpoint.json'), checkpoint);
+      persistence.writeReport(directory, report);
       population = nextPopulation;
       if (stopRequested) break;
     }
@@ -251,9 +253,12 @@ function resume(options) {
   }
   const reportPath = path.join(directory, 'report.json');
   if (!fs.existsSync(reportPath)) throw new Error('Resume requires the matching report.json beside the checkpoint.');
-  const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+  const storedReport = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+  if (storedReport.runId !== checkpoint.runId || storedReport.sourceCommit !== checkpoint.sourceCommit ||
+      !persistence.sameConfig(storedReport.config, checkpoint.config)) throw new Error('Run report does not match checkpoint identity/configuration.');
+  const report = checkpoint.reportSnapshot;
   if (report.runId !== checkpoint.runId || report.sourceCommit !== checkpoint.sourceCommit ||
-      !persistence.sameConfig(report.config, checkpoint.config)) throw new Error('Run report does not match checkpoint identity/configuration.');
+      !persistence.sameConfig(report.config, checkpoint.config)) throw new Error('Checkpoint report snapshot is incompatible.');
   if (report.status === 'completed') throw new Error('Completed runs cannot be resumed.');
   const events = persistence.readEvents(path.join(directory, 'run.jsonl'), checkpoint.runId);
   if (events.warning) report.warnings.push(events.warning);
