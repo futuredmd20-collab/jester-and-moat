@@ -1,0 +1,168 @@
+# Purpose: manually run bounded evolutionary training operations; keep training outside automatic CI gates.
+name: Evolutionary training
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Operation to perform
+        type: choice
+        required: true
+        default: train
+        options:
+          - train
+          - resume
+          - evaluate
+      seed:
+        description: Explicit non-negative seed for a new training run
+        type: string
+        required: false
+        default: "20261110"
+      source_run_id:
+        description: Source Actions run ID for resume/evaluate
+        type: string
+        required: false
+      candidate_id:
+        description: Candidate ID for evaluate
+        type: string
+        required: false
+      protocol_path:
+        description: Predeclared protocol JSON path in the checked-out source
+        type: string
+        required: false
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: evolutionary-training
+  cancel-in-progress: false
+
+jobs:
+  train:
+    if: inputs.operation == 'train'
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Validate seed
+        shell: bash
+        run: |
+          node -e "const n=Number(process.env.SEED); if (!Number.isSafeInteger(n) || n < 0) process.exit(1)" 
+        env:
+          SEED: ${{ inputs.seed }}
+      - name: Run bounded pilot
+        run: node scripts/evolutionary-trainer.js train --seed "${{ inputs.seed }}" --population 4 --generations 2 --output-dir evolutionary-output
+      - name: Upload run history and report
+        uses: actions/upload-artifact@v4
+        with:
+          name: evolutionary-run
+          path: |
+            evolutionary-output/**/run.jsonl
+            evolutionary-output/**/report.json
+            evolutionary-output/**/summary.md
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload latest generation checkpoint
+        uses: actions/upload-artifact@v4
+        with:
+          name: evolutionary-checkpoint
+          path: evolutionary-output/**/checkpoint.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Retention guidance
+        if: always()
+        run: |
+          {
+            echo "## Evolutionary training artifacts"
+            echo "- Run history/report: 30-day retention"
+            echo "- Latest generation checkpoint: 14-day retention"
+            echo "- Download both artifacts before their retention expires if the run must be resumed."
+            echo "- This workflow does not perform holdout evaluation or export."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  resume:
+    if: inputs.operation == 'resume'
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Validate source run ID
+        shell: bash
+        run: |
+          [[ "${{ inputs.source_run_id }}" =~ ^[0-9]+$ ]] || { echo "A numeric source_run_id is required." >&2; exit 1; }
+      - name: Download source run history
+        uses: actions/download-artifact@v4
+        with:
+          name: evolutionary-run
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+          path: source-run
+      - name: Download source checkpoint
+        uses: actions/download-artifact@v4
+        with:
+          name: evolutionary-checkpoint
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+          path: source-checkpoint
+      - name: Check out current source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Prepare and validate resume inputs
+        shell: bash
+        run: |
+          cp source-checkpoint/checkpoint.json source-run/checkpoint.json
+          node -e "const c=require('./source-run/checkpoint.json'); if(c.sourceCommit !== process.env.GITHUB_SHA) { console.error('Checkpoint source commit differs from this workflow checkout. Dispatch from the matching commit.'); process.exit(1); }"
+      - name: Resume from latest complete generation
+        run: node scripts/evolutionary-trainer.js resume --checkpoint source-run/checkpoint.json --output-dir source-run
+      - name: Upload resumed run history and report
+        uses: actions/upload-artifact@v4
+        with:
+          name: evolutionary-run
+          path: |
+            source-run/run.jsonl
+            source-run/report.json
+            source-run/summary.md
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload latest generation checkpoint
+        uses: actions/upload-artifact@v4
+        with:
+          name: evolutionary-checkpoint
+          path: source-run/checkpoint.json
+          if-no-files-found: error
+          retention-days: 14
+
+  evaluate:
+    if: inputs.operation == 'evaluate'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Validate source run and candidate
+        shell: bash
+        run: |
+          [[ "${{ inputs.source_run_id }}" =~ ^[0-9]+$ ]] || { echo "A numeric source_run_id is required." >&2; exit 1; }
+          test -n "${{ inputs.candidate_id }}" || { echo "candidate_id is required." >&2; exit 1; }
+          test -n "${{ inputs.protocol_path }}" || { echo "protocol_path is required." >&2; exit 1; }
+      - name: Download source run report
+        uses: actions/download-artifact@v4
+        with:
+          name: evolutionary-run
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+          path: source-run
+      - name: Check out source and set up Node.js
+        uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Evaluate selected candidate
+        run: node scripts/evolutionary-trainer.js evaluate --report source-run/report.json --candidate-id "${{ inputs.candidate_id }}" --protocol "${{ inputs.protocol_path }}"
