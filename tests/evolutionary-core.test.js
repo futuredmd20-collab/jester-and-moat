@@ -28,10 +28,12 @@ function samplePosition() {
   put(3, 6, 'n', 'b');
   put(5, 2, 'j', 'w');
   put(2, 7, 'j', 'b');
+  put(0, 8, 'j', 'b');
   for (let i = 0; i < 5; i++) put(6, i, 'p', 'w');
   for (let i = 0; i < 4; i++) put(1, i, 'p', 'b');
   put(6, 7, 'n', 'w');
-  put(1, 7, 'b', 'b');
+  put(2, 5, 'b', 'b');
+  put(1, 8, 'n', 'b');
   put(7, 0, 'b', 'w');
   put(0, 0, 'r', 'b');
   put(7, 9, 'q', 'w');
