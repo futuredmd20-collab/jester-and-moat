@@ -43,7 +43,7 @@ test('generation checkpoints are atomically written and strictly read back', () 
   const directory = temporaryDirectory();
   const file = path.join(directory, 'checkpoint.json');
   writeCheckpoint(file, checkpoint());
-  const loaded = readCheckpoint(file, { sourceCommit: 'abc123', config: { populationSize: 4, generations: 2 } });
+  const loaded = readCheckpoint(file, { sourceCommit: 'abc123', config: { populationSize: 4, generations: 2, maxPlies: 120, searchDepth: 2, searchNodeLimit: 5000, opponentBudgetScale: 1 } });
   assert.equal(loaded.runId, 'run-test');
   assert.equal(fs.readdirSync(directory).some(name => name.includes('.tmp-')), false);
   assert.throws(() => readCheckpoint(file, { sourceCommit: 'different' }), /source commit is incompatible/);
