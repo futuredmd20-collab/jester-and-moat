@@ -39,6 +39,31 @@
   }
 
   function createEvolutionaryEngine(dependencies) {
+    const ENGINE_ID = 'evolutionary';
+    const PARAMETER_SCHEMA_VERSION = 1;
+    const STRENGTHS = Object.freeze({
+      easy: Object.freeze({ depth: 1, nodeLimit: 2500, timeMs: 1000 }),
+      medium: Object.freeze({ depth: 2, nodeLimit: 8000, timeMs: 2500 }),
+      hard: Object.freeze({ depth: 3, nodeLimit: 20000, timeMs: 5000 })
+    });
+    function validatePackage(pkg, featureApi, searchApi) {
+      if (!pkg || typeof pkg !== 'object' || Array.isArray(pkg) ||
+          pkg.schemaVersion !== PARAMETER_SCHEMA_VERSION ||
+          typeof pkg.modelId !== 'string' || !pkg.modelId ||
+          !pkg.variant || pkg.variant.id !== 'jester-moat' || pkg.variant.version !== 1 ||
+          pkg.featureSchemaVersion !== featureApi.FEATURE_SCHEMA_VERSION ||
+          !pkg.weights || typeof pkg.weights !== 'object' || Array.isArray(pkg.weights)) {
+        throw new TypeError('Evolutionary parameter package has an unsupported schema or variant.');
+      }
+      searchApi.normalizeWeights(pkg.weights);
+      return Object.freeze({
+        schemaVersion: pkg.schemaVersion, modelId: pkg.modelId,
+        variant: Object.freeze({ id: pkg.variant.id, version: pkg.variant.version }),
+        featureSchemaVersion: pkg.featureSchemaVersion,
+        weights: Object.freeze(Object.assign({}, pkg.weights)),
+        metadata: Object.freeze(Object.assign({}, pkg.metadata || {}))
+      });
+    }
     const deps = dependencies || {};
     const EngineContract = deps.EngineContract;
     const featureApi = deps.featureApi;
@@ -47,7 +72,7 @@
     if (!EngineContract || !featureApi || !searchApi || !adapter) {
       throw new TypeError('Evolutionary engine dependencies are incomplete.');
     }
-    const parameterPackage = validateParameterPackage(deps.parameterPackage, featureApi, searchApi);
+    const parameterPackage = validatePackage(deps.parameterPackage, featureApi, searchApi);
     const featureExtractor = featureApi.createFeatureExtractor(adapter);
 
     function validateRequest(request) {
