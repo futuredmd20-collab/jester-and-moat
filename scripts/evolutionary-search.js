@@ -6,7 +6,12 @@ const { FEATURE_IDS, createFeatureExtractor } = require('./evolutionary-features
 const MATE_SCORE = 100000;
 
 function normalizeWeights(weights) {
-  const values = Array.isArray(weights) ? weights.slice() : FEATURE_IDS.map(id => weights && weights[id]);
+  if (!Array.isArray(weights) && (!weights || typeof weights !== 'object' ||
+      Array.isArray(weights) || Object.keys(weights).length !== FEATURE_IDS.length ||
+      FEATURE_IDS.some(id => !Object.prototype.hasOwnProperty.call(weights, id)))) {
+    throw new TypeError('Candidate weights must match the complete schema-v1 feature set.');
+  }
+  const values = Array.isArray(weights) ? weights.slice() : FEATURE_IDS.map(id => weights[id]);
   if (values.length !== FEATURE_IDS.length ||
       values.some(value => !Number.isFinite(value) || value < 0 || value > 1)) {
     throw new TypeError('Candidate weights must contain ten finite values in [0, 1].');
@@ -26,6 +31,7 @@ function createSearchAdapter(adapter) {
 
 function applySearchMove(position, move, adapter) {
   const next = adapter.clonePosition(position);
+  const mover = next.turn;
   if (move.swap) {
     const moving = next.board[move.from.r][move.from.c];
     const swapped = next.board[move.to.r][move.to.c];
@@ -34,19 +40,19 @@ function applySearchMove(position, move, adapter) {
     next.board[move.from.r][move.from.c] = swapped;
     moving.moved = true;
     swapped.moved = true;
-    const mover = next.turn;
     next.turn = mover === 'w' ? 'b' : 'w';
     next.ply = (next.ply || 0) + 1;
-    next.moveCounts = next.moveCounts || { w: 0, b: 0 };
-    next.moveCounts[mover] = (next.moveCounts[mover] || 0) + 1;
+    next.ep = null;
     next.halfmoveClock = (next.halfmoveClock || 0) + 1;
-    if (adapter.getPositionKey && next.positionHistory) {
-      next.positionHistory = { ...next.positionHistory };
-      const key = adapter.getPositionKey(next);
-      next.positionHistory[key] = (next.positionHistory[key] || 0) + 1;
-    }
   } else {
     adapter.applyRaw(next, move);
+  }
+  next.moveCounts = next.moveCounts || { w: 0, b: 0 };
+  next.moveCounts[mover] = (next.moveCounts[mover] || 0) + 1;
+  if (adapter.getPositionKey && next.positionHistory) {
+    next.positionHistory = { ...next.positionHistory };
+    const key = adapter.getPositionKey(next);
+    next.positionHistory[key] = (next.positionHistory[key] || 0) + 1;
   }
   return next;
 }
