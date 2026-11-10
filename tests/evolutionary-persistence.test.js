@@ -91,7 +91,8 @@ test('export is blocked without passing independent holdout evidence and explici
   };
   assert.throws(() => validateExport(report, 'candidate-a', { approved: true, reviewer: 'human' }), /no passing/);
   report.holdoutEvaluations['candidate-a'] = {
-    status: 'passed', protocolVersion: 1, independentSetId: 'holdout-unique',
+    status: 'passed', protocolVersion: 1, independentSetId: 'holdout-unique', sampleCount: 40,
+    methodology: { confidenceLevel: 0.95 }, results: { primary: 0.6, secondary: 0.55 }, limitations: ['sample-specific'] ,
     baselineFloors: { primary: true, secondary: true }
   };
   assert.throws(() => validateExport(report, 'candidate-a', { approved: true }), /explicit human approval/);
@@ -105,7 +106,8 @@ test('validated export writes a versioned package with provenance', () => {
     config: { populationSize: 4, generations: 2 },
     completedGenerations: [{ candidates: [{ id: 'candidate-a', weights: equalWeights() }] }],
     holdoutEvaluations: {
-      'candidate-a': { status: 'passed', protocolVersion: 1, independentSetId: 'holdout-a',
+      'candidate-a': { status: 'passed', protocolVersion: 1, independentSetId: 'holdout-a', sampleCount: 40,
+        methodology: { confidenceLevel: 0.95 }, results: { primary: 0.6, secondary: 0.55 }, limitations: ['sample-specific'],
         baselineFloors: { primary: true, secondary: true } }
     }
   };
