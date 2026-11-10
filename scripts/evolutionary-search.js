@@ -3,18 +3,19 @@
 
 const FEATURE_API = typeof module !== 'undefined' && module.exports
   ? require('./evolutionary-features') : globalThis.EvolutionaryFeatures;
-const { FEATURE_IDS, createFeatureExtractor } = FEATURE_API;
+const SEARCH_SEARCH_FEATURE_IDS = FEATURE_API.FEATURE_IDS;
+const createFeatureExtractor = FEATURE_API.createFeatureExtractor;
 
 const MATE_SCORE = 100000;
 
 function normalizeWeights(weights) {
   if (!Array.isArray(weights) && (!weights || typeof weights !== 'object' ||
-      Array.isArray(weights) || Object.keys(weights).length !== FEATURE_IDS.length ||
-      FEATURE_IDS.some(id => !Object.prototype.hasOwnProperty.call(weights, id)))) {
+      Array.isArray(weights) || Object.keys(weights).length !== SEARCH_FEATURE_IDS.length ||
+      SEARCH_FEATURE_IDS.some(id => !Object.prototype.hasOwnProperty.call(weights, id)))) {
     throw new TypeError('Candidate weights must match the complete schema-v1 feature set.');
   }
-  const values = Array.isArray(weights) ? weights.slice() : FEATURE_IDS.map(id => weights[id]);
-  if (values.length !== FEATURE_IDS.length ||
+  const values = Array.isArray(weights) ? weights.slice() : SEARCH_FEATURE_IDS.map(id => weights[id]);
+  if (values.length !== SEARCH_FEATURE_IDS.length ||
       values.some(value => !Number.isFinite(value) || value < 0 || value > 1)) {
     throw new TypeError('Candidate weights must contain ten finite values in [0, 1].');
   }
@@ -93,7 +94,7 @@ function searchBestMove(position, weights, adapter, options = {}) {
   function evaluate(node) {
     const features = featureExtractor.extractFeatures(node);
     let score = 0;
-    for (let i = 0; i < FEATURE_IDS.length; i++) score += normalized[i] * features[FEATURE_IDS[i]];
+    for (let i = 0; i < SEARCH_FEATURE_IDS.length; i++) score += normalized[i] * features[SEARCH_FEATURE_IDS[i]];
     return score;
   }
 
@@ -186,7 +187,7 @@ async function searchBestMoveAsync(position, weights, adapter, options = {}) {
   function evaluate(node) {
     const features = featureExtractor.extractFeatures(node);
     let score = 0;
-    for (let i = 0; i < FEATURE_IDS.length; i++) score += normalized[i] * features[FEATURE_IDS[i]];
+    for (let i = 0; i < SEARCH_FEATURE_IDS.length; i++) score += normalized[i] * features[SEARCH_FEATURE_IDS[i]];
     return score;
   }
 
