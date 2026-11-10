@@ -188,13 +188,17 @@ function createFeatureExtractor(adapter) {
   return Object.freeze({ extractFeatures, measureFeatureCosts });
 }
 
-module.exports = {
+const EvolutionaryFeatures = Object.freeze({
   FEATURE_SCHEMA_VERSION,
   FEATURE_IDS,
   MATERIAL_LIMITS,
   MATERIAL_PIECE_TYPES,
   FEATURE_LIMITS,
   CENTRAL_BOUNDS,
+  clamp,
+  difference,
   createFeatureExtractor,
   assertPosition
-};
+});
+if (typeof module !== 'undefined' && module.exports) module.exports = EvolutionaryFeatures;
+if (typeof globalThis !== 'undefined') globalThis.EvolutionaryFeatures = EvolutionaryFeatures;
