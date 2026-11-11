@@ -33,11 +33,12 @@ function createHarness(seed){
  const sb={console,URLSearchParams,Blob,Date,Math:math,setTimeout(){return 0;},clearTimeout(){},setInterval(){return null;},clearInterval(){},URL:{createObjectURL(){throw Error('Workers are not used.');},revokeObjectURL(){}},window:{location:{search:''},innerWidth:1024,Worker:function(){},addEventListener(){}},document:{readyState:'loading',getElementById:get,querySelector(){return null;},querySelectorAll(){return[];},addEventListener(){},createElement:mockElement,body:get('body'),documentElement:get('documentElement')},localStorage:{getItem(k){return stored.has(k)?stored.get(k):null;},setItem(k,v){stored.set(k,String(v));}}};
  const src=fs.readFileSync(path.join(ROOT,'script.js'),'utf8'),cut=src.indexOf(MARKER);if(cut<0)throw Error('script.js startup boundary not found.');
  vm.createContext(sb);vm.runInContext(fs.readFileSync(path.join(ROOT,'engines/minmax-engine.js'),'utf8'),sb,{filename:'engines/minmax-engine.js'});
+ vm.runInContext(fs.readFileSync(path.join(ROOT,'engines/mcts-engine.js'),'utf8'),sb,{filename:'engines/mcts-engine.js'});
  const api=['globalThis.calibrationApi={EngineContract,MinMaxLegacy,allLegalState,inCheck,findLegalMoveMatch,play,aiPlaceMoatForColor,clone,applyRaw,other,getGamePhase,',
  'setState(v){state=v;history=[clone(v)];historyMoveLogs=[[]];moveLog=[];gameOver=false;gameOverMessage="";},',
  'getState(){return clone(state);},getPositionKey(st){return getPositionKey(st);},getGameOver(){return gameOver;},getGameOverMessage(){return gameOverMessage;}};'].join('\n');
  vm.runInContext(src.slice(0,cut)+'\n'+api,sb,{filename:'script.js'});
- vm.runInContext(fs.readFileSync(path.join(ROOT,'engines/mcts-engine.js'),'utf8'),sb,{filename:'engines/mcts-engine.js'});get('modeSelect').value='ai_vs_ai';return sb;
+ get('modeSelect').value='ai_vs_ai';return sb;
 }
 function initialPosition(layout='classic'){
  const back=layout==='center'?['r','n','b','j','q','k','j','b','n','r']:['r','j','n','b','q','k','b','n','j','r'],board=Array.from({length:8},()=>Array(10).fill(null));
