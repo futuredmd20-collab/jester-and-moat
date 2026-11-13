@@ -34,6 +34,7 @@ Shared agent capability boundaries—not game facts, architecture, or change his
 ## 5. Agent-Specific Profiles
 | Agent | Profile / constraints |
 | --- | --- |
+| **Claude Code** | See `.agents/claude.md` and root `CLAUDE.md` for development, local-environment, approval, and future orchestration boundaries. |
 | **ChatGPT (GPT-6)** | See `.agents/chatgpt.md` for the native GitHub workflow, Git Database Objects fallback, CI verification, and repository-specific operating practices. |
 | **Freebuff / Buffy** | See `.agents/freebuff.md` for mobile preview/download and Markdown MIME-type limits. Drive reads/searches may work when uploads require unavailable staging. Documentation copies are one-off exports and can drift; ZIP backups may need user-managed download/upload. |
 | **Vibe / Mistral** | See `.agents/vibe.md` for binary-upload placeholders, image-editing limits, workspace resets, SVG text workflows, and release-tag limits. A placeholder-only upload prevents binary text extraction and pixel-level image edits in that session. |
