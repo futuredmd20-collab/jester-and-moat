@@ -109,7 +109,7 @@ Initial bounded defaults for a first CLI experiment:
 | Crossover | Disabled | Keep v1 simple; reconsider only if mutation-only runs show a clear limitation |
 | Generations | 8 | Hard upper bound for the default run; configurable within a documented small limit |
 
-The first GitHub Actions pilot must use a smaller, explicitly recorded run budget where appropriate. The population and generation limits above remain the initial model defaults, not a requirement to run a full experiment before measuring cost. Keep all limits configurable within documented bounds and record the effective values. Each individual run keeps its configuration fixed.
+The first Mac mini training pilot must use a smaller, explicitly recorded run budget. The population and generation limits above remain the initial model defaults, not a requirement to run a full experiment before measuring cost. Keep all limits configurable within documented bounds and record the effective values. Each individual run keeps its configuration fixed.
 
 After elitism, fill the next generation with mutated copies of selected parents. If normalization or bounds cannot be satisfied, reject and regenerate that child using the run's seeded PRNG. Candidate IDs and tie-breaking order must be stable so identical inputs produce the same generation sequence.
 
@@ -160,12 +160,12 @@ The existing calibration runner is useful as a source of match-scheduling and re
 | Data | Purpose | Initial direction |
 | --- | --- | --- |
 | Candidate parameters | Current population and selected candidates | Compact structured data managed by the CLI |
-| Run history/results | Generations, seeds, match outcomes, fitness summaries, run metadata, and code version | Append-only JSONL plus a machine-readable JSON report and Markdown summary; included in one consolidated GitHub Actions artifact per run |
-| Resume checkpoint | Enough state to continue an interrupted run | Full JSON generation-boundary checkpoint, atomically written and validated against the original run configuration; included in the consolidated per-run GitHub Actions artifact |
+| Run history/results | Generations, seeds, match outcomes, fitness summaries, run metadata, and code version | Append-only JSONL plus a machine-readable JSON report and Markdown summary; stored in that run's dedicated local output directory on the Mac mini |
+| Resume checkpoint | Enough state to continue an interrupted run | Full JSON generation-boundary checkpoint, atomically written and validated against the original run configuration; stored in that run's dedicated local output directory on the Mac mini |
 | Exported parameter package | Runtime input and permanent record of an approved model | Versioned JSON plus provenance metadata, attached to a versioned GitHub Release after manual approval; the exact approved package is also included in the PWA source/precache when adopted for offline runtime |
 | Temporary match data | Positions and per-game details needed for diagnostics | Keep only what is useful; avoid retaining every full trace by default |
 
-Initial Actions runs use a dedicated manual `workflow_dispatch` workflow, separate from ordinary PR contract-test jobs. It invokes the shared Node.js CLI and accepts a named JSON configuration profile, bounded generation and match budgets, and an optional source run/artifact and checkpoint for resume or validation. New training runs use an explicit non-negative seed. Record the triggering commit, run ID, selected profile, complete effective configuration, Node.js version, runner OS, and relevant runtime details. Upload one consolidated per-run artifact containing run outputs and the latest complete checkpoint, with documented finite retention. A resume/validation operation must explicitly identify its source artifact. The workflow validates the artifact and run metadata before invoking the CLI. A local Node.js run on the Mac mini M1 uses the same CLI, configuration, schemas, and checkpoint format with a user-controlled local output directory; the trainer itself requires no network access.
+Training runs are started manually on the Mac mini through the shared Node.js CLI, not through GitHub Actions. Each run accepts a named JSON configuration profile, bounded generation and match budgets, and an explicit non-negative seed. Record the run ID, selected profile, complete effective configuration, source commit, Node.js version, OS, and relevant runtime details. Store all outputs and the latest complete checkpoint in that run's dedicated local output directory. A resume or validation operation identifies its local source run/checkpoint explicitly and validates it before continuing. GitHub Actions remains reserved for repository CI and verification.
 
 Training history, reports, and checkpoints must not be committed to the ordinary game repository. Only a manually approved, validated model package and its provenance metadata are attached to a versioned GitHub Release as permanent experiment outputs. When a package is adopted by the offline PWA, the exact package is separately committed as a runtime asset and included in the service-worker precache; the app must not fetch its active model from GitHub at runtime.
 
@@ -186,7 +186,7 @@ Specify:
 
 **Progress:** Model v1 decisions approved on 2026-11-10. The semantic feature definitions, bounded normalized weights, MinMax/Alpha-Beta runtime search, seedable training design, opponent schedule, dual validation references, and package baseline identity are recorded above.
 
-### 2. Specify the CLI, GitHub Actions workflow, and persistence contract
+### 2. Specify the CLI, local execution, and persistence contract
 
 **Stage 2 decisions approved on 2026-11-12**
 
@@ -196,7 +196,7 @@ Specify:
 | 16 | Configuration | A version-controlled JSON configuration file provides defaults; CLI flags may override individual settings. Record the effective configuration in every run. |
 | 17 | Checkpoint format | JSON initially, including all state needed for validated, reproducible resume. Reconsider only if measured size or performance makes it unsuitable. |
 | 18 | Run budget | Enforce both maximum generations and maximum matches. Stop when either limit is reached; never silently exceed either limit. |
-| 19 | Actions inputs | A dedicated manual `workflow_dispatch` exposes the configuration profile, run budget, and optional source checkpoint/artifact. |
+| 19 | CLI inputs | The local CLI accepts a configuration profile, bounded run budget, explicit seed, and local checkpoint/run path for resume or validation. |
 | 20 | Run output | Produce one consolidated local output directory per training run containing results, metadata, logs, reports, and checkpoints. Keep it separate from the repository and from every other run. |
 | 21 | Checkpoint cadence | Write a complete checkpoint after every completed generation. |
 | 22 | Match execution | Keep matches sequential within each run. Independent training runs may execute in parallel as separate processes after resource use is measured; do not parallelize candidates within one generation in v1. |
@@ -221,7 +221,7 @@ A version-controlled JSON configuration file supplies named profiles and default
 
 The effective run budget has two independent hard limits: maximum generations and maximum matches. The first limit reached stops the run. If the match limit is reached partway through a generation, abandon that incomplete generation; resume from the last complete generation checkpoint and repeat the incomplete generation deterministically. Do not change the population, fixture schedule, opponents, or other immutable settings during resume.
 
-The frozen equal-weight control is additional and excluded from the evolving population count, selection, elitism, and mutation. Preserve the initial model defaults (population 8, 8 generations) as bounded starting values, not as a requirement for the first pilot. The first Actions pilot remains deliberately smaller (4 evolving candidates and 2 generations) and must measure runtime before any increase. The frozen control and all effective limits are recorded in run metadata.
+The frozen equal-weight control is additional and excluded from the evolving population count, selection, elitism, and mutation. Preserve the initial model defaults (population 8, 8 generations) as bounded starting values, not as a requirement for the first pilot. The first Mac mini pilot remains deliberately smaller (4 evolving candidates and 2 generations) and must measure runtime before any increase. The frozen control and all effective limits are recorded in run metadata.
 
 #### Run records and reports
 
@@ -238,7 +238,7 @@ A run ID is unique and includes enough human-readable context to identify the ru
 
 Use JSON checkpoints initially. Write one complete checkpoint after each completed generation. Write to a temporary file, flush/close it, then atomically replace the previous checkpoint so interruption cannot leave a half-written checkpoint as the latest valid state. The checkpoint contains its own schema version; run ID; source commit and trainer version; feature and parameter schema versions; complete immutable run configuration; base seed and full PRNG state; generation index; population and candidate IDs/weights; completed fitness and match records; generation/overall best candidates and breakdowns; fixture schedule; and all state required to continue without regenerating a different experiment.
 
-`resume` requires an explicit checkpoint path locally or source Actions run/artifact identifier remotely; its input also identifies the checkpoint file. `validate` identifies the source run/artifact and candidate ID. Reject with a clear error if the checkpoint is malformed, incomplete, has an unsupported schema, or differs in source-code compatibility or any immutable run setting. Do not migrate checkpoints automatically in v1. The checkpoint is authoritative for the last completed generation. A trailing incomplete JSONL record may be discarded with a recorded warning; a malformed complete record or invalid checkpoint stops recovery without overwriting source data. If a run is interrupted mid-generation, resume repeats that generation from its last complete checkpoint using the same deterministic fixtures and PRNG state; partial results from the interrupted generation are marked abandoned and are not mixed into the resumed generation.
+`resume` requires an explicit local checkpoint path and identifies its source run. `validate` identifies the local source run and candidate ID. Reject with a clear error if the checkpoint is malformed, incomplete, has an unsupported schema, or differs in source-code compatibility or any immutable run setting. Do not migrate checkpoints automatically in v1. The checkpoint is authoritative for the last completed generation. A trailing incomplete JSONL record may be discarded with a recorded warning; a malformed complete record or invalid checkpoint stops recovery without overwriting source data. If a run is interrupted mid-generation, resume repeats that generation from its last complete checkpoint using the same deterministic fixtures and PRNG state; partial results from the interrupted generation are marked abandoned and are not mixed into the resumed generation.
 
 JSON is the initial checkpoint format, not a permanent constraint. Reconsider another representation only if measured checkpoint size or performance becomes a practical problem.
 
@@ -264,7 +264,7 @@ A completed training run does not automatically validate or export its best cand
 
 After successful validation and explicit human review, the user invokes `export`. Export writes a validated versioned JSON package and provenance metadata, including the run ID, candidate ID, source commit, schema versions, seed, effective configuration, baseline/holdout methodology, sample counts, results, and limitations. Export does not publish a release or change game source. The user then attaches the approved files to a versioned GitHub Release following the repository release procedure. The package's runtime copy, if adopted, is committed and precached separately so the PWA remains fully offline.
 
-**Stage 2 progress:** Decisions 15–24 were approved on 2026-11-12 and are recorded above. The statistical method and numeric performance floors remain intentionally deferred until baseline measurements, and must be locked before confirmatory holdout results are inspected.
+**Stage 2 progress:** Decisions 15–24 were approved on 2026-11-12 and are recorded above. The later operating decision recorded on 2026-11-13 supersedes the planned Actions-based training execution: training and experiments run on the Mac mini, while GitHub Actions is reserved for CI/repository verification. The baseline measurement is now complete; the statistical method and numeric performance floors remain deferred and must be locked before confirmatory holdout results are inspected.
 
 ### 3. Implement the offline trainer
 
