@@ -193,5 +193,7 @@ test('desktop board grid reserves separate columns for the eval track and clock 
  assert.match(css,/\.board-layout\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+5px\s+104px/);
  assert.match(css,/\.board-eval-track\s*\{[^}]*grid-column:\s*2;[^}]*grid-row:\s*1;/);
  assert.match(css,/\.clock-container\s*\{[^}]*grid-column:\s*3;[^}]*grid-row:\s*1;/);
- assert.match(css,/@media\s*\(max-width:\s*860px\)[\s\S]*?\.board-layout\s*\.board-frame-wrap\s*\{\s*grid-column:\s*1;\s*grid-row:\s*2;\s*\}/);
+ assert.match(css,/@media\s*\(max-width:\s*860px\)[\s\S]*?\.board-layout\s*\.board-frame-wrap\s*\{\s*grid-column:\s*1;\s*grid-row:\s*3;\s*\}/);
+ assert.match(css,/\.board-layout\s+\.party-insight-panel-white\s*\{\s*grid-row:\s*1;\s*\}/);
+ assert.match(css,/\.board-layout\s+\.party-insight-panel-black\s*\{\s*grid-row:\s*4;\s*\}/);
 });
