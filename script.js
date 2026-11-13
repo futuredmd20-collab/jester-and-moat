@@ -446,6 +446,23 @@ function createPartyRecord(origin = 'new-game') {
   };
 }
 
+function isPartyEngineConfigurationSnapshot(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      value.schemaVersion !== ENGINE_CONFIG_SCHEMA_VERSION ||
+      !value.sides || typeof value.sides !== 'object' || Array.isArray(value.sides)) return false;
+  for (const side of ['white', 'black']) {
+    const config = value.sides[side];
+    if (!config || typeof config !== 'object' || Array.isArray(config) ||
+        !config.general || typeof config.general !== 'object' || Array.isArray(config.general) ||
+        !config.phases || typeof config.phases !== 'object' || Array.isArray(config.phases) ||
+        Object.values(ENGINE_PHASES).some(phase =>
+          !config.phases[phase] || typeof config.phases[phase] !== 'object' || Array.isArray(config.phases[phase]))) {
+      return false;
+    }
+  }
+  return true;
+}
+
 function normalizePartyRecord(candidate, savedState) {
   if (candidate == null) return null;
   if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate) ||
@@ -453,12 +470,11 @@ function normalizePartyRecord(candidate, savedState) {
       typeof candidate.id !== 'string' || !candidate.id.trim() ||
       typeof candidate.startedAt !== 'string' || !Number.isFinite(Date.parse(candidate.startedAt)) ||
       !candidate.variant || typeof candidate.variant !== 'object' ||
+      typeof candidate.variant.id !== 'string' || !Number.isInteger(candidate.variant.version) ||
       !candidate.outcome || typeof candidate.outcome !== 'object' ||
       !['in_progress', 'completed'].includes(candidate.outcome.status) ||
-      !Array.isArray(candidate.configurationChanges) ||
-      (candidate.configurationAtStart !== null &&
-       (!candidate.configurationAtStart || typeof candidate.configurationAtStart !== 'object' ||
-        Array.isArray(candidate.configurationAtStart)))) {
+      !isPartyEngineConfigurationSnapshot(candidate.configurationAtStart) ||
+      !Array.isArray(candidate.configurationChanges)) {
     throw new Error('Invalid party metadata in save file.');
   }
   if (candidate.variant.id !== savedState.variant.id ||
@@ -470,14 +486,17 @@ function normalizePartyRecord(candidate, savedState) {
   if ((outcome.result !== null && typeof outcome.result !== 'string') ||
       (outcome.reason !== null && typeof outcome.reason !== 'string') ||
       (outcome.finishedAt !== null &&
-       (typeof outcome.finishedAt !== 'string' || !Number.isFinite(Date.parse(outcome.finishedAt))))) {
+       (typeof outcome.finishedAt !== 'string' || !Number.isFinite(Date.parse(outcome.finishedAt)))) ||
+      (outcome.status === 'in_progress' &&
+       (outcome.result !== null || outcome.reason !== null || outcome.finishedAt !== null)) ||
+      (outcome.status === 'completed' &&
+       (typeof outcome.result !== 'string' || typeof outcome.reason !== 'string' || outcome.finishedAt === null))) {
     throw new Error('Invalid party outcome metadata in save file.');
   }
   const changes = candidate.configurationChanges.map(change => {
     if (!change || typeof change !== 'object' ||
         typeof change.at !== 'string' || !Number.isFinite(Date.parse(change.at)) ||
-        !change.configuration || typeof change.configuration !== 'object' ||
-        Array.isArray(change.configuration)) {
+        !isPartyEngineConfigurationSnapshot(change.configuration)) {
       throw new Error('Invalid party configuration change in save file.');
     }
     return { at: change.at, configuration: clone(change.configuration) };
