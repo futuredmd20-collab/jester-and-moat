@@ -107,7 +107,8 @@ Every documentation file must start with an accurate `Purpose` line describing w
 | `docs/HISTORY.md` | Dated decisions/change history; background only, not current rules/state; not startup |
 | `docs/PROMPT.md` | Paste-ready kickoff prompt |
 | `PLANS.md` | Index of topic-specific work plans; consult when relevant, then read only the plan(s) needed. It is a directory, not a status report or source of implementation truth. |
-| `.agents/freebuff.md`, `.agents/vibe.md`, `.agents/gemini.md` | Agent-specific capability notes |
+| `CLAUDE.md`, `.agents/claude.md` | Claude Code entry point and agent-specific operating profile |
+| `.agents/freebuff.md`, `.agents/vibe.md`, `.agents/gemini.md` | Other agent-specific capability notes |
 
 ## 7. Markdown Integrity
 
