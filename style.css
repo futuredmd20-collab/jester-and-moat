@@ -510,7 +510,7 @@
   .party-insight-panel-black { grid-row: 3; justify-content: flex-end; }
   .party-insight-tab {
     display: flex; align-items: center; justify-content: flex-start; gap: 8px;
-    width: 100%; min-height: 34px; padding: 5px 10px;
+    width: 100%; min-height: 30px; padding: 4px 9px;
     border: 1px solid var(--line); border-radius: 9px;
     background: var(--panel, #f5eee2); color: var(--ink);
     text-align: left; font: inherit; font-size: .78rem; line-height: 1.25; cursor: pointer;
@@ -763,15 +763,15 @@
   @media (max-width: 860px) {
     main { width: min(100%, 700px); }
     .board-layout { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto; gap: 6px; width: 100%; align-items: stretch; }
-    .board-layout .party-insight-panel-white { grid-row: 1; }
-    .board-layout .clock-container { grid-row: 2; }
+    .board-layout .party-insight-panel-white { grid-row: 2; }
+    .board-layout .clock-container { grid-row: 1; }
     .board-layout .board-frame-wrap { grid-column: 1; grid-row: 3; }
     .board-layout .party-insight-panel-black { grid-row: 4; }
     .board-layout #board { width: 100%; }
     .board-layout .board-eval-track { display: none !important; }
     .clock-container { grid-column: 1; grid-row: 1; width: 100%; flex-direction: row; order: 0; }
-    .clock-box { flex: 1; flex-direction: row; justify-content: space-between; padding: 3px 7px; min-height: 32px; }
-    .clock-box.active { padding: 2px 6px; }
+    .clock-box { flex: 1; flex-direction: row; justify-content: space-between; padding: 2px 6px; min-height: 29px; }
+    .clock-box.active { padding: 1px 5px; }
   }
 
   @media (max-width: 640px) {
