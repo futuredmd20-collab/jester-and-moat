@@ -1452,7 +1452,8 @@ function updatePartyInsightPanels() {
       } catch (error) { details = { error: String(error && error.message || error) }; }
       expression.hidden = true; summary.hidden = false;
       summary.textContent = details.error ? sideLabel + ': ' + details.error :
-        sideLabel + ' · ' + details.engine + ' · ' + details.strength + ' · ' + details.personality + ' · ' + details.phase;
+        sideLabel + ' · ' + details.engine + ' · ' + details.strength + ' · ' + details.personality + ' · ' + details.phase +
+        (details.description ? ' — ' + details.description : '');
       summary.title = details.description || '';
       button.setAttribute('aria-label', sideLabel + ' AI information. Activate to show reaction');
       button.setAttribute('aria-expanded', 'true');
