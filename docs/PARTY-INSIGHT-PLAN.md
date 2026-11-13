@@ -76,6 +76,27 @@ Provide a compact White/Black overview in the game view, showing the assignment 
 
 The detailed settings drawer remains the place for editing and full configuration. The overview is primarily for quick visibility and should be responsive on mobile.
 
+#### Agreed panel concept
+
+Use two compact, slightly rounded, clickable tabs associated with the two sides:
+
+- One tab sits immediately above the board and one immediately below it, following the board's width. The exact responsive placement on larger screens remains a design detail to verify.
+- In the default **expression view**, each tab shows a restrained emoji and/or a short event-driven reaction.
+- Clicking a tab switches that side to its **information view**. Switching views must not cause the board to jump or change position; reserve a stable area or otherwise preserve layout.
+- Provide presentation settings for visibility (both sides, one side, or neither), the default view, emoji/text presentation, and compact or expanded information.
+- Keep the tabs visually distinct by side while preserving board space and avoiding obstruction of the board or essential controls.
+
+#### Information levels
+
+Use the same basic information structure for every engine, while allowing engine-specific details where supported:
+
+- **Basic view:** identify the side/party, show the active engine currently assigned to play for that side, its strength level, active personality, and a short personality description where available. Show the current phase as context.
+- Do not list every engine assigned to future phases in the basic view. Keep it focused on the engine currently active for that side.
+- **Further details:** allow the player to expand or open a deeper level for a fuller personality description, engine-specific advanced settings, and the side's assignments for other phases.
+- The common structure should remain consistent across engines. Do not imply that every engine exposes the same advanced parameters.
+
+When an engine actually changes for a side, show a small, temporary or otherwise unobtrusive handover indicator so the player notices the change. Do not show it for ordinary moves when the active engine remains the same.
+
 ### D. Factual match recap
 
 Create a concise recap from recorded game events and state transitions, for example:
@@ -96,6 +117,8 @@ As an optional presentation layer, allow White and Black to show short phrases, 
 - The player may see expressive cues without being shown an exact internal emotion value or status meter.
 - Different personalities may react differently to the same event. Do not assume every engine/profile supports the same reaction vocabulary.
 - Provide restrained defaults, optional/quiet behaviour where appropriate, and ensure expressions never obscure the board or essential controls.
+- Present expressions through the agreed side tabs in the in-game AI overview; the tab's information view is a separate presentation state, not an engine/personality decision input.
+- A motor handover indicator belongs to the presentation layer and is shown only when the active engine for that side actually changes.
 
 This stage may be implemented independently of the recap, but should reuse the same event vocabulary and a deliberately defined personality-state boundary.
 
@@ -117,6 +140,10 @@ The repository investigation at the start of each implementation stage must conf
 - Game export and event-log export identify the same party and remain understandable when shared independently.
 - Existing import/load behavior is deliberately preserved or versioned; compatibility behavior is covered by tests.
 - The game view shows the active White and Black AI assignments and current phase accurately on mobile and desktop.
+- The in-game overview uses two compact, clickable side tabs with expression and information views; changing views does not shift the board.
+- Basic information uses a common structure across engines and shows only the engine currently active for that side; engine-specific details remain optional and accurately scoped.
+- Visibility and presentation modes can be configured, including hiding either or both tabs.
+- An unobtrusive handover indicator appears when a side's active engine changes, not on every move.
 - Recap statements are grounded in recorded game events and do not invent engine reasoning.
 - Expressions are event-triggered presentation only and cannot affect game rules or engine behavior.
 - Automated tests cover party metadata, snapshot lifecycle, export/import compatibility, event association, and recap/expression triggers as each stage is implemented.
@@ -145,3 +172,4 @@ The repository investigation at the start of each implementation stage must conf
 ## Change log
 
 - **2026-11-09:** Created as a separate planned workstream for party identity/configuration, event-log context/export, in-game AI visibility, factual recaps, and optional event-driven expressions. No implementation is authorized by this plan alone.
+- **2026-11-13:** Recorded the agreed in-game presentation concept: compact clickable White/Black tabs around the board, expression and information views, common basic information with engine-specific detail, active-engine-only summary, configurable visibility/presentation, stable board layout, and an engine-handover indicator. Planning only; no implementation is authorized by this update.
