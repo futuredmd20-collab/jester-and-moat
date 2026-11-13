@@ -4,7 +4,7 @@ Purpose: plan party-specific configuration records, event-log context and export
 
 ## Status
 
-**Status: Planned.** No implementation work has started. This plan is independent of the Engine Configuration and Engine Extensibility plans. Each implementation stage requires its own explicit approval.
+**Status: In progress.** Stage A (party identity and configuration snapshot) is underway. PR #169 already delivered the first part of stage C (the White/Black expression and information tabs); stage C remains incomplete. Stages B, D, and E have not started. This plan is independent of the Engine Configuration and Engine Extensibility plans. Each implementation stage requires its own explicit approval.
 
 ## Goal
 
@@ -51,9 +51,9 @@ Design and implement a party-scoped record containing, at minimum:
 - The engine configuration applicable to White and Black, including per-phase engine ID, strength, personality, and advanced overrides.
 - A clear distinction between the configuration selected at game start and any configuration changes that may be permitted during an active game.
 
-Before implementation, decide when the snapshot is taken and what happens if settings can change during a game. The recorded values must represent the configuration actually used, not merely the latest global settings at export time.
+The initial snapshot is taken when a new game is established, including a validated Board Editor position. It records the full engine configuration selected at that point. If global engine settings are changed while a party is active, append timestamped configuration snapshots to the party record; do not overwrite the start snapshot. This distinguishes the starting setup from later configuration changes without silently rewriting the party's history.
 
-Inspect existing save/load behavior before deciding schema versioning, old-save compatibility, or migration. Do not assume that adding metadata to the current save format is backward-compatible.
+Inspect existing save/load behavior before deciding schema versioning, old-save compatibility, or migration. Do not assume that adding metadata to the current save format is backward-compatible. Legacy saves without party metadata must remain importable and must not be assigned invented historical configuration.
 
 ### B. Event log and export
 
@@ -122,6 +122,12 @@ As an optional presentation layer, allow White and Black to show short phrases, 
 
 This stage may be implemented independently of the recap, but should reuse the same event vocabulary and a deliberately defined personality-state boundary.
 
+## Implementation progress
+
+- **A — In progress:** the current implementation adds a versioned party record with a stable ID, start timestamp, variant/setup identity, starting engine-configuration snapshot, append-only timestamped configuration-change snapshots, and completion metadata. Save export/import carries this record; legacy saves without it remain importable.
+- **C — Partial, already present:** PR #169 added the two side tabs and the first active-engine information view. This is existing implementation, not new work in this task. Configurable visibility/presentation, richer information levels, and engine-handover indication remain outstanding.
+- **B, D, E — Not started.**
+
 ## Recommended implementation order
 
 1. **A — Party identity and snapshot.** Establish the data model and its lifecycle first.
@@ -172,4 +178,5 @@ The repository investigation at the start of each implementation stage must conf
 ## Change log
 
 - **2026-11-09:** Created as a separate planned workstream for party identity/configuration, event-log context/export, in-game AI visibility, factual recaps, and optional event-driven expressions. No implementation is authorized by this plan alone.
-- **2026-11-13:** Recorded the agreed in-game presentation concept: compact clickable White/Black tabs around the board, expression and information views, common basic information with engine-specific detail, active-engine-only summary, configurable visibility/presentation, stable board layout, and an engine-handover indicator. Planning only; no implementation is authorized by this update.
+- **2026-11-13:** Recorded the agreed in-game presentation concept: compact clickable White/Black tabs around the board, expression and information views, common basic information with engine-specific detail, active-engine-only summary, configurable visibility/presentation, stable board layout, and an engine-handover indicator.
+- **2026-11-14:** Reconciled the plan with PR #169, which implemented the first portion of stage C. Stage A implementation began on `feature/party-identity-snapshot`; the initial party record and configuration-change history are being added without changing engine selection behavior.
