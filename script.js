@@ -1420,6 +1420,53 @@ function getEngineAssignment(side, phase) {
   };
 }
 
+let partyInsightViews = { white: 'expression', black: 'expression' };
+
+function updatePartyInsightPanels() {
+  const host = document.getElementById('boardLayout');
+  if (!host) return;
+  const mode = document.getElementById('modeSelect')?.value;
+  const visible = mode !== 'pvp' && !!state && !editMode;
+  host.querySelectorAll('[data-party-insight-side]').forEach(button => {
+    button.closest('.party-insight-panel').hidden = !visible;
+    const side = button.dataset.partyInsightSide;
+    const view = partyInsightViews[side] || 'expression';
+    const expression = button.querySelector('.party-insight-expression');
+    const summary = button.querySelector('.party-insight-summary');
+    const sideLabel = side === 'white' ? 'White' : 'Black';
+    if (!visible) return;
+    if (view === 'expression') {
+      expression.hidden = false; summary.hidden = true;
+      expression.textContent = '🙂 ' + sideLabel;
+      button.setAttribute('aria-label', 'Show ' + sideLabel + ' AI information');
+      button.setAttribute('aria-expanded', 'false');
+    } else {
+      let details = null;
+      try {
+        const phase = getGamePhase(state);
+        const assignment = getEngineAssignment(side, phase);
+        details = { engine: assignment.engine.name || assignment.engine.id,
+          strength: ENGINE_STRENGTH_LABELS[assignment.strength] || assignment.strength,
+          personality: assignment.personality?.name || assignment.personalityId,
+          description: assignment.personality?.description || '', phase };
+      } catch (error) { details = { error: String(error && error.message || error) }; }
+      expression.hidden = true; summary.hidden = false;
+      summary.textContent = details.error ? sideLabel + ': ' + details.error :
+        sideLabel + ' · ' + details.engine + ' · ' + details.strength + ' · ' + details.personality + ' · ' + details.phase +
+        (details.description ? ' — ' + details.description : '');
+      summary.title = details.description || '';
+      button.setAttribute('aria-label', sideLabel + ' AI information. Activate to show reaction');
+      button.setAttribute('aria-expanded', 'true');
+    }
+  });
+}
+
+function togglePartyInsightView(side) {
+  if (!['white', 'black'].includes(side)) return;
+  partyInsightViews[side] = partyInsightViews[side] === 'information' ? 'expression' : 'information';
+  updatePartyInsightPanels();
+}
+
 let engineConfiguration = createDefaultEngineConfiguration();
 let engineConfigInvalidField = null;
 
@@ -1718,6 +1765,12 @@ function updateModeUI() {
   if (stepButton) stepButton.disabled = isPvp;
   if (autoButton) autoButton.disabled = isPvp;
 }
+
+const boardInsightHost = document.getElementById('boardLayout');
+if (boardInsightHost) boardInsightHost.addEventListener('click', event => {
+  const button = event.target.closest('[data-party-insight-side]');
+  if (button) togglePartyInsightView(button.dataset.partyInsightSide);
+});
 
 const engineAssignmentsHost = document.getElementById('engineAssignments');
 if (engineAssignmentsHost) engineAssignmentsHost.addEventListener('change', handleEngineConfigurationChange);
@@ -2842,6 +2895,7 @@ function render(){
   }
 
   updateDashboard();
+  updatePartyInsightPanels();
 }
 
 function clickSquare(r, c){

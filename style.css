@@ -501,6 +501,28 @@
   /* --- Board --- */
   main { width: min(100%, 820px); }
 
+  .party-insight-panel {
+    grid-column: 1 / -1;
+    min-width: 0;
+    display: flex;
+  }
+  .party-insight-panel-white { grid-row: 1; justify-content: flex-start; }
+  .party-insight-panel-black { grid-row: 3; justify-content: flex-end; }
+  .party-insight-tab {
+    display: flex; align-items: center; justify-content: flex-start; gap: 8px;
+    width: 100%; min-height: 30px; padding: 4px 9px;
+    border: 1px solid var(--line); border-radius: 9px;
+    background: var(--panel, #f5eee2); color: var(--ink);
+    text-align: left; font: inherit; font-size: .78rem; line-height: 1.25; cursor: pointer;
+  }
+  .party-insight-panel-black .party-insight-tab { justify-content: flex-end; text-align: right; }
+  .party-insight-expression { font-size: 1rem; flex: 0 0 auto; }
+  .party-insight-summary { min-width: 0; overflow-wrap: anywhere; }
+  .party-insight-tab[aria-expanded="true"] { border-color: var(--gold); }
+  .party-insight-tab:focus-visible { outline: 2px solid var(--burgundy); outline-offset: 2px; }
+  .board-frame-wrap { grid-row: 2; }
+  .board-eval-track, .clock-container { grid-row: 2; }
+
   #board {
     display: grid;
     grid-template-columns: repeat(10, minmax(0, 1fr));
@@ -740,13 +762,16 @@
   /* Mobile ergonomics: larger tap targets, roomier layout */
   @media (max-width: 860px) {
     main { width: min(100%, 700px); }
-    .board-layout { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; gap: 6px; width: 100%; align-items: stretch; }
-    .board-layout .board-frame-wrap { grid-column: 1; grid-row: 2; }
+    .board-layout { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto; gap: 6px; width: 100%; align-items: stretch; }
+    .board-layout .party-insight-panel-white { grid-row: 2; }
+    .board-layout .clock-container { grid-row: 1; }
+    .board-layout .board-frame-wrap { grid-column: 1; grid-row: 3; }
+    .board-layout .party-insight-panel-black { grid-row: 4; }
     .board-layout #board { width: 100%; }
     .board-layout .board-eval-track { display: none !important; }
     .clock-container { grid-column: 1; grid-row: 1; width: 100%; flex-direction: row; order: 0; }
-    .clock-box { flex: 1; flex-direction: row; justify-content: space-between; padding: 3px 7px; min-height: 32px; }
-    .clock-box.active { padding: 2px 6px; }
+    .clock-box { flex: 1; flex-direction: row; justify-content: space-between; padding: 2px 6px; min-height: 29px; }
+    .clock-box.active { padding: 1px 5px; }
   }
 
   @media (max-width: 640px) {

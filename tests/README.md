@@ -16,6 +16,8 @@ The separate engine-strength calibration runner has a short smoke test and a ful
 
 ## Current coverage
 
+- Party Insight panel markup, board-surrounding layout hooks, per-side expression/information view toggling, and active phase-specific engine summary.
+
 - MinMax returns a legal move in a simple position and does not mutate the input state.
 - MinMax and MCTS return `null` when no legal moves exist.
 - Worker and main-thread `NO_MOVE` responses classify checkmate and stalemate correctly for both engines; inconsistent no-move results and failed searches remain AI errors and do not end the game.

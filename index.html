@@ -360,7 +360,13 @@
  </div>
 
 <main>
-<div class="board-layout">
+<div class="board-layout" id="boardLayout">
+ <div class="party-insight-panel party-insight-panel-white">
+  <button type="button" class="party-insight-tab" data-party-insight-side="white" aria-label="Show White AI information" aria-expanded="false">
+   <span class="party-insight-expression" aria-hidden="true">🙂 White</span>
+   <span class="party-insight-summary" hidden></span>
+  </button>
+ </div>
  <div class="board-frame-wrap"><div id="board" role="grid" aria-label="Chess board 10 by 8"></div></div>
  <div class="eval-bar-track board-eval-track" id="boardEvalTrack" role="img" aria-label="Material balance: White at bottom, Black at top">
   <div class="eval-fill-black" id="evalFillBlack" style="height: 50%;"></div>
@@ -376,6 +382,12 @@
    <span class="clock-label">Black</span>
    <span class="clock-time" id="clockB">00:00</span>
   </div>
+ </div>
+ <div class="party-insight-panel party-insight-panel-black">
+  <button type="button" class="party-insight-tab" data-party-insight-side="black" aria-label="Show Black AI information" aria-expanded="false">
+   <span class="party-insight-expression" aria-hidden="true">🙂 Black</span>
+   <span class="party-insight-summary" hidden></span>
+  </button>
  </div>
 </div>
 
