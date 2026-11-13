@@ -4,11 +4,11 @@ Purpose: record the staged plan, approved model decisions, and implementation pr
 
 ## Status
 
-**Status: In progress.** Stages 3A (trainer core), 3B (CLI/persistence), and 4 (runtime-engine integration) are merged. Stage 4 was merged in PR #158; CI passed 187 tests, and manual browser/PWA testing was completed on 2026-11-10 (see the Stage 4 verification record below). The shipped `Default` package is a frozen equal-weight control, not an empirically calibrated or evolved result. No training pilot, baseline measurement, holdout evaluation, or model export has been completed.
+**Status: In progress.** Stages 3A (trainer core), 3B (CLI/persistence), and 4 (runtime-engine integration) are merged. Stage 4 was merged in PR #158; CI passed 187 tests, and manual browser/PWA testing was completed on 2026-11-10 (see the Stage 4 verification record below). The shipped `Default` package is a frozen equal-weight control, not an empirically calibrated or evolved result. The Mac mini M1 baseline measurement is complete (recorded under Stage 5); no evolutionary training pilot, holdout evaluation, or model export has been completed.
 
 ## Goal
 
-Add a third engine whose evaluation parameters are improved through evolutionary competition. Start with small, controlled experiments on GitHub Actions; support local Node.js execution on the user's Mac mini M1 later. Keep the first implementation modest and measurable.
+Add a third engine whose evaluation parameters are improved through evolutionary competition. Use the user's Mac mini M1 as the primary environment for baseline measurements, training, and experiments. Use GitHub for source control, review, CI, and release management. Keep the first implementation modest and measurable.
 
 The first useful result should be a versioned parameter package that the game can load. Training infrastructure, historical data, and checkpoints must not become runtime dependencies of the offline PWA.
 
@@ -18,16 +18,16 @@ The first useful result should be a versioned parameter package that the game ca
 - Start with evolution of a bounded set of evaluation weights. Do not start with neural networks, evolved complete programs, or a general machine-learning framework.
 - The runtime search algorithm is a dedicated MinMax/Alpha-Beta implementation. Evolution optimizes its evaluation weights; it does not evolve the search algorithm, search depth, or search budget in v1.
 - Initial training is offline in a separate Node.js CLI environment. Normal gameplay consumes a prepared parameter package and does not run training.
-- The initial execution environment is a manually started GitHub Actions workflow, operable from the GitHub mobile interface. Start with small pilot runs and increase population/generation counts only after measuring actual runtime and resource use. Local Node.js execution on the Mac mini M1 is a later supported environment, not a prerequisite.
+- The Mac mini M1 is the designated execution environment for baseline measurements, evolutionary training, parallel-run experiments, and performance measurements. Start with small, controlled local runs and increase budgets only after measuring actual runtime and resource use. GitHub Actions is reserved for CI and repository verification, not training runs.
 - Keep the trainer separate from the engine runtime. The engine receives validated parameters; it does not need to know whether they were evolved offline, edited manually, or supplied by a future training source.
 - The first exported package represents baseline competence and uses the `Default` profile identity. Engine personality/style remains a separate later layer; do not encode personalities as separate weight genomes in v1.
 - Training must be seedable and record enough run metadata to interpret and reproduce an experiment within the limits of runtime-dependent search timing.
 - Use a selectable, seed-based PRNG in the training environment. When MCTS is used as a training opponent, make its randomness controllable through the training path without changing its normal default behavior.
 - Training should be restartable: preserve progress at generation boundaries and support resuming an interrupted run from a validated checkpoint.
-- Store training history, run metadata, and checkpoints outside the shipped game. Use GitHub Actions artifacts for initial run outputs/checkpoints; document artifact retention and how a prior artifact is supplied when resuming. Do not commit checkpoints or raw training history to the game repository by default.
+- Store training history, run metadata, and checkpoints in separate local run directories on the Mac mini, outside the shipped game and ordinary Git history. Each run must have its own output directory. Do not use GitHub Actions artifacts as the normal training-output store, and do not commit checkpoints or raw training history to the repository.
 - Export selected results as small, versioned JSON parameter packages. Include schema version, engine identity/version, supported variant identity/version, profile identity, parameter values, and provenance needed to identify the training run.
 - Keep the architecture open to future in-game evolution, but do not implement it in the first version. Do not make the runtime depend on offline-only assumptions that would prevent a later source of updated parameters.
-- GitHub Actions is the first execution environment, not a distributed training architecture. Keep CPU and memory use modest and make the trainer runnable locally with Node.js later; do not require a GPU, database server, external training service, or distributed workers.
+- The trainer remains a local Node.js CLI and does not require a GPU, database server, external training service, or distributed workers. GitHub Actions remains a CI environment; it is not the training execution environment.
 
 ## Relationship to existing architecture
 
@@ -197,9 +197,9 @@ Specify:
 | 17 | Checkpoint format | JSON initially, including all state needed for validated, reproducible resume. Reconsider only if measured size or performance makes it unsuitable. |
 | 18 | Run budget | Enforce both maximum generations and maximum matches. Stop when either limit is reached; never silently exceed either limit. |
 | 19 | Actions inputs | A dedicated manual `workflow_dispatch` exposes the configuration profile, run budget, and optional source checkpoint/artifact. |
-| 20 | Actions output | Produce one consolidated artifact per run containing results, metadata, logs, reports, and checkpoints. |
+| 20 | Run output | Produce one consolidated local output directory per training run containing results, metadata, logs, reports, and checkpoints. Keep it separate from the repository and from every other run. |
 | 21 | Checkpoint cadence | Write a complete checkpoint after every completed generation. |
-| 22 | Match execution | Run matches sequentially initially. Consider parallelism only after measuring runtime and resource use. |
+| 22 | Match execution | Keep matches sequential within each run. Independent training runs may execute in parallel as separate processes after resource use is measured; do not parallelize candidates within one generation in v1. |
 | 23 | Technical failures | Abort the run on a match/candidate technical failure; preserve the last complete checkpoint and write an error report. Never convert a technical failure into a fitness penalty or ordinary game result. |
 | 24 | Export | Require an explicit export command after successful validation and human review. Never export automatically at the end of training or validation. |
 
@@ -242,15 +242,17 @@ Use JSON checkpoints initially. Write one complete checkpoint after each complet
 
 JSON is the initial checkpoint format, not a permanent constraint. Reconsider another representation only if measured checkpoint size or performance becomes a practical problem.
 
-#### GitHub Actions execution, artifacts, and cancellation
+#### GitHub and local execution boundary
 
-Use a dedicated workflow file with `workflow_dispatch` only for evolutionary operations. Keep the existing engine-contract workflow and its PR/push gates unchanged. Use a bounded Ubuntu runner and a pinned Node.js major matching the repository's supported test environment. Do not use a matrix or parallel candidate jobs in v1: matches run sequentially so resource use and seeded ordering remain predictable.
+**Mac mini M1 — experiments and training:** Run the baseline, all evolutionary training, parallel-run experiments, resume, and candidate validation locally through the Node.js CLI. Store each run's JSONL history, reports, logs, and checkpoints in its own local output directory. The trainer requires no network access. Do not place training output in the game repository or rely on GitHub Actions artifacts for normal operation.
 
-The manual workflow accepts a configuration profile, bounded run budget, and optional source checkpoint/artifact for resume or validation. Prevent overlapping evolutionary runs; do not cancel an active run merely because another dispatch is requested. A user-requested cancellation signals the CLI to stop at a safe boundary where possible. If the runner is forcibly terminated, the last atomically completed generation checkpoint remains the recovery point. Cancellation never converts an incomplete run into a successful result.
+**GitHub — repository and verification:** Use GitHub for branches, commits, pull requests, code review, CI, automated tests, and release management. GitHub Actions runs repository verification only; do not dispatch it for baseline, training, or holdout experiments under this operating model. Existing workflow code may remain until separately reviewed, but it is not the execution path for the planned experiments.
 
-Upload **one consolidated, named Actions artifact per run**. It contains the run metadata, JSONL history, JSON and Markdown reports, logs, error report if any, and the latest complete JSON checkpoint. Use finite, explicitly configured retention and display retention guidance in the workflow summary and CLI help. A resume/validation invocation must explicitly identify its source run/artifact and verify its contents before use. No training workflow runs automatically on pushes or pull requests, and no full tournament is an automatic CI gate.
+#### Parallel independent training runs
 
-A local Node.js run on the Mac mini M1 uses the same CLI, configuration, schemas, and checkpoint format with a user-controlled local output directory; the trainer itself requires no network access.
+Parallelism means multiple independent `train` CLI processes, each with its own seed and unique output directory, using the same recorded configuration when results are intended to be compared. Matches and candidate evaluation remain sequential inside each run; v1 does not introduce parallel candidate evaluation or a distributed worker system.
+
+Start with **two simultaneous runs** on the Mac mini M1. Measure total completed matches/generations per wall-clock hour, elapsed time per run, memory pressure and swap use, and whether either run becomes unstable. CPU contention can make each run slower, so two processes are a measurement starting point, not an assumed throughput improvement. Increase concurrency only if measured total throughput and resource headroom justify it. Resume each run independently from its own checkpoint.
 
 #### Failure handling
 
@@ -270,9 +272,9 @@ Build a minimal CLI workflow with small default pilot limits and no network requ
 
 **Progress (Stage 3A — trainer core):** Merged into `main` in PR #156. The implementation provides schema-v1 semantic feature extraction, bounded candidate Alpha-Beta search, seeded population/mutation/selection, balanced fixed fixtures, and real-rule matches against MinMax Medium and MCTS Medium. GitHub Actions run #622 passed all 173 tests (0 failures).
 
-**Progress (Stage 3B — CLI and persistence):** Merged in PR #157. The shared `train`, `resume`, `evaluate`, and `export` CLI, append-only JSONL events, JSON/Markdown reports, strict atomic generation checkpoints, guarded export, and manual bounded Actions workflow are implemented. CI passed 182 tests. Holdout evaluation intentionally fails closed until baseline floors and the statistical protocol are predeclared. No training pilot has been run.
+**Progress (Stage 3B — CLI and persistence):** Merged in PR #157. The shared `train`, `resume`, `evaluate`, and `export` CLI, append-only JSONL events, JSON/Markdown reports, strict atomic generation checkpoints, guarded export, and manual bounded Actions workflow are implemented. CI passed 182 tests. Holdout evaluation intentionally fails closed until baseline floors and the statistical protocol are predeclared. No evolutionary training pilot has been run. The existing Actions workflow is retained as implementation history, but the current operating boundary assigns experiments to the Mac mini and GitHub Actions to CI/repository verification.
 
-Use GitHub Actions for initial smoke and pilot execution. Keep long or confirmatory runs manually started and explicitly bounded; do not make full tournaments or long training runs an automatic CI gate. Add local M1 execution without changing the experiment or checkpoint semantics.
+Run smoke checks, baseline measurements, training pilots, and confirmatory experiments on the Mac mini through the local CLI. Use GitHub Actions only for CI and repository verification. Keep experiments manually started and explicitly bounded; do not make training or full tournaments an automatic CI gate.
 
 ### 4. Implement the runtime engine
 
@@ -311,9 +313,9 @@ Position-based tests may later help diagnose candidate strengths, weaknesses, an
 
 ### 5. Evaluate and package a first result
 
-The first Stage 5 implementation step is a separate, manually invoked `baseline` CLI operation. It measures the frozen equal-weight control in balanced self-play and against MinMax Medium, using matching seeds, opening layouts, and colours, and reports per-feature extraction costs for both opening layouts. It records the effective configuration, sample outcomes, elapsed time, source commit, and runtime environment. The operation does not train candidates, inspect holdout results, or set performance floors. The baseline must be run and reviewed before the statistical method and minimum practical floors are fixed.
+The first Stage 5 measurement step is complete: the `baseline` CLI was run locally on the Mac mini M1 against the exact source commit `e86078dd8bc3620a6eaa3d57ee43db467dc1bbf0`. The run used seed `20261110`, four games per comparison, a 120-ply cap, 20 feature iterations, search depth 2, node limit 5,000, and opponent budget scale 1. It took 31:44.6. Equal-weight self-play scored 0–2–2 (25%); equal-weight versus MinMax Medium scored 0–3–1 (37.5%). This is a small baseline sample, not a reliable strength estimate and not enough by itself to establish performance floors or statistical acceptance criteria. The temporary checkout used for the exact commit was removed after the run; no evolutionary training was performed as part of this baseline.
 
-Run controlled, modest experiments. Begin with a small GitHub Actions pilot, measure runtime and feature costs, and increase the run budget only when the measurements justify it. Compare candidates with the frozen-weight primary reference and existing MinMax Medium secondary reference on balanced, independent fixtures. Record sample sizes, seeds, code/runtime conditions, and uncertainty; do not describe small samples as definitive strength ratings.
+Next, run a small local training pilot on the Mac mini. First establish a single-run reference, then compare two independent runs launched in parallel with different seeds, separate output directories, and otherwise identical recorded configuration. Measure total throughput and resource use before deciding whether to increase concurrency or run budgets. Compare candidates with the frozen-weight primary reference and existing MinMax Medium secondary reference on balanced, independent fixtures. Record sample sizes, seeds, code/runtime conditions, and uncertainty; do not describe small samples as definitive strength ratings.
 
 Export only a manually approved candidate that meets both empirically established performance floors on its own independent holdout set. Attach the versioned `Default` JSON package and provenance metadata to a GitHub Release. If adopted by the offline PWA, commit the exact runtime package separately and include it in the service-worker precache. Keep raw training data and checkpoints outside the shipped PWA and ordinary source history.
 
@@ -331,7 +333,7 @@ After the engine has a stable baseline:
 - The runtime engine uses its own MinMax/Alpha-Beta search and consumes semantic features through the pure adapter boundary.
 - The CLI uses canonical game rules and produces bounded, inspectable runs.
 - A run records its effective configuration, seed, commit, and runtime environment; interrupted runs can resume from a validated checkpoint without silently mixing configurations.
-- Initial training and smoke execution work through a manually dispatched GitHub Actions workflow; local M1 execution can use the same CLI and artifact/checkpoint format.
+- Baseline, training, resume, and candidate validation can be performed locally on the Mac mini using the shared CLI, configuration, and checkpoint format; GitHub Actions is used for CI and repository verification only.
 - Training artifacts remain separate from PWA assets and normal runtime storage.
 - Automated tests cover feature semantics/purity/performance, core evolutionary operations, scoring, persistence/recovery, package validation, engine contract behavior, and relevant worker lifecycle behavior.
 - Export requires a manually approved candidate to meet predeclared, empirically established minimum performance floors against both the frozen-weight primary reference and MinMax Medium on a candidate-specific independent holdout set; the candidate need not outperform either reference.
@@ -341,7 +343,7 @@ After the engine has a stable baseline:
 ## Explicit non-goals for the first version
 
 - Neural networks, GPU-based training, or a general machine-learning framework.
-- Distributed workers, always-on training, or a separate cloud training service. GitHub Actions hosted runners are the initial manually triggered execution environment only.
+- Distributed workers, always-on training, or a separate cloud training service. Independent local CLI runs are the supported v1 parallelism model; GitHub Actions is reserved for CI and repository verification.
 - In-game learning or automatic mutation of the active shipped profile.
 - User-created personality editor or a broad personality roster.
 - A universal parameter schema shared by every engine.
@@ -361,6 +363,8 @@ After the engine has a stable baseline:
 - [Engine and Board Ideas](ENGINE-IDEAS.md) — exploratory ideas and future personality examples.
 
 ## Change log
+
+- **2026-11-13:** Recorded the completed Mac mini M1 baseline, established the Mac mini as the experiment/training environment and GitHub as the source-control/CI/review/release environment, and specified an initial two-process parallel-training measurement. Independent runs use distinct seeds and output directories; matches remain sequential within each run.
 
 - **2026-11-12:** Recorded Stage 2 decisions 15–24: shared CLI with smoke/train/resume/validate/export commands; version-controlled JSON configuration with CLI overrides; JSON checkpoints; dual generation/match budgets; manual Actions inputs; one consolidated run artifact; generation-boundary checkpoints; sequential matches; fail-fast technical error handling; and explicit post-validation export. Clarified that the current Stage 3B CLI still uses `evaluate` and needs a focused compatibility decision before the final command vocabulary is implemented.
 
