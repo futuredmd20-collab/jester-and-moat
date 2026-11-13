@@ -29,6 +29,9 @@ test('party metadata roundtrips with saves and legacy saves remain importable', 
   assert.match(script, /partyRecord: partyRecord \? clone\(partyRecord\) : null/);
   assert.match(script, /partyRecord: normalizePartyRecord\(parsed\.partyRecord, normalizedState\)/);
   assert.match(script, /function normalizePartyRecord\(candidate, savedState\)/);
+  assert.match(script, /function isPartyEngineConfigurationSnapshot\(value\)/);
+  assert.match(script, /isPartyEngineConfigurationSnapshot\(candidate\.configurationAtStart\)/);
+  assert.match(script, /isPartyEngineConfigurationSnapshot\(change\.configuration\)/);
   assert.match(script, /if \(candidate == null\) return null;/);
   assert.match(script, /partyRecord = parsed\.partyRecord \|\| null;/);
 });
