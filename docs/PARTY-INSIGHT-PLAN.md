@@ -4,7 +4,7 @@ Purpose: plan party-specific configuration records, event-log context and export
 
 ## Status
 
-**Status: In progress.** Stage A (party identity and configuration snapshot) is complete in PR #170. PR #169 already delivered the first part of stage C (the White/Black expression and information tabs); stage C remains incomplete. Stages B, D, and E have not started. This plan is independent of the Engine Configuration and Engine Extensibility plans. Each implementation stage requires its own explicit approval.
+**Status: In progress.** Stage A (party identity and configuration snapshot) is complete in PR #170. Stage B (party-scoped event log and self-contained event export) is implemented in the current change. PR #169 already delivered the first part of stage C (the White/Black expression and information tabs); stage C remains incomplete. Stages D and E have not started. This plan is independent of the Engine Configuration and Engine Extensibility plans. Each implementation stage requires its own explicit approval.
 
 ## Goal
 
@@ -57,12 +57,14 @@ Inspect existing save/load behavior before deciding schema versioning, old-save 
 
 ### B. Event log and export
 
-- Associate relevant events with the correct party identifier.
-- Include a readable party header/metadata section in event-log exports.
-- Include the party configuration snapshot or a stable, self-contained reference to it; an export must remain understandable when separated from local storage.
-- Preserve timestamps, event categories, and existing filtering behavior where practical.
-- Define how imported or older games with incomplete metadata are represented.
-- Keep the game save/export format and debug event-log export format clearly distinguished, even if they share a party metadata model.
+**Implemented in the current change:**
+
+- Each debug log entry captures the active party ID when the event is recorded. Entries recorded without an active party remain explicitly unassigned.
+- Filtered event exports are party-scoped; exporting one party does not include events from other parties or unassigned periods.
+- The event export is a versioned JSON document with an explicit event-log export type, export timestamp, full party record, and filtered events. The embedded party record includes its start configuration, timestamped configuration changes, variant/setup identity, and outcome metadata, so the export is self-contained.
+- Event timestamps, levels, categories, and messages are retained. Filtering does not mutate or delete the stored debug log.
+- Legacy debug log entries without a party ID are normalized as unassigned. Imported legacy games without party metadata remain unassigned rather than receiving invented identity or configuration.
+- Game-save JSON remains unchanged and distinct from the party event-log JSON export.
 
 ### C. In-game AI overview
 
@@ -126,12 +128,12 @@ This stage may be implemented independently of the recap, but should reuse the s
 
 - **A — Completed in PR #170:** new games and validated Board Editor positions receive a schema-versioned party record with a stable ID, start timestamp, origin, variant identity/version, setup identity, and the full engine-configuration snapshot for both sides. The start snapshot is preserved; later persisted engine-configuration changes are appended as timestamped snapshots. Completion records include status, result, reason, and finish timestamp. Game save export/import carries the party record, validates imported metadata against the saved variant/setup, and continues to accept legacy saves without party metadata without inventing historical details. The dedicated tests are source-contract checks of initialization, snapshot/change handling, save/load wiring and validation, legacy compatibility, and completion metadata; they are not runtime integration or manual PWA tests.
 - **C — Partial, already present:** PR #169 added the two side tabs and the first active-engine information view. This is existing implementation, not new work in this task. Configurable visibility/presentation, richer information levels, and engine-handover indication remain outstanding.
-- **B, D, E — Not started.**
+- **B — Implemented in the current change. D and E — Not started.**
 
 ## Recommended implementation order
 
 1. **A — Completed:** party identity and configuration snapshot are established.
-2. **B — Next: Event log and export.** Make recorded games portable and independently understandable.
+2. **B — Implemented:** party-scoped event records and a self-contained, separately versioned JSON event export.
 3. **C — Continue AI overview.** Reuse the party/configuration model to show the currently applicable assignments.
 4. **D — Factual recap.** Build summaries from reliable, recorded events.
 5. **E — Expressions.** Add optional personality-flavored presentation after event semantics are stable.
