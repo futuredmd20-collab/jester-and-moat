@@ -18,6 +18,7 @@ The separate engine-strength calibration runner has a short smoke test and a ful
 
 - Party Insight panel markup, board-surrounding layout hooks, per-side expression/information view toggling, and active phase-specific engine summary.
 - Party identity and configuration snapshots: source-contract checks for new-game/editor initialization, append-only active-party configuration changes, save/load metadata wiring and validation, legacy-save compatibility, and completion metadata.
+- Party-scoped debug event export: log entries capture the active party ID; the separate JSON event export includes the complete party record/configuration snapshots and only matching filtered events. Legacy log entries remain unassigned.
 
 - MinMax returns a legal move in a simple position and does not mutate the input state.
 - MinMax and MCTS return `null` when no legal moves exist.
@@ -48,7 +49,7 @@ The separate engine-strength calibration runner has a short smoke test and a ful
 - Effective engine settings are passed through protocol-v1 `config` to worker and main-thread searches; main-thread fallback budgets remain capped.
 - Schema-v2 engine configuration persists and restores; schema-v1 and malformed `engineConfig` shapes reset to version-2 defaults without migration.
 - 2 Player Pass hides engine controls and blocks automated Next and auto-play dispatch.
-- Debug logging records engine changes and phase transitions without per-move selection/dispatch noise; routine status messages are omitted while warnings and errors remain. The event export filters the complete stored log without deleting entries, and `?debug=1` remains the opt-in URL parameter.
+- Debug logging records engine changes and phase transitions without per-move selection/dispatch noise; routine status messages are omitted while warnings and errors remain. The JSON event export filters by party ID without deleting entries and embeds party/configuration metadata; it remains separate from game-save JSON. Legacy log entries without a party ID remain unassigned, and `?debug=1` remains the opt-in URL parameter.
 - Storage errors do not throw during engine configuration setup.
 - Bottom-row coordinates retain extra clearance from pieces; editor black-piece silhouettes receive a light edge on the dark palette; moat ownership badges are larger and preview moats use stronger dashed outlines.\n- Piece design, piece-colour palette, board palette, and light/dark theme remain independent settings; all four piece palettes and all four board palettes have explicit theme coverage. Moat and move/selection accents blend the board profile with the selected piece palette while check retains its semantic warning colour. Swatches stay synchronized with the selectors, and appearance reset leaves gameplay settings unchanged.
 - Multi-file startup fetches both SVG sprites and loads MCTS before `script.js`.
