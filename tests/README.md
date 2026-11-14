@@ -17,6 +17,7 @@ The separate engine-strength calibration runner has a short smoke test and a ful
 ## Current coverage
 
 - Party Insight panel markup, board-surrounding layout hooks, per-side expression/information view toggling, and active phase-specific engine summary.
+- Party identity and configuration snapshots: source-contract checks for new-game/editor initialization, append-only active-party configuration changes, save/load metadata wiring and validation, legacy-save compatibility, and completion metadata.
 
 - MinMax returns a legal move in a simple position and does not mutate the input state.
 - MinMax and MCTS return `null` when no legal moves exist.

@@ -301,6 +301,7 @@ function cancelActiveAIRequest(reason = 'state-changed') {
   // Routine request cancellation is expected during moves, setup, and side changes; keep it out of the event log.
 }
 let gameStarted = false;
+let partyRecord = null;
 let pendingPromotionMove = null;
 let playerColor = 'w';
 let pendingMoat = null;
@@ -427,9 +428,123 @@ function canonicalSavedValue(value) {
 function savedValuesEqual(a, b) {
   return JSON.stringify(canonicalSavedValue(a)) === JSON.stringify(canonicalSavedValue(b));
 }
+const PARTY_RECORD_SCHEMA_VERSION = 1;
+
+function createPartyRecord(origin = 'new-game') {
+  if (!state) return null;
+  const timestamp = new Date().toISOString();
+  return {
+    schemaVersion: PARTY_RECORD_SCHEMA_VERSION,
+    id: 'party-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10),
+    startedAt: timestamp,
+    origin,
+    variant: clone(state.variant || GAME_VARIANT),
+    setupId: state.setupId || null,
+    configurationAtStart: engineCopy(engineConfiguration),
+    configurationChanges: [],
+    outcome: { status: 'in_progress', result: null, reason: null, finishedAt: null }
+  };
+}
+
+function isPartyEngineConfigurationSnapshot(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      value.schemaVersion !== ENGINE_CONFIG_SCHEMA_VERSION ||
+      !value.sides || typeof value.sides !== 'object' || Array.isArray(value.sides)) return false;
+  for (const side of ['white', 'black']) {
+    const config = value.sides[side];
+    if (!config || typeof config !== 'object' || Array.isArray(config) ||
+        !config.general || typeof config.general !== 'object' || Array.isArray(config.general) ||
+        !config.phases || typeof config.phases !== 'object' || Array.isArray(config.phases) ||
+        Object.values(ENGINE_PHASES).some(phase =>
+          !config.phases[phase] || typeof config.phases[phase] !== 'object' || Array.isArray(config.phases[phase]))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function normalizePartyRecord(candidate, savedState) {
+  if (candidate == null) return null;
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate) ||
+      candidate.schemaVersion !== PARTY_RECORD_SCHEMA_VERSION ||
+      typeof candidate.id !== 'string' || !candidate.id.trim() ||
+      typeof candidate.startedAt !== 'string' || !Number.isFinite(Date.parse(candidate.startedAt)) ||
+      !candidate.variant || typeof candidate.variant !== 'object' ||
+      typeof candidate.variant.id !== 'string' || !Number.isInteger(candidate.variant.version) ||
+      !candidate.outcome || typeof candidate.outcome !== 'object' ||
+      !['in_progress', 'completed'].includes(candidate.outcome.status) ||
+      !isPartyEngineConfigurationSnapshot(candidate.configurationAtStart) ||
+      !Array.isArray(candidate.configurationChanges)) {
+    throw new Error('Invalid party metadata in save file.');
+  }
+  if (candidate.variant.id !== savedState.variant.id ||
+      candidate.variant.version !== savedState.variant.version ||
+      (candidate.setupId ?? null) !== (savedState.setupId ?? null)) {
+    throw new Error('Party metadata does not match the saved game identity.');
+  }
+  const outcome = candidate.outcome;
+  if ((outcome.result !== null && typeof outcome.result !== 'string') ||
+      (outcome.reason !== null && typeof outcome.reason !== 'string') ||
+      (outcome.finishedAt !== null &&
+       (typeof outcome.finishedAt !== 'string' || !Number.isFinite(Date.parse(outcome.finishedAt)))) ||
+      (outcome.status === 'in_progress' &&
+       (outcome.result !== null || outcome.reason !== null || outcome.finishedAt !== null)) ||
+      (outcome.status === 'completed' &&
+       (typeof outcome.result !== 'string' || typeof outcome.reason !== 'string' || outcome.finishedAt === null))) {
+    throw new Error('Invalid party outcome metadata in save file.');
+  }
+  const changes = candidate.configurationChanges.map(change => {
+    if (!change || typeof change !== 'object' ||
+        typeof change.at !== 'string' || !Number.isFinite(Date.parse(change.at)) ||
+        !isPartyEngineConfigurationSnapshot(change.configuration)) {
+      throw new Error('Invalid party configuration change in save file.');
+    }
+    return { at: change.at, configuration: clone(change.configuration) };
+  });
+  return {
+    schemaVersion: PARTY_RECORD_SCHEMA_VERSION,
+    id: candidate.id,
+    startedAt: candidate.startedAt,
+    origin: typeof candidate.origin === 'string' ? candidate.origin : 'imported',
+    variant: clone(candidate.variant),
+    setupId: candidate.setupId ?? null,
+    configurationAtStart: candidate.configurationAtStart === null
+      ? null : clone(candidate.configurationAtStart),
+    configurationChanges: changes,
+    outcome: {
+      status: outcome.status,
+      result: outcome.result ?? null,
+      reason: outcome.reason ?? null,
+      finishedAt: outcome.finishedAt ?? null
+    }
+  };
+}
+
+function recordPartyConfigurationChange() {
+  if (!partyRecord || partyRecord.outcome.status !== 'in_progress') return;
+  const configuration = engineCopy(engineConfiguration);
+  const previous = partyRecord.configurationChanges.length
+    ? partyRecord.configurationChanges[partyRecord.configurationChanges.length - 1].configuration
+    : partyRecord.configurationAtStart;
+  if (previous && JSON.stringify(previous) === JSON.stringify(configuration)) return;
+  partyRecord.configurationChanges.push({ at: new Date().toISOString(), configuration });
+}
+
+function completePartyRecord(message) {
+  if (!partyRecord || partyRecord.outcome.status !== 'in_progress') return;
+  const reason = String(message || 'Game completed.');
+  const winner = reason.match(/\b(White|Black) wins\b/i);
+  const result = winner ? winner[1].toLowerCase() + '_win'
+    : /draw|stalemate/i.test(reason) ? 'draw' : 'unknown';
+  partyRecord.outcome = {
+    status: 'completed', result, reason, finishedAt: new Date().toISOString()
+  };
+}
+
 function exportGameData() {
   return { state: clone(state), moveLog: moveLog.slice(), history: clone(history),
-    historyMoveLogs: clone(historyMoveLogs), gameStarted, playerColor, gameOver, gameOverMessage };
+    historyMoveLogs: clone(historyMoveLogs), gameStarted, playerColor, gameOver, gameOverMessage,
+    partyRecord: partyRecord ? clone(partyRecord) : null };
 }
 function parseGameData(input, initialTime = 0) {
   const parsed = typeof input === 'string' ? JSON.parse(input) : input;
@@ -463,7 +578,8 @@ function parseGameData(input, initialTime = 0) {
   if (parsed.gameOverMessage !== undefined && typeof parsed.gameOverMessage !== 'string') throw new Error('Invalid game-over message in save file.');
   return { state: normalizedState, moveLog: logs.slice(), history: normalizedHistory, historyMoveLogs: logHistory,
     gameStarted: parsed.gameStarted === undefined ? true : parsed.gameStarted, playerColor: savedPlayerColor,
-    gameOver: parsed.gameOver === true, gameOverMessage: parsed.gameOverMessage || '' };
+    gameOver: parsed.gameOver === true, gameOverMessage: parsed.gameOverMessage || '',
+    partyRecord: normalizePartyRecord(parsed.partyRecord, normalizedState) };
 }
 
 function inside(r, c) { return r >= 0 && r < ROWS && c >= 0 && c < COLS; }
@@ -686,6 +802,7 @@ function setup(){
 
   state.positionHistory[getPositionKey(state)] = 1;
   selected = null; legalTargets = []; moveLog = []; history = [clone(state)]; historyMoveLogs = [moveLog.slice()]; redoStack = []; lastMove = null; gameOver = false; gameOverMessage = ''; gameStarted = false; pendingPromotionMove = null;
+  partyRecord = createPartyRecord('new-game');
   hideGameOverOverlay();
   
   lastClockDisplay = { w: null, b: null };
@@ -711,7 +828,10 @@ function status(s) {
   }
   const statusEl = document.getElementById("status");
   statusEl.textContent = fullMsg;
-  if (gameOver) gameOverMessage = fullMsg;
+  if (gameOver) {
+    gameOverMessage = fullMsg;
+    completePartyRecord(fullMsg);
+  }
   const message = String(fullMsg);
   const lower = message.toLowerCase();
   const warning = /\b(warning|retrying|retry|fallback|timed out|timeout|unavailable)\b/.test(lower);
@@ -1476,6 +1596,7 @@ function persistEngineConfiguration() {
   } catch (e) {
     // Storage may be unavailable in private browsing or restricted contexts.
   }
+  recordPartyConfigurationChange();
 }
 
 function escapeEngineConfigHtml(value) {
@@ -2649,6 +2770,7 @@ function validateAndPlayPosition(){
   document.getElementById('editorPanel').classList.remove('active');
   setEditorToggleLabel('Edit Board');
   gameStarted = true;
+  partyRecord = createPartyRecord('board-editor');
   moveLog = ["1. Position & clocks set via Board Editor."];
   history = [clone(state)];
   historyMoveLogs = [moveLog.slice()];
@@ -2985,6 +3107,7 @@ function applyLoadedGame(parsed) {
   // engine request belongs to the old position and must not race the import.
   cancelActiveAIRequest('load-saved-game');
   state = parsed.state;
+  partyRecord = parsed.partyRecord || null;
   gameStarted = parsed.gameStarted;
   playerColor = parsed.playerColor;
   document.getElementById('playerSideSelect').value = playerColor;
