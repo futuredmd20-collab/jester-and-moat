@@ -14,6 +14,7 @@ const PIECE_NAME = { k: 'king', q: 'queen', r: 'rook', b: 'bishop', n: 'knight',
 const DEBUG_MODE_KEY = 'debugMode';
 const DEBUG_LOG_KEY = 'debugLog';
 const DEBUG_LOG_MAX = 1000;
+let partyRecord = null;
 
 class DebugLogger {
   constructor() {
@@ -38,7 +39,15 @@ class DebugLogger {
       const saved = localStorage.getItem(DEBUG_MODE_KEY);
       if (saved === 'true') this.enabled = true;
       const logs = localStorage.getItem(DEBUG_LOG_KEY);
-      if (logs) this.logs = JSON.parse(logs);
+      if (logs) {
+        const parsedLogs = JSON.parse(logs);
+        if (Array.isArray(parsedLogs)) {
+          this.logs = parsedLogs.map(entry => ({
+            ...entry,
+            partyId: typeof entry?.partyId === 'string' ? entry.partyId : null
+          }));
+        }
+      }
     } catch (e) {
       // localStorage not available
     }
@@ -87,7 +96,7 @@ class DebugLogger {
 
     const timestamp = new Date().toISOString();
     const category = type || (level === 'warn' ? 'warning' : level === 'error' ? 'error' : 'info');
-    const entry = { timestamp, level, type: category, message };
+    const entry = { timestamp, level, type: category, message, partyId: partyRecord?.id ?? null };
     this.logs.push(entry);
 
     if (this.logs.length > DEBUG_LOG_MAX) {
@@ -123,11 +132,24 @@ class DebugLogger {
     this.event('engine-change', `${side} engine ${previous ? 'switched' : 'selected'}: ${change} (phase: ${phase})`);
   }
 
-  getFilteredEntries() {
-    return this.logs.filter(entry =>
+  getFilteredEntries(partyId) {
+    const filtered = this.logs.filter(entry =>
       entry.level === 'warn' || entry.level === 'error' ||
       (entry.type && entry.type !== 'info')
     );
+    return arguments.length === 0 ? filtered : filtered.filter(entry => entry.partyId === partyId);
+  }
+
+  createFilteredEventExport(party = null) {
+    const partySnapshot = party ? clone(party) : null;
+    const partyId = partySnapshot ? partySnapshot.id : null;
+    return {
+      exportType: 'jester-moat-event-log',
+      schemaVersion: 1,
+      exportedAt: new Date().toISOString(),
+      party: partySnapshot,
+      events: clone(this.getFilteredEntries(partyId))
+    };
   }
 
   render() {
@@ -170,11 +192,12 @@ class DebugLogger {
   }
 
   downloadFiltered() {
-    const blob = new Blob([this.formatEntries(this.getFilteredEntries())], { type: 'text/plain' });
+    const payload = this.createFilteredEventExport(partyRecord);
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `jester-moat-debug-events-${new Date().toISOString().slice(0, 19)}.log`;
+    a.download = `jester-moat-events-${partyRecord ? 'party' : 'unassigned'}-${new Date().toISOString().slice(0, 19)}.json`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -301,7 +324,6 @@ function cancelActiveAIRequest(reason = 'state-changed') {
   // Routine request cancellation is expected during moves, setup, and side changes; keep it out of the event log.
 }
 let gameStarted = false;
-let partyRecord = null;
 let pendingPromotionMove = null;
 let playerColor = 'w';
 let pendingMoat = null;
