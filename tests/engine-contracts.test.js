@@ -3241,7 +3241,7 @@ test('party event export is self-contained and contains only events recorded for
   assert.equal(exported.exportType, 'jester-moat-event-log');
   assert.equal(exported.schemaVersion, 1);
   assert.equal(exported.party.id, 'party-a');
-  assert.deepEqual(exported.party.configurationAtStart, partyA.configurationAtStart);
+  assert.equal(JSON.stringify(exported.party.configurationAtStart), JSON.stringify(partyA.configurationAtStart));
   assert.deepEqual(Array.from(exported.events, entry => entry.message), ['Party A entered midgame']);
   assert.equal(exported.events[0].partyId, 'party-a');
   assert.equal(exported.events[0].type, 'phase-change');
