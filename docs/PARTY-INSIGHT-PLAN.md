@@ -4,7 +4,7 @@ Purpose: plan party-specific configuration records, event-log context and export
 
 ## Status
 
-**Status: In progress.** Stage A (party identity and configuration snapshot) is complete in PR #170. Stage B (party-scoped event log and self-contained event export) is implemented in the current change. PR #169 already delivered the first part of stage C (the White/Black expression and information tabs); stage C remains incomplete. Stages D and E have not started. This plan is independent of the Engine Configuration and Engine Extensibility plans. Each implementation stage requires its own explicit approval.
+**Status: In progress.** Stage A (party identity and configuration snapshot) is complete in PR #170. Stage B (party-scoped event log and self-contained event export) is implemented in PR #172. PR #169 already delivered the first part of stage C (the White/Black expression and information tabs); stage C remains incomplete. Stages D and E have not started. This plan is independent of the Engine Configuration and Engine Extensibility plans. Each implementation stage requires its own explicit approval.
 
 ## Goal
 
@@ -57,7 +57,7 @@ Inspect existing save/load behavior before deciding schema versioning, old-save 
 
 ### B. Event log and export
 
-**Implemented in the current change:**
+**Implemented in PR #172:**
 
 - Each debug log entry captures the active party ID when the event is recorded. Entries recorded without an active party remain explicitly unassigned.
 - Filtered event exports are party-scoped; exporting one party does not include events from other parties or unassigned periods.
@@ -128,12 +128,12 @@ This stage may be implemented independently of the recap, but should reuse the s
 
 - **A — Completed in PR #170:** new games and validated Board Editor positions receive a schema-versioned party record with a stable ID, start timestamp, origin, variant identity/version, setup identity, and the full engine-configuration snapshot for both sides. The start snapshot is preserved; later persisted engine-configuration changes are appended as timestamped snapshots. Completion records include status, result, reason, and finish timestamp. Game save export/import carries the party record, validates imported metadata against the saved variant/setup, and continues to accept legacy saves without party metadata without inventing historical details. The dedicated tests are source-contract checks of initialization, snapshot/change handling, save/load wiring and validation, legacy compatibility, and completion metadata; they are not runtime integration or manual PWA tests.
 - **C — Partial, already present:** PR #169 added the two side tabs and the first active-engine information view. This is existing implementation, not new work in this task. Configurable visibility/presentation, richer information levels, and engine-handover indication remain outstanding.
-- **B — Implemented in the current change. D and E — Not started.**
+- **B — Implemented in PR #172. D and E — Not started.**
 
 ## Recommended implementation order
 
 1. **A — Completed:** party identity and configuration snapshot are established.
-2. **B — Implemented:** party-scoped event records and a self-contained, separately versioned JSON event export.
+2. **B — Implemented in PR #172:** party-scoped event records and a self-contained, separately versioned JSON event export.
 3. **C — Continue AI overview.** Reuse the party/configuration model to show the currently applicable assignments.
 4. **D — Factual recap.** Build summaries from reliable, recorded events.
 5. **E — Expressions.** Add optional personality-flavored presentation after event semantics are stable.
