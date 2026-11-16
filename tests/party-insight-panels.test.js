@@ -40,7 +40,7 @@ test('Party Insight visibility offers both sides, either side, or neither', () =
 test('Party Insight visibility preference is saved, restored, and applied immediately', () => {
   assert.match(script, /partyInsightVisibility:\s*document\.getElementById\('partyInsightVisibilitySelect'\)\.value/);
   assert.match(script, /setVal\('partyInsightVisibilitySelect', o\.partyInsightVisibility\)/);
-  assert.match(script, /partyInsightVisibilitySelect'\)\.addEventListener\('change',[\\s\\S]*?saveOptions\(\);[\\s\\S]*?updatePartyInsightPanels\(\);/);
+  assert.match(script, /partyInsightVisibilitySelect'\)\.addEventListener\('change', \(\) => \{\s*saveOptions\(\);\s*updatePartyInsightPanels\(\);\s*\}\);/);
 });
 
 test('Party Insight toggles per side and resolves the active phase-specific engine assignment', () => {
