@@ -1569,14 +1569,21 @@ function updatePartyInsightPanels() {
   if (!host) return;
   const mode = document.getElementById('modeSelect')?.value;
   const visible = mode !== 'pvp' && !!state && !editMode;
+  const visibilitySelect = document.getElementById('partyInsightVisibilitySelect');
+  const requestedVisibility = visibilitySelect?.value;
+  const visibility = ['both', 'white', 'black', 'none'].includes(requestedVisibility) ? requestedVisibility : 'both';
   host.querySelectorAll('[data-party-insight-side]').forEach(button => {
-    button.closest('.party-insight-panel').hidden = !visible;
     const side = button.dataset.partyInsightSide;
+    const sideVisible = visible && (visibility === 'both' || visibility === side);
+    const panel = button.closest('.party-insight-panel');
+    panel.classList.toggle('is-hidden', !sideVisible);
+    panel.setAttribute('aria-hidden', String(!sideVisible));
+    button.disabled = !sideVisible;
     const view = partyInsightViews[side] || 'expression';
     const expression = button.querySelector('.party-insight-expression');
     const summary = button.querySelector('.party-insight-summary');
     const sideLabel = side === 'white' ? 'White' : 'Black';
-    if (!visible) return;
+    if (!sideVisible) return;
     if (view === 'expression') {
       expression.hidden = false; summary.hidden = true;
       expression.textContent = '🙂 ' + sideLabel;
@@ -3343,6 +3350,7 @@ function saveOptions(){
       disp: document.getElementById('uiDisplaySelect').value,
       coords: (document.getElementById('coordsToggle').checked ? '1' : '0'),
       showModeIndicator: (document.getElementById('showModeIndicatorToggle').checked ? '1' : '0'),
+      partyInsightVisibility: document.getElementById('partyInsightVisibilitySelect').value,
       theme: document.getElementById('themeSelect').value,
       boardStyle: document.getElementById('boardStyleSelect').value,
       piecePalette: document.getElementById('piecePaletteSelect').value,
@@ -3363,6 +3371,7 @@ function loadOptions(){
       setVal('modeSelect', o.mode); setVal('playerSideSelect', o.side); setVal('timeSelect', o.time);
       setVal('jesterPosSelect', o.jpos); setVal('speedSelect', o.speed); setVal('uiDisplaySelect', o.disp);
       setVal('themeSelect', o.theme);
+      setVal('partyInsightVisibilitySelect', o.partyInsightVisibility);
       setVal('boardStyleSelect', o.boardStyle);
       setVal('piecePaletteSelect', o.piecePalette);
     }
@@ -3388,6 +3397,10 @@ function loadOptions(){
 
 document.getElementById('coordsToggle').addEventListener('change', () => { saveOptions(); render(); });
 document.getElementById('showModeIndicatorToggle').addEventListener('change', () => { saveOptions(); updateModeUI(); });
+document.getElementById('partyInsightVisibilitySelect').addEventListener('change', () => {
+  saveOptions();
+  updatePartyInsightPanels();
+});
 
 /* === v0.4.6: Theme switcher (Auto / Light / Dark) === */
 let themeMq = null;
