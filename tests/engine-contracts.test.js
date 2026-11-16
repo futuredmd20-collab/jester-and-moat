@@ -94,7 +94,7 @@ vm.runInContext(evolutionaryFeatures, sandbox, { filename: 'scripts/evolutionary
 vm.runInContext(evolutionarySearch, sandbox, { filename: 'scripts/evolutionary-search.js' });
 vm.runInContext(evolutionaryEngine, sandbox, { filename: 'engines/evolutionary-engine.js' });
 vm.runInContext(source.slice(0, boundary) + `
-globalThis.api = { GAME_VARIANT, GAME_SETUP_IDS, createGameIdentity, EngineContract, PERSONALITY_PROFILES, DEFAULT_PERSONALITY_ID, assertEnginePersonalityCompatibility, MinMaxLegacy, cancelActiveAIRequest, setActiveAIForTest(worker, request) { aiWorker = worker; pendingAIRequest = request; aiRequestId = request.id; isAIThinking = true; }, getActiveAIForTest() { return { worker: aiWorker, request: pendingAIRequest, thinking: isAIThinking, id: aiRequestId }; }, allLegalState, inCheck, findLegalMoveMatch, MinMaxSearchCore, getBestMove: MinMaxSearchCore.getBestMove, getBestMoveAsync: MinMaxSearchCore.getBestMoveAsync, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout); aiWorkerTimeout = null; if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; gameOver = false; gameOverMessage = ''; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getEngineConfiguration() { return engineCopy(engineConfiguration); }, setEngineConfiguration(config) { engineConfiguration = validateEngineConfiguration(config); updateEngineConfigUI(); }, validateEngineConfiguration, getEngineAssignment, handleEngineConfigurationChange, applyEnginePreset, isAIMode, updateModeUI, stepNextMove, toggleAutoPlay, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, applyLoadedGame, resumeLoadedGamePlayback, getAutoPlayForTest() { return autoPlayInterval; }, stopAutoPlayForTest: stopAutoPlay, ENGINE_PHASES, debugLogger, DebugLogger, status };
+globalThis.api = { GAME_VARIANT, GAME_SETUP_IDS, createGameIdentity, EngineContract, PERSONALITY_PROFILES, DEFAULT_PERSONALITY_ID, assertEnginePersonalityCompatibility, MinMaxLegacy, cancelActiveAIRequest, setActiveAIForTest(worker, request) { aiWorker = worker; pendingAIRequest = request; aiRequestId = request.id; isAIThinking = true; }, getActiveAIForTest() { return { worker: aiWorker, request: pendingAIRequest, thinking: isAIThinking, id: aiRequestId }; }, allLegalState, inCheck, findLegalMoveMatch, MinMaxSearchCore, getBestMove: MinMaxSearchCore.getBestMove, getBestMoveAsync: MinMaxSearchCore.getBestMoveAsync, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout); aiWorkerTimeout = null; if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; gameOver = false; gameOverMessage = ''; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getEngineConfiguration() { return engineCopy(engineConfiguration); }, setEngineConfiguration(config) { engineConfiguration = validateEngineConfiguration(config); updateEngineConfigUI(); }, validateEngineConfiguration, getEngineAssignment, handleEngineConfigurationChange, applyEnginePreset, isAIMode, updateModeUI, stepNextMove, toggleAutoPlay, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, applyLoadedGame, resumeLoadedGamePlayback, getAutoPlayForTest() { return autoPlayInterval; }, stopAutoPlayForTest: stopAutoPlay, ENGINE_PHASES, debugLogger, DebugLogger, status, setPartyRecordForTest(record) { partyRecord = record ? clone(record) : null; }, getPartyRecordForTest() { return partyRecord ? clone(partyRecord) : null; } };
 `, sandbox, { filename: 'script.js' });
 vm.runInContext(mcts, sandbox, { filename: 'engines/mcts-engine.js' });
 // The app's HTML loads the MCTS module before script.js; register its plugin here
@@ -3211,6 +3211,63 @@ test('filtered debug export selects events and warnings without deleting the ful
   ]);
   assert.equal(logger.logs.length, 3, 'filtering must not mutate or delete the complete log');
   logger.enabled = false;
+});
+
+test('party event export is self-contained and contains only events recorded for that party', () => {
+  const logger = sandbox.api.debugLogger;
+  logger.enabled = true;
+  logger.logs = [];
+  const partyA = {
+    schemaVersion: 1,
+    id: 'party-a',
+    startedAt: '2026-11-14T10:00:00.000Z',
+    origin: 'new-game',
+    variant: { id: 'jester-moat', version: 1 },
+    setupId: 'edges',
+    configurationAtStart: { schemaVersion: 2, sides: { white: {}, black: {} } },
+    configurationChanges: [],
+    outcome: { status: 'in_progress', result: null, reason: null, finishedAt: null }
+  };
+  const partyB = { ...partyA, id: 'party-b' };
+
+  sandbox.api.setPartyRecordForTest(partyA);
+  logger.event('phase-change', 'Party A entered midgame');
+  sandbox.api.setPartyRecordForTest(partyB);
+  logger.add('Party B worker failed', 'warn');
+  sandbox.api.setPartyRecordForTest(null);
+  logger.add('Unassigned warning', 'warn');
+
+  const exported = logger.createFilteredEventExport(partyA);
+  assert.equal(exported.exportType, 'jester-moat-event-log');
+  assert.equal(exported.schemaVersion, 1);
+  assert.equal(exported.party.id, 'party-a');
+  assert.equal(JSON.stringify(exported.party.configurationAtStart), JSON.stringify(partyA.configurationAtStart));
+  assert.deepEqual(Array.from(exported.events, entry => entry.message), ['Party A entered midgame']);
+  assert.equal(exported.events[0].partyId, 'party-a');
+  assert.equal(exported.events[0].type, 'phase-change');
+  assert.equal(typeof exported.events[0].timestamp, 'string');
+  assert.equal(logger.logs.length, 3, 'export filtering must not mutate the stored log');
+
+  const unassigned = logger.createFilteredEventExport(null);
+  assert.equal(unassigned.party, null);
+  assert.deepEqual(Array.from(unassigned.events, entry => entry.message), ['Unassigned warning']);
+  sandbox.api.setPartyRecordForTest(null);
+  logger.enabled = false;
+});
+
+test('legacy debug log entries without a party ID remain unassigned', () => {
+  const previousLog = sandbox.localStorage.getItem('debugLog');
+  sandbox.localStorage.setItem('debugLog', JSON.stringify([
+    { timestamp: '2026-11-14T10:00:00.000Z', level: 'warn', type: 'warning', message: 'legacy warning' }
+  ]));
+  try {
+    const logger = new sandbox.api.DebugLogger();
+    assert.equal(logger.logs[0].partyId, null);
+    assert.deepEqual(Array.from(logger.getFilteredEntries(null), entry => entry.message), ['legacy warning']);
+  } finally {
+    if (previousLog === null) storedValues.delete('debugLog');
+    else sandbox.localStorage.setItem('debugLog', previousLog);
+  }
 });
 
 test('?debug=1 still enables debug logging', () => {
