@@ -4,7 +4,7 @@ Purpose: plan party-specific configuration records, event-log context and export
 
 ## Status
 
-**Status: In progress.** Stage A (party identity and configuration snapshot) is complete in PR #170. Stage B (party-scoped event log and self-contained event export) is implemented in PR #172. PR #169 already delivered the first part of stage C (the White/Black expression and information tabs); stage C remains incomplete. Stages D and E have not started. This plan is independent of the Engine Configuration and Engine Extensibility plans. Each implementation stage requires its own explicit approval.
+**Status: In progress.** Stage A (party identity and configuration snapshot) is complete in PR #170. Stage B (party-scoped event log and self-contained event export) is implemented in PR #172. PR #169 delivered the initial White/Black expression and information tabs. Stage C continues in smaller increments; C1 (saved visibility selection for both sides, White only, Black only, or neither) is implemented on the current task branch. Richer information levels and engine-handover indication remain outstanding. Stages D and E have not started. This plan is independent of the Engine Configuration and Engine Extensibility plans. Each implementation stage requires its own explicit approval.
 
 ## Goal
 
@@ -127,7 +127,7 @@ This stage may be implemented independently of the recap, but should reuse the s
 ## Implementation progress
 
 - **A — Completed in PR #170:** new games and validated Board Editor positions receive a schema-versioned party record with a stable ID, start timestamp, origin, variant identity/version, setup identity, and the full engine-configuration snapshot for both sides. The start snapshot is preserved; later persisted engine-configuration changes are appended as timestamped snapshots. Completion records include status, result, reason, and finish timestamp. Game save export/import carries the party record, validates imported metadata against the saved variant/setup, and continues to accept legacy saves without party metadata without inventing historical details. The dedicated tests are source-contract checks of initialization, snapshot/change handling, save/load wiring and validation, legacy compatibility, and completion metadata; they are not runtime integration or manual PWA tests.
-- **C — Partial, already present:** PR #169 added the two side tabs and the first active-engine information view. This is existing implementation, not new work in this task. Configurable visibility/presentation, richer information levels, and engine-handover indication remain outstanding.
+- **C — In progress:** PR #169 added the two side tabs and the first active-engine information view. **C1 — visibility selection:** implemented on the current task branch, with a saved setting for both sides, White only, Black only, or neither; hidden tabs retain their layout space so the board does not shift. Further presentation controls, richer information levels, and engine-handover indication remain outstanding.
 - **B — Implemented in PR #172. D and E — Not started.**
 
 ## Recommended implementation order
@@ -182,3 +182,4 @@ The repository investigation at the start of each implementation stage must conf
 - **2026-11-09:** Created as a separate planned workstream for party identity/configuration, event-log context/export, in-game AI visibility, factual recaps, and optional event-driven expressions. No implementation is authorized by this plan alone.
 - **2026-11-13:** Recorded the agreed in-game presentation concept: compact clickable White/Black tabs around the board, expression and information views, common basic information with engine-specific detail, active-engine-only summary, configurable visibility/presentation, stable board layout, and an engine-handover indicator.
 - **2026-11-14:** Reconciled the plan with PR #169, which implemented the first portion of stage C, and PR #170, which completed stage A. Recorded the party-record lifecycle, snapshot and change-history behavior, outcome metadata, save/import validation and legacy compatibility. The dedicated A tests are source-contract checks; runtime integration and manual PWA verification are not claimed.
+- **2026-11-16:** Added C1 on the feat/party-insight-display-settings task branch: configurable visibility for both side tabs, White only, Black only, or neither, persisted with the existing display options. The layout reserves the tab rows when a side is hidden.
