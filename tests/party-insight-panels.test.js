@@ -95,3 +95,16 @@ test('Party Insight shows a temporary handover marker only when the active engin
 test('Party Insight panel updates safely skip incomplete DOM hosts', () => {
   assert.match(script, /const host = document\.getElementById\('boardLayout'\);\s*if \(!host \|\| typeof host\.querySelectorAll !== 'function'\) return;/);
 });
+
+test('Party Insight exposes a factual match recap without depending on the debug log', () => {
+  assert.match(html, /id="partyInsightRecapButton"/);
+  assert.match(html, /id="partyInsightRecapDialog"/);
+  assert.match(html, /id="partyInsightRecapContent"/);
+  assert.match(script, /function openPartyInsightRecap\(\)/);
+  assert.match(script, /partyRecord\?\.matchEvents \|\| \[\]/);
+  assert.match(script, /The recap contains observed game events, not inferred engine reasoning/);
+  assert.match(script, /details\.textContent = item\.details/);
+  assert.match(script, /addEventListener\('click', openPartyInsightRecap\)/);
+  assert.match(css, /\.party-insight-recap-list/);
+});
+
