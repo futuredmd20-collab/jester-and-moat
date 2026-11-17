@@ -2602,6 +2602,7 @@ test('party recap events and terminal outcomes follow undo and redo history', ()
   assert.equal(sandbox.api.redoHistoryStep(), true);
   assert.equal(sandbox.api.getPartyRecordForTest().matchEvents.length, 3);
   assert.equal(sandbox.api.getPartyRecordForTest().outcome.status, 'completed');
+  sandbox.api.setPartyRecordForTest(null);
 });
 
 test('history snapshots preserve the next moat-placement phase and turn', () => {
