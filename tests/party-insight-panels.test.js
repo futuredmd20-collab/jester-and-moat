@@ -74,3 +74,24 @@ test('Party Insight details control is only available while the side information
   assert.match(css, /\.party-insight-details-dialog::backdrop/);
   assert.match(css, /\.party-insight-details-dialog\s*\{/);
 });
+
+
+test('Party Insight shows a temporary handover marker only when the active engine changes', () => {
+  assert.match(html, /data-party-insight-handover="white"/);
+  assert.match(html, /data-party-insight-handover="black"/);
+  assert.match(html, /role="status" aria-live="polite"/);
+  assert.match(script, /let partyInsightActiveEngines = \{ white: null, black: null \}/);
+  assert.match(script, /function updatePartyInsightHandover\(side, engineId, indicator, sideVisible\)/);
+  assert.match(script, /previousEngineId === engineId/);
+  assert.match(script, /partyInsightActiveEngines\[side\] = engineId/);
+  assert.match(script, /\}, 3000\)/);
+  assert.match(script, /if \(partyInsightHandoverPartyId !== partyId \|\| !visible\) resetPartyInsightHandover\(partyId\)/);
+  assert.match(script, /resetPartyInsightHandover\(\);\s*gameStarted = parsed\.gameStarted/);
+  assert.match(script, /recordPartyConfigurationChange\(\);\s*updatePartyInsightPanels\(\);/);
+  assert.match(css, /\.party-insight-handover\[hidden\]\s*\{\s*display:\s*none;/);
+  assert.match(css, /\.party-insight-handover\s*\{/);
+});
+
+test('Party Insight panel updates safely skip incomplete DOM hosts', () => {
+  assert.match(script, /const host = document\.getElementById\('boardLayout'\);\s*if \(!host \|\| typeof host\.querySelectorAll !== 'function'\) return;/);
+});
