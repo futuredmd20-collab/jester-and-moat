@@ -1596,7 +1596,7 @@ function updatePartyInsightHandover(side, engineId, indicator, sideVisible) {
 
 function updatePartyInsightPanels() {
   const host = document.getElementById('boardLayout');
-  if (!host) return;
+  if (!host || typeof host.querySelectorAll !== 'function') return;
   const mode = document.getElementById('modeSelect')?.value;
   const visible = mode !== 'pvp' && !!state && !editMode;
   const visibilitySelect = document.getElementById('partyInsightVisibilitySelect');
