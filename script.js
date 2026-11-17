@@ -452,9 +452,15 @@ function savedValuesEqual(a, b) {
 }
 const PARTY_RECORD_SCHEMA_VERSION = 1;
 
+const PARTY_EVENT_TYPES = new Set([
+  'game-start', 'phase-change', 'capture', 'check', 'checkmate', 'stalemate',
+  'draw', 'timeout', 'game-end', 'moat-placed', 'moat-destroyed', 'moat-redeployed'
+]);
+
 function createPartyRecord(origin = 'new-game') {
   if (!state) return null;
   const timestamp = new Date().toISOString();
+  const phase = getGamePhase(state);
   return {
     schemaVersion: PARTY_RECORD_SCHEMA_VERSION,
     id: 'party-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10),
@@ -464,8 +470,34 @@ function createPartyRecord(origin = 'new-game') {
     setupId: state.setupId || null,
     configurationAtStart: engineCopy(engineConfiguration),
     configurationChanges: [],
+    matchEvents: [{
+      at: timestamp, type: 'game-start', side: null, ply: state.ply || 0,
+      phase, details: origin === 'board-editor' ? 'Game started from a Board Editor position.' : 'New game started.'
+    }],
     outcome: { status: 'in_progress', result: null, reason: null, finishedAt: null }
   };
+}
+
+function recordPartyEvent(type, details, side = null, phase = null) {
+  if (!partyRecord || partyRecord.outcome.status !== 'in_progress' || !PARTY_EVENT_TYPES.has(type)) return null;
+  if (!Array.isArray(partyRecord.matchEvents)) partyRecord.matchEvents = [];
+  const event = {
+    at: new Date().toISOString(),
+    type,
+    side: ['w', 'b'].includes(side) ? side : null,
+    ply: Number.isInteger(state?.ply) && state.ply >= 0 ? state.ply : 0,
+    phase: Object.values(ENGINE_PHASES).includes(phase) ? phase : null,
+    details: String(details || '')
+  };
+  partyRecord.matchEvents.push(event);
+  updatePartyInsightRecapControl();
+  return event;
+}
+
+function recordPartyPhaseChange(previousPhase, nextPhase) {
+  if (previousPhase && nextPhase && previousPhase !== nextPhase) {
+    recordPartyEvent('phase-change', `Phase changed: ${previousPhase} → ${nextPhase}.`, null, nextPhase);
+  }
 }
 
 function isPartyEngineConfigurationSnapshot(value) {
@@ -523,6 +555,23 @@ function normalizePartyRecord(candidate, savedState) {
     }
     return { at: change.at, configuration: clone(change.configuration) };
   });
+  const matchEvents = candidate.matchEvents === undefined ? [] : candidate.matchEvents;
+  if (!Array.isArray(matchEvents)) throw new Error('Invalid party match events in save file.');
+  const normalizedEvents = matchEvents.map(event => {
+    if (!event || typeof event !== 'object' || Array.isArray(event) ||
+        typeof event.at !== 'string' || !Number.isFinite(Date.parse(event.at)) ||
+        !PARTY_EVENT_TYPES.has(event.type) ||
+        ![null, 'w', 'b'].includes(event.side ?? null) ||
+        !Number.isInteger(event.ply) || event.ply < 0 ||
+        (event.phase !== null && !Object.values(ENGINE_PHASES).includes(event.phase)) ||
+        typeof event.details !== 'string') {
+      throw new Error('Invalid party match event in save file.');
+    }
+    return {
+      at: event.at, type: event.type, side: event.side ?? null, ply: event.ply,
+      phase: event.phase ?? null, details: event.details
+    };
+  });
   return {
     schemaVersion: PARTY_RECORD_SCHEMA_VERSION,
     id: candidate.id,
@@ -533,6 +582,7 @@ function normalizePartyRecord(candidate, savedState) {
     configurationAtStart: candidate.configurationAtStart === null
       ? null : clone(candidate.configurationAtStart),
     configurationChanges: changes,
+    matchEvents: normalizedEvents,
     outcome: {
       status: outcome.status,
       result: outcome.result ?? null,
@@ -558,9 +608,16 @@ function completePartyRecord(message) {
   const winner = reason.match(/\b(White|Black) wins\b/i);
   const result = winner ? winner[1].toLowerCase() + '_win'
     : /draw|stalemate/i.test(reason) ? 'draw' : 'unknown';
+  const eventType = /checkmate/i.test(reason) ? 'checkmate'
+    : /stalemate/i.test(reason) ? 'stalemate'
+    : /time\s*out|timeout/i.test(reason) ? 'timeout'
+    : /draw/i.test(reason) ? 'draw' : 'game-end';
+  recordPartyEvent(eventType, reason, winner ? winner[1].toLowerCase()[0] : null,
+    state ? getGamePhase(state) : null);
   partyRecord.outcome = {
     status: 'completed', result, reason, finishedAt: new Date().toISOString()
   };
+  updatePartyInsightRecapControl();
 }
 
 function exportGameData() {
@@ -1594,7 +1651,85 @@ function updatePartyInsightHandover(side, engineId, indicator, sideVisible) {
   }, 3000);
 }
 
+function partyInsightEventLabel(type) {
+  const labels = {
+    'game-start': 'Game started',
+    'phase-change': 'Game phase changed',
+    capture: 'Capture',
+    check: 'Check',
+    checkmate: 'Checkmate',
+    stalemate: 'Stalemate',
+    draw: 'Draw',
+    timeout: 'Time expired',
+    'game-end': 'Game ended',
+    'moat-placed': 'Moat placed',
+    'moat-destroyed': 'Moat destroyed',
+    'moat-redeployed': 'Moat redeployed'
+  };
+  return labels[type] || 'Game event';
+}
+
+function updatePartyInsightRecapControl() {
+  const button = document.getElementById('partyInsightRecapButton');
+  if (!button) return;
+  const count = partyRecord?.matchEvents?.length || 0;
+  button.textContent = count ? `Match recap · ${count}` : 'Match recap';
+  button.disabled = !partyRecord;
+}
+
+function openPartyInsightRecap() {
+  const dialog = document.getElementById('partyInsightRecapDialog');
+  const content = document.getElementById('partyInsightRecapContent');
+  if (!dialog || !content || typeof dialog.showModal !== 'function') return;
+  content.replaceChildren();
+
+  const heading = document.createElement('h2');
+  heading.id = 'partyInsightRecapTitle';
+  heading.textContent = 'Match recap';
+  content.appendChild(heading);
+
+  const events = partyRecord?.matchEvents || [];
+  const intro = document.createElement('p');
+  intro.className = 'party-insight-details-intro';
+  intro.textContent = partyRecord
+    ? `${events.length} recorded events from this game. The recap contains observed game events, not inferred engine reasoning.`
+    : 'No party record is available for this game.';
+  content.appendChild(intro);
+
+  if (partyRecord?.outcome?.status === 'completed') {
+    const outcome = document.createElement('p');
+    outcome.className = 'party-insight-recap-outcome';
+    outcome.textContent = 'Result: ' + partyRecord.outcome.reason;
+    content.appendChild(outcome);
+  }
+
+  if (!events.length) {
+    const empty = document.createElement('p');
+    empty.className = 'party-insight-recap-empty';
+    empty.textContent = 'No match events were recorded for this saved game.';
+    content.appendChild(empty);
+  } else {
+    const list = document.createElement('ol');
+    list.className = 'party-insight-recap-list';
+    for (const item of events) {
+      const entry = document.createElement('li');
+      const label = document.createElement('strong');
+      label.textContent = partyInsightEventLabel(item.type);
+      const details = document.createElement('p');
+      details.textContent = item.details;
+      const meta = document.createElement('small');
+      const move = item.ply > 0 ? `Ply ${item.ply}` : 'Start';
+      meta.textContent = `${move} · ${new Date(item.at).toLocaleString()}`;
+      entry.append(label, details, meta);
+      list.appendChild(entry);
+    }
+    content.appendChild(list);
+  }
+  dialog.showModal();
+}
+
 function updatePartyInsightPanels() {
+  updatePartyInsightRecapControl();
   const host = document.getElementById('boardLayout');
   if (!host || typeof host.querySelectorAll !== 'function') return;
   const mode = document.getElementById('modeSelect')?.value;
@@ -2068,6 +2203,13 @@ if (boardInsightHost) boardInsightHost.addEventListener('click', event => {
 const partyInsightDialog = document.getElementById('partyInsightDetailsDialog');
 if (partyInsightDialog) partyInsightDialog.addEventListener('click', event => {
   if (event.target.closest('[data-party-insight-close]')) partyInsightDialog.close();
+});
+
+const partyInsightRecapButton = document.getElementById('partyInsightRecapButton');
+if (partyInsightRecapButton) partyInsightRecapButton.addEventListener('click', openPartyInsightRecap);
+const partyInsightRecapDialog = document.getElementById('partyInsightRecapDialog');
+if (partyInsightRecapDialog) partyInsightRecapDialog.addEventListener('click', event => {
+  if (event.target.closest('[data-party-insight-recap-close]')) partyInsightRecapDialog.close();
 });
 
 const engineAssignmentsHost = document.getElementById('engineAssignments');
@@ -2587,7 +2729,9 @@ function play(m, promoChoice = 'q', silent = false){
 
   const mode = document.getElementById('modeSelect').value;
   const p = state.board[m.from.r][m.from.c], mover = p.color;
-  
+  const previousPhase = !silent && partyRecord ? getGamePhase(state) : null;
+  const capturedBefore = state.captured?.[mover]?.length || 0;
+
   if (p.type === 'p' && (m.to.r === 0 || m.to.r === ROWS - 1) && (mode === 'pvp' || (isAIMode() && mode !== 'ai_vs_ai' && mover === playerColor)) && !autoPlayInterval && promoChoice === 'pending') {
     pendingPromotionMove = m;
     showPromotionModal(mover);
@@ -2623,9 +2767,22 @@ function play(m, promoChoice = 'q', silent = false){
     }
   }
 
+  if (!silent && applyResult) {
+    const capturedPiece = state.captured?.[mover]?.[capturedBefore];
+    if (capturedPiece) {
+      const destination = `${String.fromCharCode(65 + m.to.c)}${ROWS - m.to.r}`;
+      const pieceName = PIECE_NAME[capturedPiece.type] || capturedPiece.type;
+      recordPartyEvent('capture',
+        `${mover === 'w' ? 'White' : 'Black'} captured ${capturedPiece.color === 'w' ? 'White' : 'Black'} ${pieceName} on ${destination}.`,
+        mover, getGamePhase(state));
+    }
+  }
+  if (!silent && previousPhase) recordPartyPhaseChange(previousPhase, getGamePhase(state));
+
   const destroyedColors = m.swap ? checkMoatDestructionState(state) : (applyResult ? applyResult.moatsDestroyed : []);
   for (const mc of destroyedColors) {
     const msg = `MOAT DESTROYED: ${mc==='w'?'White':'Black'}'s moat has been destroyed!`;
+    if (!silent) recordPartyEvent('moat-destroyed', msg, mc, getGamePhase(state));
     status(msg);
     moveLog.push(`💥 ${msg}`);
   }
@@ -2709,6 +2866,9 @@ function play(m, promoChoice = 'q', silent = false){
     stopClock();
     if (!silent) status("Draw by insufficient material.");
   } else {
+    if (!silent && check) {
+      recordPartyEvent('check', `${state.turn === 'w' ? 'White' : 'Black'} is in check.`, state.turn, getGamePhase(state));
+    }
     if (!silent) status(check ? `${state.turn==='w'?'White':'Black'} is in check.` : `Turn: ${state.turn==='w'?'White':'Black'}${m.swap?' — Jester swap executed.':''}`);
   }
 
@@ -2772,7 +2932,8 @@ function confirmMoatPlacement(){
   const mode = document.getElementById('modeSelect').value;
   const color = state.phase.split('_')[2];
   const {r, c} = pendingMoat;
-  
+  const redeployed = !!(state.moatDestroyed && state.moatDestroyed[color]);
+
   state.moats[color] = {r, c};
   state.hasPlacedMoat[color] = true;
   if (state.moatDestroyed) state.moatDestroyed[color] = false;
@@ -2780,6 +2941,9 @@ function confirmMoatPlacement(){
   const col1 = String.fromCharCode(65 + c);
   const col3 = String.fromCharCode(65 + c + 2);
   const rowName = ROWS - r;
+  recordPartyEvent(redeployed ? 'moat-redeployed' : 'moat-placed',
+    `${color === 'w' ? 'White' : 'Black'} ${redeployed ? 'redeployed' : 'placed'} a moat at ${col1}${rowName}-${col3}${rowName}.`,
+    color, getGamePhase(state));
   const moveNumber = moveLog.length + 1;
   moveLog.push(`${moveNumber}. ${color==='w'?'White':'Black'}: Moat ${col1}${rowName}-${col3}${rowName} (${formatTime(state.clocks[color])})`);
 
@@ -2815,6 +2979,7 @@ function aiPlaceMoatForColor(color, silent = false){
   const validRows = color === 'w' ? [4, 5] : [2, 3];
   const r = validRows[Math.floor(Math.random() * validRows.length)];
   const c = Math.floor(Math.random() * 6) + 1;
+  const redeployed = !!(state.moatDestroyed && state.moatDestroyed[color]);
   state.moats[color] = {r, c};
   state.hasPlacedMoat[color] = true;
   if (state.moatDestroyed) state.moatDestroyed[color] = false;
@@ -2822,6 +2987,9 @@ function aiPlaceMoatForColor(color, silent = false){
   const col1 = String.fromCharCode(65 + c);
   const col3 = String.fromCharCode(65 + c + 2);
   const rowName = ROWS - r;
+  if (!silent) recordPartyEvent(redeployed ? 'moat-redeployed' : 'moat-placed',
+    `${color === 'w' ? 'White' : 'Black'} ${redeployed ? 'redeployed' : 'placed'} a moat at ${col1}${rowName}-${col3}${rowName}.`,
+    color, getGamePhase(state));
   const moveNumber = moveLog.length + 1;
   moveLog.push(`${moveNumber}. ${color==='w'?'White':'Black'}: Moat ${col1}${rowName}-${col3}${rowName} (${formatTime(state.clocks[color])})`);
 
@@ -3286,6 +3454,7 @@ function applyLoadedGame(parsed) {
   state = parsed.state;
   partyRecord = parsed.partyRecord || null;
   resetPartyInsightHandover();
+  updatePartyInsightRecapControl();
   gameStarted = parsed.gameStarted;
   playerColor = parsed.playerColor;
   document.getElementById('playerSideSelect').value = playerColor;
