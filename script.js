@@ -1630,6 +1630,7 @@ function openPartyInsightDetails(side) {
   content.replaceChildren();
 
   const heading = document.createElement('h2');
+  heading.id = 'partyInsightDetailsTitle';
   heading.textContent = sideLabel + ' AI details';
   content.appendChild(heading);
 
@@ -2017,6 +2018,11 @@ if (boardInsightHost) boardInsightHost.addEventListener('click', event => {
   }
   const button = event.target.closest('[data-party-insight-side]');
   if (button) togglePartyInsightView(button.dataset.partyInsightSide);
+});
+
+const partyInsightDialog = document.getElementById('partyInsightDetailsDialog');
+if (partyInsightDialog) partyInsightDialog.addEventListener('click', event => {
+  if (event.target.closest('[data-party-insight-close]')) partyInsightDialog.close();
 });
 
 const engineAssignmentsHost = document.getElementById('engineAssignments');
