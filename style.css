@@ -542,6 +542,20 @@
     box-shadow: 0 12px 40px #0005; overflow: auto;
   }
   .party-insight-details-dialog::backdrop { background: #0008; }
+  .party-insight-recap { display: flex; justify-content: center; margin: 4px 0 8px; }
+  .party-insight-recap-button {
+    min-height: 28px; padding: 4px 10px; border: 1px solid var(--line);
+    border-radius: 7px; background: var(--panel, #f5eee2); color: var(--ink);
+    font: inherit; font-size: .74rem; cursor: pointer;
+  }
+  .party-insight-recap-button:disabled { opacity: .55; cursor: default; }
+  .party-insight-recap-outcome { margin: 0 0 10px; font-size: .84rem; font-weight: 700; }
+  .party-insight-recap-empty { color: var(--muted-ink); font-size: .82rem; }
+  .party-insight-recap-list { margin: 0; padding-left: 22px; }
+  .party-insight-recap-list li { padding: 8px 0; border-top: 1px solid var(--line); }
+  .party-insight-recap-list li strong { font-size: .82rem; }
+  .party-insight-recap-list li p { margin: 3px 0; font-size: .8rem; overflow-wrap: anywhere; }
+  .party-insight-recap-list li small { color: var(--muted-ink); font-size: .7rem; }
   .party-insight-details-content h2 { margin: 0 0 6px; font-size: 1.15rem; }
   .party-insight-details-intro { margin: 0 0 12px; color: var(--muted-ink); font-size: .82rem; }
   .party-insight-phase { padding: 10px 0; border-top: 1px solid var(--line); }
