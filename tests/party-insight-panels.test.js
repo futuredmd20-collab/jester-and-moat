@@ -34,7 +34,7 @@ test('Party Insight visibility offers both sides, either side, or neither', () =
   assert.match(script, /panel\.classList\.toggle\('is-hidden', !sideVisible\)/);
   assert.match(script, /panel\.setAttribute\('aria-hidden', String\(!sideVisible\)\)/);
   assert.match(script, /button\.disabled = !sideVisible/);
-  assert.match(css, /\.party-insight-panel\.is-hidden\s*\{[^}]*visibility:\s*hidden;[^}]*pointer-events:\s*none;/);
+  assert.match(css, /\.party-insight-panel\.is-hidden\s*\{[^}]*display:\s*none;/);
 });
 
 test('Party Insight visibility preference is saved, restored, and applied immediately', () => {
