@@ -375,6 +375,7 @@
    <span class="party-insight-expression" aria-hidden="true">🙂 White</span>
    <span class="party-insight-summary" hidden></span>
   </button>
+  <button type="button" class="party-insight-details-button" data-party-insight-details="white" hidden>More details</button>
  </div>
  <div class="board-frame-wrap"><div id="board" role="grid" aria-label="Chess board 10 by 8"></div></div>
  <div class="eval-bar-track board-eval-track" id="boardEvalTrack" role="img" aria-label="Material balance: White at bottom, Black at top">
@@ -397,8 +398,16 @@
    <span class="party-insight-expression" aria-hidden="true">🙂 Black</span>
    <span class="party-insight-summary" hidden></span>
   </button>
+  <button type="button" class="party-insight-details-button" data-party-insight-details="black" hidden>More details</button>
  </div>
 </div>
+
+<dialog id="partyInsightDetailsDialog" class="party-insight-details-dialog" aria-labelledby="partyInsightDetailsTitle">
+ <div class="party-insight-details-content" id="partyInsightDetailsContent"></div>
+ <div class="party-insight-dialog-actions">
+  <button type="button" class="secondary-btn" onclick="document.getElementById('partyInsightDetailsDialog').close()">Close</button>
+ </div>
+</dialog>
 
 <div class="dashboard">
  <div class="captured-container">
