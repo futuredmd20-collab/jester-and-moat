@@ -62,3 +62,16 @@ test('party match events are validated, persisted, and legacy party records defa
   assert.match(script, /partyRecord: partyRecord \? clone\(partyRecord\) : null/);
 });
 
+
+test('party recap events and outcomes follow undo/redo and saved history snapshots', () => {
+  assert.match(script, /let historyPartySnapshots = \[\]/);
+  assert.match(script, /function createPartyHistorySnapshot\(\)/);
+  assert.match(script, /function restorePartyHistorySnapshot\(snapshot\)/);
+  assert.match(script, /historyPartySnapshots\.push\(createPartyHistorySnapshot\(\)\)/);
+  assert.match(script, /partySnapshot: clone\(currentPartySnapshot\)/);
+  assert.match(script, /restorePartyHistorySnapshot\(historyPartySnapshots\[historyPartySnapshots\.length - 1\]\)/);
+  assert.match(script, /historyPartySnapshots: clone\(historyPartySnapshots\)/);
+  assert.match(script, /parsed\.historyPartySnapshots/);
+  assert.match(script, /Current party record does not match the latest party history snapshot/);
+  assert.match(script, /if \(!silent\) replaceLatestHistorySnapshot\(\)/);
+});
