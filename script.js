@@ -1563,6 +1563,36 @@ function getEngineAssignment(side, phase) {
 }
 
 let partyInsightViews = { white: 'expression', black: 'expression' };
+let partyInsightHandoverPartyId = undefined;
+let partyInsightActiveEngines = { white: null, black: null };
+let partyInsightHandoverTimers = { white: null, black: null };
+
+function resetPartyInsightHandover(partyId = partyRecord?.id ?? null) {
+  for (const side of ['white', 'black']) {
+    if (partyInsightHandoverTimers[side] !== null) clearTimeout(partyInsightHandoverTimers[side]);
+    partyInsightHandoverTimers[side] = null;
+    partyInsightActiveEngines[side] = null;
+    const indicator = document.querySelector('[data-party-insight-handover="' + side + '"]');
+    if (indicator) indicator.hidden = true;
+  }
+  partyInsightHandoverPartyId = partyId;
+}
+
+function updatePartyInsightHandover(side, engineId, indicator, sideVisible) {
+  const previousEngineId = partyInsightActiveEngines[side];
+  partyInsightActiveEngines[side] = engineId;
+  if (!previousEngineId || previousEngineId === engineId || !sideVisible || !indicator) {
+    if (indicator && !sideVisible) indicator.hidden = true;
+    return;
+  }
+
+  indicator.hidden = false;
+  if (partyInsightHandoverTimers[side] !== null) clearTimeout(partyInsightHandoverTimers[side]);
+  partyInsightHandoverTimers[side] = setTimeout(() => {
+    indicator.hidden = true;
+    partyInsightHandoverTimers[side] = null;
+  }, 3000);
+}
 
 function updatePartyInsightPanels() {
   const host = document.getElementById('boardLayout');
@@ -1572,6 +1602,9 @@ function updatePartyInsightPanels() {
   const visibilitySelect = document.getElementById('partyInsightVisibilitySelect');
   const requestedVisibility = visibilitySelect?.value;
   const visibility = ['both', 'white', 'black', 'none'].includes(requestedVisibility) ? requestedVisibility : 'both';
+  const partyId = partyRecord?.id ?? null;
+  if (partyInsightHandoverPartyId !== partyId || !visible) resetPartyInsightHandover(partyId);
+  const activePhase = visible ? getGamePhase(state) : null;
   host.querySelectorAll('[data-party-insight-side]').forEach(button => {
     const side = button.dataset.partyInsightSide;
     const sideVisible = visible && (visibility === 'both' || visibility === side);
@@ -1583,7 +1616,18 @@ function updatePartyInsightPanels() {
     const expression = button.querySelector('.party-insight-expression');
     const summary = button.querySelector('.party-insight-summary');
     const detailsButton = panel.querySelector('[data-party-insight-details]');
+    const handoverIndicator = panel.querySelector('[data-party-insight-handover]');
     const sideLabel = side === 'white' ? 'White' : 'Black';
+    if (visible) {
+      try {
+        const activeAssignment = getEngineAssignment(side, activePhase);
+        updatePartyInsightHandover(side, activeAssignment.engine.id, handoverIndicator, sideVisible);
+      } catch (_) {
+        // Keep the last known engine until a valid active assignment is available.
+      }
+    } else if (handoverIndicator) {
+      handoverIndicator.hidden = true;
+    }
     if (!sideVisible) return;
     detailsButton.hidden = view !== 'information';
     if (view === 'expression') {
@@ -1594,7 +1638,7 @@ function updatePartyInsightPanels() {
     } else {
       let details = null;
       try {
-        const phase = getGamePhase(state);
+        const phase = activePhase;
         const assignment = getEngineAssignment(side, phase);
         details = { engine: assignment.engine.name || assignment.engine.id,
           strength: ENGINE_STRENGTH_LABELS[assignment.strength] || assignment.strength,
@@ -1719,6 +1763,7 @@ function persistEngineConfiguration() {
     // Storage may be unavailable in private browsing or restricted contexts.
   }
   recordPartyConfigurationChange();
+  updatePartyInsightPanels();
 }
 
 function escapeEngineConfigHtml(value) {
@@ -3240,6 +3285,7 @@ function applyLoadedGame(parsed) {
   cancelActiveAIRequest('load-saved-game');
   state = parsed.state;
   partyRecord = parsed.partyRecord || null;
+  resetPartyInsightHandover();
   gameStarted = parsed.gameStarted;
   playerColor = parsed.playerColor;
   document.getElementById('playerSideSelect').value = playerColor;
