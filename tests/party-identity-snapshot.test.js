@@ -41,3 +41,24 @@ test('completed games record factual outcome and completion metadata', () => {
   assert.match(script, /status: 'completed', result, reason, finishedAt: new Date\(\)\.toISOString\(\)/);
   assert.match(script, /completePartyRecord\(fullMsg\);/);
 });
+
+test('party match events are recorded independently of debug logging', () => {
+  assert.match(script, /const PARTY_EVENT_TYPES = new Set\(/);
+  assert.match(script, /matchEvents: \[\{[\s\S]*?type: 'game-start'/);
+  assert.match(script, /function recordPartyEvent\(type, details, side = null, phase = null\)/);
+  assert.match(script, /function recordPartyPhaseChange\(previousPhase, nextPhase\)/);
+  assert.match(script, /recordPartyEvent\('capture'/);
+  assert.match(script, /recordPartyEvent\('check'/);
+  assert.match(script, /recordPartyEvent\('moat-destroyed'/);
+  assert.match(script, /'moat-redeployed' : 'moat-placed'/);
+  assert.match(script, /recordPartyEvent\(eventType, reason/);
+});
+
+test('party match events are validated, persisted, and legacy party records default to an empty event list', () => {
+  assert.match(script, /const matchEvents = candidate\.matchEvents === undefined \? \[\] : candidate\.matchEvents/);
+  assert.match(script, /Invalid party match events in save file/);
+  assert.match(script, /Invalid party match event in save file/);
+  assert.match(script, /matchEvents: normalizedEvents/);
+  assert.match(script, /partyRecord: partyRecord \? clone\(partyRecord\) : null/);
+});
+
