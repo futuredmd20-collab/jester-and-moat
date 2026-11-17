@@ -2941,6 +2941,7 @@ function play(m, promoChoice = 'q', silent = false){
       }
     }
   }
+  if (!silent) replaceLatestHistorySnapshot();
 }
 
 function showPromotionModal(color){
