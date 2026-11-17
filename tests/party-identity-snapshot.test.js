@@ -27,7 +27,7 @@ test('party configuration changes are appended without replacing the start snaps
 
 test('party metadata roundtrips with saves and legacy saves remain importable', () => {
   assert.match(script, /partyRecord: partyRecord \? clone\(partyRecord\) : null/);
-  assert.match(script, /partyRecord: normalizePartyRecord\(parsed\.partyRecord, normalizedState\)/);
+  assert.match(script, /const normalizedPartyRecord = normalizePartyRecord\(parsed\.partyRecord, normalizedState\)/);
   assert.match(script, /function normalizePartyRecord\(candidate, savedState\)/);
   assert.match(script, /function isPartyEngineConfigurationSnapshot\(value\)/);
   assert.match(script, /isPartyEngineConfigurationSnapshot\(candidate\.configurationAtStart\)/);
