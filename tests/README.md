@@ -18,6 +18,7 @@ The separate engine-strength calibration runner has a short smoke test and a ful
 
 - Party Insight panel markup and board-surrounding layout hooks; per-side expression/information toggling; active phase-specific engine summary; saved visibility selection for both sides, White only, Black only, or neither.
 - Party identity and configuration snapshots: source-contract checks for new-game/editor initialization, append-only active-party configuration changes, save/load metadata wiring and validation, legacy-save compatibility, and completion metadata.
+- Party-scoped match events and recap: game start, phase transitions, captures, checks, terminal outcomes, and moat events are recorded independently of debug logging; events are validated and persisted with the party record, including backward-compatible loading of older party records without an event list.
 - Party-scoped debug event export: log entries capture the active party ID; the separate JSON event export includes the complete party record/configuration snapshots and only matching filtered events. Legacy log entries remain unassigned.
 
 - MinMax returns a legal move in a simple position and does not mutate the input state.
