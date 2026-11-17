@@ -272,6 +272,7 @@ let animateNextMove = false;
 let legalTargets = [];
 let history = [];
 let historyMoveLogs = [];
+let historyPartySnapshots = [];
 let redoStack = [];
 let moveLog = [];
 let gameOver = false;
@@ -334,24 +335,39 @@ let lastClockTickTime = null;
 
 function clone(x) { return JSON.parse(JSON.stringify(x)); }
 
+function createPartyHistorySnapshot() {
+  if (!partyRecord) return null;
+  return { matchEvents: clone(partyRecord.matchEvents || []), outcome: clone(partyRecord.outcome) };
+}
+function restorePartyHistorySnapshot(snapshot) {
+  if (!partyRecord || !snapshot) return;
+  partyRecord.matchEvents = clone(snapshot.matchEvents);
+  partyRecord.outcome = clone(snapshot.outcome);
+  updatePartyInsightRecapControl();
+}
+
 function pushHistorySnapshot() {
   history.push(clone(state));
   historyMoveLogs.push(moveLog.slice());
+  historyPartySnapshots.push(createPartyHistorySnapshot());
   redoStack = [];
 }
 function replaceLatestHistorySnapshot() {
   if (!history.length) { pushHistorySnapshot(); return; }
   history[history.length - 1] = clone(state);
   historyMoveLogs[historyMoveLogs.length - 1] = moveLog.slice();
+  historyPartySnapshots[historyPartySnapshots.length - 1] = createPartyHistorySnapshot();
 }
 function undoHistoryStep() {
   if (history.length <= 1) return false;
   const currentState = history.pop();
   const currentMoveLog = historyMoveLogs.pop() || moveLog.slice();
-  redoStack.push({ state: clone(currentState), moveLog: currentMoveLog.slice(), gameOver,
+  const currentPartySnapshot = historyPartySnapshots.pop() || createPartyHistorySnapshot();
+  redoStack.push({ state: clone(currentState), moveLog: currentMoveLog.slice(), partySnapshot: clone(currentPartySnapshot), gameOver,
     gameOverMessage, statusText: document.getElementById('status').textContent });
   state = clone(history[history.length - 1]);
   moveLog = (historyMoveLogs[historyMoveLogs.length - 1] || []).slice();
+  restorePartyHistorySnapshot(historyPartySnapshots[historyPartySnapshots.length - 1]);
   gameOver = false;
   gameOverMessage = '';
   return true;
@@ -363,6 +379,8 @@ function redoHistoryStep() {
   moveLog = (nextEntry.moveLog || []).slice();
   history.push(clone(state));
   historyMoveLogs.push(moveLog.slice());
+  historyPartySnapshots.push(clone(nextEntry.partySnapshot ?? createPartyHistorySnapshot()));
+  restorePartyHistorySnapshot(historyPartySnapshots[historyPartySnapshots.length - 1]);
   gameOver = Boolean(nextEntry.gameOver);
   gameOverMessage = gameOver ? (nextEntry.gameOverMessage || nextEntry.statusText || '') : '';
   if (gameOver) {
@@ -618,11 +636,13 @@ function completePartyRecord(message) {
     status: 'completed', result, reason, finishedAt: new Date().toISOString()
   };
   updatePartyInsightRecapControl();
+  replaceLatestHistorySnapshot();
 }
 
 function exportGameData() {
   return { state: clone(state), moveLog: moveLog.slice(), history: clone(history),
-    historyMoveLogs: clone(historyMoveLogs), gameStarted, playerColor, gameOver, gameOverMessage,
+    historyMoveLogs: clone(historyMoveLogs), historyPartySnapshots: clone(historyPartySnapshots),
+    gameStarted, playerColor, gameOver, gameOverMessage,
     partyRecord: partyRecord ? clone(partyRecord) : null };
 }
 function parseGameData(input, initialTime = 0) {
@@ -655,10 +675,42 @@ function parseGameData(input, initialTime = 0) {
   if (parsed.gameStarted !== undefined && typeof parsed.gameStarted !== 'boolean') throw new Error('Invalid game-started flag in save file.');
   if (parsed.gameOver !== undefined && typeof parsed.gameOver !== 'boolean') throw new Error('Invalid game-over flag in save file.');
   if (parsed.gameOverMessage !== undefined && typeof parsed.gameOverMessage !== 'string') throw new Error('Invalid game-over message in save file.');
+  const normalizedPartyRecord = normalizePartyRecord(parsed.partyRecord, normalizedState);
+  let partyHistorySnapshots;
+  if (parsed.historyPartySnapshots !== undefined) {
+    partyHistorySnapshots = parsed.historyPartySnapshots;
+    if (!Array.isArray(partyHistorySnapshots) || partyHistorySnapshots.length !== normalizedHistory.length) {
+      throw new Error('Invalid party history snapshots in save file.');
+    }
+    partyHistorySnapshots = partyHistorySnapshots.map(snapshot => {
+      if (normalizedPartyRecord === null) {
+        if (snapshot !== null) throw new Error('Invalid party history snapshots in save file.');
+        return null;
+      }
+      if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot) ||
+          !Array.isArray(snapshot.matchEvents) || !snapshot.outcome || typeof snapshot.outcome !== 'object') {
+        throw new Error('Invalid party history snapshot in save file.');
+      }
+      const normalizedSnapshot = normalizePartyRecord({ ...normalizedPartyRecord,
+        matchEvents: snapshot.matchEvents, outcome: snapshot.outcome }, normalizedState);
+      return { matchEvents: normalizedSnapshot.matchEvents, outcome: normalizedSnapshot.outcome };
+    });
+    const latestPartySnapshot = partyHistorySnapshots[partyHistorySnapshots.length - 1];
+    const currentPartySnapshot = normalizedPartyRecord
+      ? { matchEvents: normalizedPartyRecord.matchEvents, outcome: normalizedPartyRecord.outcome } : null;
+    if (!savedValuesEqual(latestPartySnapshot, currentPartySnapshot)) {
+      throw new Error('Current party record does not match the latest party history snapshot.');
+    }
+  } else {
+    const fallbackSnapshot = normalizedPartyRecord
+      ? { matchEvents: clone(normalizedPartyRecord.matchEvents), outcome: clone(normalizedPartyRecord.outcome) } : null;
+    partyHistorySnapshots = normalizedHistory.map(() => clone(fallbackSnapshot));
+  }
   return { state: normalizedState, moveLog: logs.slice(), history: normalizedHistory, historyMoveLogs: logHistory,
+    historyPartySnapshots,
     gameStarted: parsed.gameStarted === undefined ? true : parsed.gameStarted, playerColor: savedPlayerColor,
     gameOver: parsed.gameOver === true, gameOverMessage: parsed.gameOverMessage || '',
-    partyRecord: normalizePartyRecord(parsed.partyRecord, normalizedState) };
+    partyRecord: normalizedPartyRecord };
 }
 
 function inside(r, c) { return r >= 0 && r < ROWS && c >= 0 && c < COLS; }
@@ -880,8 +932,9 @@ function setup(){
   };
 
   state.positionHistory[getPositionKey(state)] = 1;
-  selected = null; legalTargets = []; moveLog = []; history = [clone(state)]; historyMoveLogs = [moveLog.slice()]; redoStack = []; lastMove = null; gameOver = false; gameOverMessage = ''; gameStarted = false; pendingPromotionMove = null;
+  selected = null; legalTargets = []; moveLog = []; history = [clone(state)]; historyMoveLogs = [moveLog.slice()]; historyPartySnapshots = []; redoStack = []; lastMove = null; gameOver = false; gameOverMessage = ''; gameStarted = false; pendingPromotionMove = null;
   partyRecord = createPartyRecord('new-game');
+  historyPartySnapshots = [createPartyHistorySnapshot()];
   hideGameOverOverlay();
   
   lastClockDisplay = { w: null, b: null };
@@ -3119,6 +3172,7 @@ function validateAndPlayPosition(){
   moveLog = ["1. Position & clocks set via Board Editor."];
   history = [clone(state)];
   historyMoveLogs = [moveLog.slice()];
+  historyPartySnapshots = [createPartyHistorySnapshot()];
   redoStack = [];
   selected = null; legalTargets = [];
   status(`Custom position loaded! Game started. Turn: ${state.turn==='w'?'White':'Black'}`);
@@ -3464,6 +3518,7 @@ function applyLoadedGame(parsed) {
   moveLog = parsed.moveLog;
   history = parsed.history;
   historyMoveLogs = parsed.historyMoveLogs;
+  historyPartySnapshots = parsed.historyPartySnapshots;
   redoStack = [];
   gameOver = parsed.gameOver;
   gameOverMessage = parsed.gameOverMessage;
