@@ -91,3 +91,7 @@ test('Party Insight shows a temporary handover marker only when the active engin
   assert.match(css, /\.party-insight-handover\[hidden\]\s*\{\s*display:\s*none;/);
   assert.match(css, /\.party-insight-handover\s*\{/);
 });
+
+test('Party Insight panel updates safely skip incomplete DOM hosts', () => {
+  assert.match(script, /const host = document\.getElementById\('boardLayout'\);\s*if \(!host \|\| typeof host\.querySelectorAll !== 'function'\) return;/);
+});
