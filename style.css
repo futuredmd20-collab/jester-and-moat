@@ -506,6 +506,9 @@
     min-width: 0;
     display: flex;
   }
+  .party-insight-panel.is-hidden {
+    display: none;
+  }
   .party-insight-panel-white { grid-row: 1; justify-content: flex-start; }
   .party-insight-panel-black { grid-row: 3; justify-content: flex-end; }
   .party-insight-tab {

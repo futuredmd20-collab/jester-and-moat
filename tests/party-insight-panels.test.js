@@ -27,6 +27,22 @@ test('Party Insight tabs preserve board layout on desktop and mobile', () => {
   assert.match(css, /\.board-layout \.party-insight-panel-black\s*\{[^}]*grid-row:\s*4/s);
 });
 
+test('Party Insight visibility offers both sides, either side, or neither', () => {
+  assert.match(html, /<select id="partyInsightVisibilitySelect">[\s\S]*?<option value="both" selected>Both sides<\/option>[\s\S]*?<option value="white">White only<\/option>[\s\S]*?<option value="black">Black only<\/option>[\s\S]*?<option value="none">Hidden<\/option>/);
+  assert.match(script, /const visibility = \['both', 'white', 'black', 'none'\]\.includes\(requestedVisibility\) \? requestedVisibility : 'both'/);
+  assert.match(script, /visibility === 'both' \|\| visibility === side/);
+  assert.match(script, /panel\.classList\.toggle\('is-hidden', !sideVisible\)/);
+  assert.match(script, /panel\.setAttribute\('aria-hidden', String\(!sideVisible\)\)/);
+  assert.match(script, /button\.disabled = !sideVisible/);
+  assert.match(css, /\.party-insight-panel\.is-hidden\s*\{[^}]*display:\s*none;/);
+});
+
+test('Party Insight visibility preference is saved, restored, and applied immediately', () => {
+  assert.match(script, /partyInsightVisibility:\s*document\.getElementById\('partyInsightVisibilitySelect'\)\.value/);
+  assert.match(script, /setVal\('partyInsightVisibilitySelect', o\.partyInsightVisibility\)/);
+  assert.match(script, /partyInsightVisibilitySelect'\)\.addEventListener\('change', \(\) => \{\s*saveOptions\(\);\s*updatePartyInsightPanels\(\);\s*\}\);/);
+});
+
 test('Party Insight toggles per side and resolves the active phase-specific engine assignment', () => {
   assert.match(script, /let partyInsightViews = \{ white: 'expression', black: 'expression' \}/);
   assert.match(script, /function togglePartyInsightView\(side\)/);
