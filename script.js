@@ -1582,8 +1582,10 @@ function updatePartyInsightPanels() {
     const view = partyInsightViews[side] || 'expression';
     const expression = button.querySelector('.party-insight-expression');
     const summary = button.querySelector('.party-insight-summary');
+    const detailsButton = panel.querySelector('[data-party-insight-details]');
     const sideLabel = side === 'white' ? 'White' : 'Black';
     if (!sideVisible) return;
+    detailsButton.hidden = view !== 'information';
     if (view === 'expression') {
       expression.hidden = false; summary.hidden = true;
       expression.textContent = '🙂 ' + sideLabel;
@@ -1608,6 +1610,97 @@ function updatePartyInsightPanels() {
       button.setAttribute('aria-expanded', 'true');
     }
   });
+}
+
+function formatPartyInsightSettingValue(value, unit = '') {
+  if (value === null || value === undefined) return '—';
+  if (typeof value === 'boolean') return value ? 'On' : 'Off';
+  const formatted = Array.isArray(value) ? value.join(', ') :
+    (typeof value === 'object' ? JSON.stringify(value) : String(value));
+  return unit ? formatted + ' ' + unit : formatted;
+}
+
+function openPartyInsightDetails(side) {
+  if (!['white', 'black'].includes(side) || !state) return;
+  const dialog = document.getElementById('partyInsightDetailsDialog');
+  const content = document.getElementById('partyInsightDetailsContent');
+  if (!dialog || !content || typeof dialog.showModal !== 'function') return;
+  const sideLabel = side === 'white' ? 'White' : 'Black';
+  const currentPhase = getGamePhase(state);
+  content.replaceChildren();
+
+  const heading = document.createElement('h2');
+  heading.id = 'partyInsightDetailsTitle';
+  heading.textContent = sideLabel + ' AI details';
+  content.appendChild(heading);
+
+  const intro = document.createElement('p');
+  intro.className = 'party-insight-details-intro';
+  intro.textContent = 'Engine assignments and effective settings for each game phase.';
+  content.appendChild(intro);
+
+  for (const phase of Object.values(ENGINE_PHASES)) {
+    const section = document.createElement('section');
+    section.className = 'party-insight-phase';
+    const phaseHeading = document.createElement('h3');
+    phaseHeading.textContent = phase.charAt(0).toUpperCase() + phase.slice(1) +
+      (phase === currentPhase ? ' · Current phase' : '');
+    section.appendChild(phaseHeading);
+
+    try {
+      const assignment = getEngineAssignment(side, phase);
+      const facts = [
+        ['Engine', assignment.engine.name || assignment.engine.id],
+        ['Strength', ENGINE_STRENGTH_LABELS[assignment.strength] || assignment.strength],
+        ['Personality', assignment.personality?.name || assignment.personalityId]
+      ];
+      for (const [label, value] of facts) {
+        const row = document.createElement('p');
+        row.className = 'party-insight-detail-row';
+        const strong = document.createElement('strong');
+        strong.textContent = label + ': ';
+        row.append(strong, document.createTextNode(String(value)));
+        section.appendChild(row);
+      }
+      if (assignment.personality?.description) {
+        const description = document.createElement('p');
+        description.className = 'party-insight-personality-description';
+        description.textContent = assignment.personality.description;
+        section.appendChild(description);
+      }
+
+      const schemas = assignment.engine.settings || {};
+      const settingKeys = Object.keys(schemas).filter(key =>
+        Object.prototype.hasOwnProperty.call(assignment.settings, key));
+      if (settingKeys.length) {
+        const settingsHeading = document.createElement('h4');
+        settingsHeading.textContent = 'Engine settings';
+        section.appendChild(settingsHeading);
+        for (const key of settingKeys) {
+          const schema = schemas[key] || {};
+          const row = document.createElement('div');
+          row.className = 'party-insight-setting';
+          const label = document.createElement('strong');
+          label.textContent = (schema.label || key) + ': ' +
+            formatPartyInsightSettingValue(assignment.settings[key], schema.unit);
+          row.appendChild(label);
+          if (schema.description) {
+            const description = document.createElement('p');
+            description.textContent = schema.description;
+            row.appendChild(description);
+          }
+          section.appendChild(row);
+        }
+      }
+    } catch (error) {
+      const message = document.createElement('p');
+      message.className = 'party-insight-details-error';
+      message.textContent = 'Configuration unavailable: ' + String(error && error.message || error);
+      section.appendChild(message);
+    }
+    content.appendChild(section);
+  }
+  dialog.showModal();
 }
 
 function togglePartyInsightView(side) {
@@ -1918,8 +2011,18 @@ function updateModeUI() {
 
 const boardInsightHost = document.getElementById('boardLayout');
 if (boardInsightHost) boardInsightHost.addEventListener('click', event => {
+  const detailsButton = event.target.closest('[data-party-insight-details]');
+  if (detailsButton) {
+    openPartyInsightDetails(detailsButton.dataset.partyInsightDetails);
+    return;
+  }
   const button = event.target.closest('[data-party-insight-side]');
   if (button) togglePartyInsightView(button.dataset.partyInsightSide);
+});
+
+const partyInsightDialog = document.getElementById('partyInsightDetailsDialog');
+if (partyInsightDialog) partyInsightDialog.addEventListener('click', event => {
+  if (event.target.closest('[data-party-insight-close]')) partyInsightDialog.close();
 });
 
 const engineAssignmentsHost = document.getElementById('engineAssignments');

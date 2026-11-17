@@ -52,3 +52,25 @@ test('Party Insight toggles per side and resolves the active phase-specific engi
   assert.match(script, /updatePartyInsightPanels\(\);/);
   assert.match(script, /mode !== 'pvp'/);
 });
+
+
+test('Party Insight details dialog shows phase assignments and engine-declared settings', () => {
+  assert.match(html, /data-party-insight-details="white"/);
+  assert.match(html, /data-party-insight-details="black"/);
+  assert.match(html, /<dialog id="partyInsightDetailsDialog"/);
+  assert.match(script, /function openPartyInsightDetails\(side\)/);
+  assert.match(script, /for \(const phase of Object\.values\(ENGINE_PHASES\)\)/);
+  assert.match(script, /getEngineAssignment\(side, phase\)/);
+  assert.match(script, /assignment\.engine\.settings \|\| \{\}/);
+  assert.match(script, /schema\.label \|\| key/);
+  assert.match(script, /schema\.description/);
+  assert.match(script, /assignment\.personality\?\.description/);
+  assert.match(script, /dialog\.showModal\(\)/);
+});
+
+test('Party Insight details control is only available while the side information view is open', () => {
+  assert.match(script, /detailsButton\.hidden = view !== 'information'/);
+  assert.match(script, /event\.target\.closest\('\[data-party-insight-details\]'\)/);
+  assert.match(css, /\.party-insight-details-dialog::backdrop/);
+  assert.match(css, /\.party-insight-details-dialog\s*\{/);
+});

@@ -4,7 +4,7 @@ Purpose: plan party-specific configuration records, event-log context and export
 
 ## Status
 
-**Status: In progress.** Stage A (party identity and configuration snapshot) is complete in PR #170. Stage B (party-scoped event log and self-contained event export) is implemented in PR #172. PR #169 delivered the initial White/Black expression and information tabs. Stage C continues in smaller increments; C1 (saved visibility selection for both sides, White only, Black only, or neither) is implemented on the current task branch. Richer information levels and engine-handover indication remain outstanding. Stages D and E have not started. This plan is independent of the Engine Configuration and Engine Extensibility plans. Each implementation stage requires its own explicit approval.
+**Status: In progress.** Stage A (party identity and configuration snapshot) is complete in PR #170. Stage B (party-scoped event log and self-contained event export) is implemented in PR #172. PR #169 delivered the initial White/Black expression and information tabs. C1 (saved visibility selection for both sides, White only, Black only, or neither) is complete in PR #173. C2 (phase-by-phase details and engine-declared settings) is implemented on the current task branch. Engine-handover indication remains outstanding. Stages D and E have not started. This plan is independent of the Engine Configuration and Engine Extensibility plans. Each implementation stage requires its own explicit approval.
 
 ## Goal
 
@@ -85,7 +85,7 @@ Use two compact, slightly rounded, clickable tabs associated with the two sides:
 - One tab sits immediately above the board and one immediately below it, following the board's width. The exact responsive placement on larger screens remains a design detail to verify.
 - In the default **expression view**, each tab shows a restrained emoji and/or a short event-driven reaction.
 - Clicking a tab switches that side to its **information view**. Switching views must not cause the board to jump or change position; reserve a stable area or otherwise preserve layout.
-- Provide presentation settings for visibility (both sides, one side, or neither), the default view, emoji/text presentation, and compact or expanded information.
+- Provide presentation settings for visibility (both sides, one side, or neither). Further presentation preferences can be considered separately.
 - Keep the tabs visually distinct by side while preserving board space and avoiding obstruction of the board or essential controls.
 
 #### Information levels
@@ -94,7 +94,7 @@ Use the same basic information structure for every engine, while allowing engine
 
 - **Basic view:** identify the side/party, show the active engine currently assigned to play for that side, its strength level, active personality, and a short personality description where available. Show the current phase as context.
 - Do not list every engine assigned to future phases in the basic view. Keep it focused on the engine currently active for that side.
-- **Further details:** allow the player to expand or open a deeper level for a fuller personality description, engine-specific advanced settings, and the side's assignments for other phases.
+- **Further details:** allow the player to open a separate details dialog showing the side's assignments for all game phases, the existing personality descriptions, and each engine's own declared settings with its labels and descriptions. Use the effective values for each phase; do not invent a shared settings schema or add new personality copy.
 - The common structure should remain consistent across engines. Do not imply that every engine exposes the same advanced parameters.
 
 When an engine actually changes for a side, show a small, temporary or otherwise unobtrusive handover indicator so the player notices the change. Do not show it for ordinary moves when the active engine remains the same.
@@ -127,7 +127,7 @@ This stage may be implemented independently of the recap, but should reuse the s
 ## Implementation progress
 
 - **A — Completed in PR #170:** new games and validated Board Editor positions receive a schema-versioned party record with a stable ID, start timestamp, origin, variant identity/version, setup identity, and the full engine-configuration snapshot for both sides. The start snapshot is preserved; later persisted engine-configuration changes are appended as timestamped snapshots. Completion records include status, result, reason, and finish timestamp. Game save export/import carries the party record, validates imported metadata against the saved variant/setup, and continues to accept legacy saves without party metadata without inventing historical details. The dedicated tests are source-contract checks of initialization, snapshot/change handling, save/load wiring and validation, legacy compatibility, and completion metadata; they are not runtime integration or manual PWA tests.
-- **C — In progress:** PR #169 added the two side tabs and the first active-engine information view. **C1 — visibility selection:** implemented on the current task branch, with a saved setting for both sides, White only, Black only, or neither; hidden tabs retain their layout space so the board does not shift. Further presentation controls, richer information levels, and engine-handover indication remain outstanding.
+- **C — In progress:** PR #169 added the two side tabs and the first active-engine information view. **C1 — visibility selection:** completed in PR #173, with a saved setting for both sides, White only, Black only, or neither; hidden panels use `display: none` and do not leave empty layout space. **C2 — deeper information:** implemented on the current task branch; a separate dialog presents each phase's engine assignment, strength, existing personality description, and engine-declared effective settings. Engine-handover indication remains outstanding.
 - **B — Implemented in PR #172. D and E — Not started.**
 
 ## Recommended implementation order
@@ -182,4 +182,5 @@ The repository investigation at the start of each implementation stage must conf
 - **2026-11-09:** Created as a separate planned workstream for party identity/configuration, event-log context/export, in-game AI visibility, factual recaps, and optional event-driven expressions. No implementation is authorized by this plan alone.
 - **2026-11-13:** Recorded the agreed in-game presentation concept: compact clickable White/Black tabs around the board, expression and information views, common basic information with engine-specific detail, active-engine-only summary, configurable visibility/presentation, stable board layout, and an engine-handover indicator.
 - **2026-11-14:** Reconciled the plan with PR #169, which implemented the first portion of stage C, and PR #170, which completed stage A. Recorded the party-record lifecycle, snapshot and change-history behavior, outcome metadata, save/import validation and legacy compatibility. The dedicated A tests are source-contract checks; runtime integration and manual PWA verification are not claimed.
-- **2026-11-16:** Added C1 on the feat/party-insight-display-settings task branch: configurable visibility for both side tabs, White only, Black only, or neither, persisted with the existing display options. The layout reserves the tab rows when a side is hidden.
+- **2026-11-16:** Added C1 on the feat/party-insight-display-settings task branch: configurable visibility for both side tabs, White only, Black only, or neither, persisted with the existing display options. PR #173 subsequently changed hidden panels to `display: none`, so they no longer leave empty layout space.
+- **2026-11-17:** Added C2 on the feat/party-insight-details task branch: a separate details dialog lists each side's engine assignment by phase and displays each engine's own declared settings and existing descriptions. No new personality copy or shared engine-settings schema is introduced.
