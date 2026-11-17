@@ -86,7 +86,7 @@ test('Party Insight shows a temporary handover marker only when the active engin
   assert.match(script, /partyInsightActiveEngines\[side\] = engineId/);
   assert.match(script, /\}, 3000\)/);
   assert.match(script, /if \(partyInsightHandoverPartyId !== partyId \|\| !visible\) resetPartyInsightHandover\(partyId\)/);
-  assert.match(script, /resetPartyInsightHandover\(\);\s*gameStarted = parsed\.gameStarted/);
+  assert.match(script, /resetPartyInsightHandover\(\);\s*updatePartyInsightRecapControl\(\);\s*gameStarted = parsed\.gameStarted/);
   assert.match(script, /recordPartyConfigurationChange\(\);\s*updatePartyInsightPanels\(\);/);
   assert.match(css, /\.party-insight-handover\[hidden\]\s*\{\s*display:\s*none;/);
   assert.match(css, /\.party-insight-handover\s*\{/);
