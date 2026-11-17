@@ -702,9 +702,17 @@ function parseGameData(input, initialTime = 0) {
       throw new Error('Current party record does not match the latest party history snapshot.');
     }
   } else {
-    const fallbackSnapshot = normalizedPartyRecord
-      ? { matchEvents: clone(normalizedPartyRecord.matchEvents), outcome: clone(normalizedPartyRecord.outcome) } : null;
-    partyHistorySnapshots = normalizedHistory.map(() => clone(fallbackSnapshot));
+    const fallbackSnapshot = normalizedPartyRecord ? {
+      matchEvents: normalizedPartyRecord.matchEvents.filter(event => event.type === 'game-start').slice(0, 1),
+      outcome: { status: 'in_progress', result: null, reason: null, finishedAt: null }
+    } : null;
+    partyHistorySnapshots = normalizedHistory.map((_, index) =>
+      index === normalizedHistory.length - 1
+        ? (normalizedPartyRecord ? {
+            matchEvents: clone(normalizedPartyRecord.matchEvents),
+            outcome: clone(normalizedPartyRecord.outcome)
+          } : null)
+        : clone(fallbackSnapshot));
   }
   return { state: normalizedState, moveLog: logs.slice(), history: normalizedHistory, historyMoveLogs: logHistory,
     historyPartySnapshots,
