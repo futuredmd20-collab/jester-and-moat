@@ -521,6 +521,12 @@
   .party-insight-panel-black .party-insight-tab { justify-content: flex-end; text-align: right; }
   .party-insight-expression { font-size: 1rem; flex: 0 0 auto; }
   .party-insight-summary { min-width: 0; overflow-wrap: anywhere; }
+  .party-insight-handover {
+    flex: 0 0 auto; align-self: center; padding: 2px 5px;
+    border-radius: 5px; color: var(--muted-ink); font-size: .66rem;
+    line-height: 1.2; white-space: nowrap;
+  }
+  .party-insight-handover[hidden] { display: none; }
   .party-insight-tab[aria-expanded="true"] { border-color: var(--gold); }
   .party-insight-tab:focus-visible,
   .party-insight-details-button:focus-visible { outline: 2px solid var(--burgundy); outline-offset: 2px; }
