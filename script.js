@@ -3527,7 +3527,14 @@ function applyLoadedGame(parsed) {
   moveLog = parsed.moveLog;
   history = parsed.history;
   historyMoveLogs = parsed.historyMoveLogs;
-  historyPartySnapshots = parsed.historyPartySnapshots;
+  historyPartySnapshots = Array.isArray(parsed.historyPartySnapshots)
+    ? parsed.historyPartySnapshots
+    : history.map((_, index) => index === history.length - 1
+      ? createPartyHistorySnapshot()
+      : partyRecord ? {
+          matchEvents: partyRecord.matchEvents.filter(event => event.type === 'game-start').slice(0, 1),
+          outcome: { status: 'in_progress', result: null, reason: null, finishedAt: null }
+        } : null);
   redoStack = [];
   gameOver = parsed.gameOver;
   gameOverMessage = parsed.gameOverMessage;
