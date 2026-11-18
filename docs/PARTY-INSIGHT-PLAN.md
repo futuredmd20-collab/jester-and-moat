@@ -4,7 +4,7 @@ Purpose: plan party-specific configuration records, event-log context and export
 
 ## Status
 
-**Status: In progress.** Stage A (party identity and configuration snapshot) is complete in PR #170. Stage B (party-scoped debug event log and self-contained event export) is implemented in PR #172. PR #169 delivered the initial White/Black expression and information tabs. C1 (saved visibility selection for both sides, White only, Black only, or neither) is complete in PR #173. C2 (phase-by-phase details and engine-declared settings) is complete in PR #174. C3 (temporary engine-handover indication) is complete in PR #175. D (party-scoped factual match events and the first recap view) is implemented on the current task branch; E remains unstarted. This plan is independent of the Engine Configuration and Engine Extensibility plans. Each implementation stage requires its own explicit approval.
+**Status: In progress.** Stage A (party identity and configuration snapshot) is complete in PR #170. Stage B (party-scoped debug event log and self-contained event export) is implemented in PR #172. PR #169 delivered the initial White/Black expression and information tabs. C1 (saved visibility selection for both sides, White only, Black only, or neither) is complete in PR #173. C2 (phase-by-phase details and engine-declared settings) is complete in PR #174. C3 (temporary engine-handover indication) is complete in PR #175. D (party-scoped factual match events and recap) is complete in PR #176; E is in progress on `feat/party-insight-expressions`, with further expression-lifecycle and event-severity design recorded below. This plan is independent of the Engine Configuration and Engine Extensibility plans. Each implementation stage requires its own explicit approval.
 
 ## Goal
 
@@ -126,21 +126,55 @@ As an optional presentation layer, allow White and Black to show short phrases, 
 - Present expressions through the agreed side tabs in the in-game AI overview; the tab's information view is a separate presentation state, not an engine/personality decision input.
 - A motor handover indicator belongs to the presentation layer and is shown only when the active engine for that side actually changes.
 
+#### Reaction lifecycle
+
+- An event reaction is temporary, not a persistent comment. It must not remain visible indefinitely or carry over through unrelated turns.
+- Support both elapsed-time and game-progress expiry. A reaction should clear when either its configured short time limit or its small move/ply limit is reached; exact thresholds are implementation details to tune after mobile testing.
+- A newer meaningful event replaces the current reaction for that side. Low-significance routine events should not continually refresh or mask a more important reaction.
+- When no event reaction is active, return to the side's restrained personality-appropriate idle/default expression.
+- Expiry and replacement are presentation state only. They must remain consistent with the current game position when undo/redo or history navigation changes the active position.
+
+#### Event families and emotional tone
+
+Use observed, testable events to select reactions. Examples include:
+
+- **Pressure or danger:** the side is in check, under a clearly detected tactical threat, or faces a materially dangerous position. Possible tones include worried, angry, sad, or sweating, subject to personality.
+- **Tactical success:** a side creates a verified fork, pin, or comparable tactical threat against the opponent. The reacting side may show confidence, surprise, or satisfaction.
+- **Material loss or gain:** a side loses or wins a piece. Reaction intensity should reflect the material significance, not treat every capture equally.
+- **Milestones and outcomes:** pawn promotion and game victory may produce celebratory reactions; defeat may produce disappointment or sadness.
+
+Forks, pins, and other tactical patterns must be based on explicit, testable board-state detection and the actual variant's movement/attack rules. Do not infer tactical success from the engine's hidden search, evaluation, or presumed intention. If reliable detection is not available for a position or variant, omit that reaction rather than fabricate it.
+
+#### Significance and material impact
+
+- Use the captured piece's actual type and the variant's applicable relative material value, where that value is reliably available.
+- Scale the reaction by the significance of the loss or gain: losing a high-value piece should normally produce a stronger response than losing a low-value piece.
+- Consider event context as well as piece value. A capture that leads to checkmate or a decisive tactical outcome may warrant a stronger reaction than an isolated capture.
+- Do not hard-code a universal piece-value table or assume standard chess values across variants, engines, or future board configurations. If no trustworthy value exists, use a conservative event-severity fallback.
+- Keep the strength of the visible reaction bounded and personality-dependent; do not expose a numeric emotion meter.
+
+#### Personality and side isolation
+
+- The same event may produce different tone and intensity for different personality profiles.
+- Reactions belong to the side that experienced the event. A loss by White must not accidentally trigger Black's loss reaction, though Black may separately react to a verified success against White.
+- Reuse the existing personality/event interfaces where they provide reliable information. Do not require every engine or future personality to support an identical reaction vocabulary.
+- Keep event classification separate from personality wording/presentation so additional engines, personalities, variants, and board configurations can be added without redesigning the reaction system.
+
 This stage may be implemented independently of the recap, but should reuse the same event vocabulary and a deliberately defined personality-state boundary.
 
 ## Implementation progress
 
 - **A — Completed in PR #170:** new games and validated Board Editor positions receive a schema-versioned party record with a stable ID, start timestamp, origin, variant identity/version, setup identity, and the full engine-configuration snapshot for both sides. The start snapshot is preserved; later persisted engine-configuration changes are appended as timestamped snapshots. Completion records include status, result, reason, and finish timestamp. Game save export/import carries the party record, validates imported metadata against the saved variant/setup, and continues to accept legacy saves without party metadata without inventing historical details. The dedicated tests are source-contract checks of initialization, snapshot/change handling, save/load wiring and validation, legacy compatibility, and completion metadata; they are not runtime integration or manual PWA tests.
-- **C — In progress:** PR #169 added the two side tabs and the first active-engine information view. **C1 — visibility selection:** completed in PR #173, with a saved setting for both sides, White only, Black only, or neither; hidden panels use `display: none` and do not leave empty layout space. **C2 — deeper information:** completed in PR #174; a separate dialog presents each phase's engine assignment, strength, existing personality description, and engine-declared effective settings. **C3 — engine handover:** implemented on the current task branch; a temporary marker appears only when a side's active engine ID changes, including after a current-configuration edit. New/imported games and hidden modes establish a fresh baseline.
-- **B — Implemented in PR #172. D — Initial implementation on the current task branch:** a separate party-scoped match-event list records game start, phase transitions, captures, checks, terminal outcomes, and moat placement/destruction/redeployment. The list is stored in party metadata, validated on import, and defaults to empty for older party records. A Recap tab shares the move-history area with the Moves tab; only one view is visible at a time. Both views use the same Oldest first/Newest first order selector, defaulting to Newest first, with the recap rendered from a reversed copy so stored events remain unchanged. Initial moat placement is recorded once, only after both sides' final positions are set; later redeployments remain individual events. The factual event list does not use debug logging or infer engine reasoning. Per-position event/outcome snapshots now follow undo and redo, are included in game saves, and are validated on import. Legacy saves without these snapshots keep the imported recap on the current position; older undo positions fall back to the known game-start event and in-progress outcome rather than inventing event placement. Automated source-contract and runtime undo/redo tests cover recording, history synchronization, validation, persistence, and recap wiring. GitHub Actions run #817 passed all 213 tests. The user confirmed the shared Moves/Recap view and sorting in the PWA before the latest moat-event consolidation and Newest-first default; those latest adjustments still need PWA verification. **E — Not started.**
+- **C — Completed:** PR #169 added the two side tabs and the first active-engine information view. **C1 — visibility selection:** completed in PR #173, with a saved setting for both sides, White only, Black only, or neither; hidden panels use `display: none` and do not leave empty layout space. **C2 — deeper information:** completed in PR #174; a separate dialog presents each phase's engine assignment, strength, existing personality description, and engine-declared effective settings. **C3 — engine handover:** completed in PR #175; a temporary marker appears only when a side's active engine ID changes, including after a current-configuration edit. New/imported games and hidden modes establish a fresh baseline.
+- **B — Implemented in PR #172. D — Completed in PR #176:** a separate party-scoped match-event list records game start, phase transitions, captures, checks, terminal outcomes, and moat placement/destruction/redeployment. The list is stored in party metadata, validated on import, and defaults to empty for older party records. A Recap tab shares the move-history area with the Moves tab; only one view is visible at a time. Both views use the same Oldest first/Newest first order selector, defaulting to Newest first, with the recap rendered from a reversed copy so stored events remain unchanged. Initial moat placement is recorded once, only after both sides' final positions are set; later redeployments remain individual events. The factual event list does not use debug logging or infer engine reasoning. Per-position event/outcome snapshots now follow undo and redo, are included in game saves, and are validated on import. Legacy saves without these snapshots keep the imported recap on the current position; older undo positions fall back to the known game-start event and in-progress outcome rather than inventing event placement. Automated source-contract and runtime undo/redo tests cover recording, history synchronization, validation, persistence, and recap wiring. GitHub Actions run #817 passed all 213 tests. The user verified the final Moves/Recap view, sorting, combined initial moat event, Newest-first default, and 220 px history/recap area in the PWA. **E — In progress on `feat/party-insight-expressions`:** the initial implementation derives expressions from the latest recorded event at or before the current ply and the active side's selected personality profile. Default reactions are restrained; `move_hunter` has a distinct capture reaction. Expressions are presentation-only and do not affect engine decisions. The user has verified that the current PWA implementation works. The temporary-reaction lifecycle, tactical-event coverage, and significance-scaled reactions described above are further design requirements; they are not claimed as implemented.
 
 ## Recommended implementation order
 
 1. **A — Completed:** party identity and configuration snapshot are established.
 2. **B — Implemented in PR #172:** party-scoped event records and a self-contained, separately versioned JSON event export.
-3. **C — Continue AI overview.** Reuse the party/configuration model to show the currently applicable assignments.
-4. **D — Factual recap.** Build summaries from reliable, recorded events.
-5. **E — Expressions.** Add optional personality-flavored presentation after event semantics are stable.
+3. **C — Completed:** the in-game AI overview shows the active assignments and engine handovers.
+4. **D — Completed:** the factual recap is built from recorded party events.
+5. **E — In progress:** complete the presentation-only expression layer, including temporary reactions, verified tactical events, personality variation, and significance-scaled material reactions.
 
 The repository investigation at the start of each implementation stage must confirm the current architecture and identify the smallest safe scope. Reorder stages only when a concrete dependency requires it.
 
@@ -159,6 +193,10 @@ The repository investigation at the start of each implementation stage must conf
 - Recap statements are grounded in recorded game events and do not invent engine reasoning.
 - While the game is paused, selecting a move-history entry or recap event can navigate directly to its corresponding game position.
 - Expressions are event-triggered presentation only and cannot affect game rules or engine behavior.
+- Event reactions expire after a short time limit or a small number of plies, whichever occurs first; a new meaningful event replaces the prior reaction, and an idle/default expression returns afterward.
+- Tactical reactions such as fork and pin are shown only when the pattern is reliably detected from the actual variant's board rules; no hidden engine reasoning is inferred.
+- Material-loss reactions scale with the captured piece's trustworthy relative value and event context, without assuming one universal value table across variants.
+- Reactions are attributed to the correct side and vary by supported personality profile.
 - Automated tests cover party metadata, snapshot lifecycle, export/import compatibility, event association, and recap/expression triggers as each stage is implemented.
 - Manual PWA verification is recorded separately and only after it has actually been performed.
 
@@ -198,3 +236,6 @@ The repository investigation at the start of each implementation stage must conf
 - **2026-11-18:** Extended the shared history order selector to the factual recap view. Oldest first/Newest first applies to both views; recap rendering reverses a copy of the stored event list and does not mutate saved events.
 - **2026-11-18:** Consolidated initial moat placement into one factual recap event after both White and Black positions are final; individual redeployments remain separate. Changed the default history/recap order to Newest first while preserving any saved preference.
 - **2026-11-18:** Added the planned paused-game navigation enhancement: selecting an entry in either Moves history or Recap should jump to its corresponding game position. This is a future item, not part of the current implementation.
+
+- **2026-11-18:** Began stage E on `feat/party-insight-expressions`. Side expressions respond to the latest recorded match event at or before the current ply, with restrained defaults and a distinct `move_hunter` capture response. The existing personality assignment is read for presentation only; no engine decision or evaluation path is changed. Automated source-contract checks cover event grounding, side attribution, personality variation, and separation from engine logic.
+- **2026-11-18:** Expanded the stage-E design after PWA feedback: reactions should expire by a short elapsed-time limit or a small ply limit, whichever comes first; meaningful new events replace old reactions and idle expressions return afterward. Added design requirements for verified tactical reactions (such as fork and pin), celebration for promotion and victory, side-specific reactions, and material-significance scaling based on trustworthy variant-specific piece values. These are planned refinements, not claims about the current implementation.
