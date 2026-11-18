@@ -542,13 +542,16 @@
     box-shadow: 0 12px 40px #0005; overflow: auto;
   }
   .party-insight-details-dialog::backdrop { background: #0008; }
-  .party-insight-recap { display: flex; justify-content: center; margin: 4px 0 8px; }
-  .party-insight-recap-button {
-    min-height: 28px; padding: 4px 10px; border: 1px solid var(--line);
-    border-radius: 7px; background: var(--panel, #f5eee2); color: var(--ink);
+  .history-view-tabs { display: inline-flex; align-items: center; gap: 4px; }
+  .history-view-tab {
+    min-height: 28px; padding: 4px 9px; border: 1px solid var(--line);
+    border-radius: 6px; background: var(--panel, #f5eee2); color: var(--muted-ink);
     font: inherit; font-size: .74rem; cursor: pointer;
   }
-  .party-insight-recap-button:disabled { opacity: .55; cursor: default; }
+  .history-view-tab[aria-pressed="true"] { background: var(--burgundy); border-color: var(--burgundy); color: #fffaf1; }
+  .history-view-tab:disabled { opacity: .55; cursor: default; }
+  .history-order-control[hidden], #history[hidden], #partyInsightRecapContent[hidden] { display: none !important; }
+  #partyInsightRecapContent { max-height: 82px; overflow: auto; margin-top: 4px; }
   .party-insight-recap-outcome { margin: 0 0 10px; font-size: .84rem; font-weight: 700; }
   .party-insight-recap-empty { color: var(--muted-ink); font-size: .82rem; }
   .party-insight-recap-list { margin: 0; padding-left: 22px; }
