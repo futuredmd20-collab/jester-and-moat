@@ -112,6 +112,7 @@ test('Move history and factual match recap share one switchable display area', (
   assert.match(script, /savedHistoryOrder === 'newest' \|\| savedHistoryOrder === 'oldest'/);
   assert.match(script, /const recordedEvents = partyRecord\?\.matchEvents \|\| \[\]/);
   assert.match(script, /const events = historyOrder === 'newest' \? recordedEvents\.slice\(\)\.reverse\(\) : recordedEvents/);
+  assert.match(script, /list\.reversed = historyOrder === 'newest'/);
   assert.match(script, /if \(historyView === 'recap'\) renderPartyInsightRecap\(\)/);
   assert.match(script, /addEventListener\('click', \(\) => setHistoryView\('moves'\)\)/);
   assert.match(script, /addEventListener\('click', \(\) => setHistoryView\('recap'\)\)/);
