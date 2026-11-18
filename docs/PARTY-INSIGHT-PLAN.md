@@ -110,6 +110,10 @@ Create a concise recap from recorded game events and state transitions, for exam
 
 Define a small, testable set of notable-event rules before expanding the recap. Distinguish observed facts from any later evaluative or interpretive language. Do not claim to know why an engine chose a move unless that information is explicitly and reliably provided.
 
+#### Future enhancement: navigate from history and recap
+
+When the game is paused, allow the player to select an entry in either the Moves history or the Recap event list and jump directly to the corresponding game position. The selected entry must lead to the position represented by that move or event, using the existing history/event state where available. This is a planned navigation capability only; it is not part of the current recap implementation.
+
 ### E. Personality reactions and visible expressions
 
 As an optional presentation layer, allow White and Black to show short phrases, emojis, or restrained visual reactions in response to meaningful game events and the opponent's current personality state.
@@ -192,3 +196,4 @@ The repository investigation at the start of each implementation stage must conf
 - **2026-11-18:** Reworked the stage-D recap presentation on `feat/party-insight-match-recap`: Moves and Recap now share the existing move-history area as mutually exclusive views, removing the separate recap control and its extra layout space. The recap remains factual and party-scoped.
 - **2026-11-18:** Extended the shared history order selector to the factual recap view. Oldest first/Newest first applies to both views; recap rendering reverses a copy of the stored event list and does not mutate saved events.
 - **2026-11-18:** Consolidated initial moat placement into one factual recap event after both White and Black positions are final; individual redeployments remain separate. Changed the default history/recap order to Newest first while preserving any saved preference.
+- **2026-11-18:** Added the planned paused-game navigation enhancement: selecting an entry in either Moves history or Recap should jump to its corresponding game position. This is a future item, not part of the current implementation.
