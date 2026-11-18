@@ -2606,60 +2606,65 @@ test('party recap events and terminal outcomes follow undo and redo history', ()
 });
 
 test('a loaded completed party can be undone, continued, and completed again', () => {
-  const before = position();
-  const after = position();
-  before.ply = 12;
-  after.ply = 13;
-  after.turn = 'b';
-  const startedAt = new Date().toISOString();
-  sandbox.api.setPartyRecordForTest({
-    schemaVersion: 1,
-    id: 'party-resume-regression',
-    startedAt,
-    origin: 'new-game',
-    variant: { id: 'jester-moat', version: 1 },
-    setupId: null,
-    configurationAtStart: sandbox.api.getEngineConfiguration(),
-    configurationChanges: [],
-    matchEvents: [{ at: startedAt, type: 'game-start', side: null, ply: 0, phase: 'opening', details: 'Started.' }],
-    outcome: { status: 'in_progress', result: null, reason: null, finishedAt: null }
-  });
-  sandbox.api.setHistoryForTest([before], [[]]);
-  sandbox.api.setState(after);
-  sandbox.api.recordPartyEvent('capture', 'White captured Black pawn.', 'w', 'opening');
-  sandbox.api.pushHistorySnapshot();
-  sandbox.api.setGameOverForTest(true, 'Checkmate! White wins.');
-  sandbox.api.completePartyRecord('Checkmate! White wins.');
-
-  const saved = JSON.parse(JSON.stringify(sandbox.api.exportGameData()));
-  const imported = sandbox.api.parseGameData(saved, 600);
-  sandbox.api.applyLoadedGame(imported);
-  assert.equal(sandbox.api.getGameOver(), true);
-  assert.equal(sandbox.api.getPartyRecordForTest().outcome.status, 'completed');
-
-  assert.equal(sandbox.api.undoHistoryStep(), true);
-  assert.equal(sandbox.api.getGameOver(), false);
-  assert.deepEqual(
-    Array.from(sandbox.api.getPartyRecordForTest().matchEvents, event => event.type),
-    ['game-start']
-  );
-  assert.equal(sandbox.api.getPartyRecordForTest().outcome.status, 'in_progress');
-
-  const resumed = { ...before, ply: 13, turn: 'b' };
-  sandbox.api.setState(resumed);
-  sandbox.api.recordPartyEvent('capture', 'Black captured White rook.', 'b', 'opening');
-  sandbox.api.pushHistorySnapshot();
-  sandbox.api.setGameOverForTest(true, 'Checkmate! Black wins.');
-  sandbox.api.completePartyRecord('Checkmate! Black wins.');
-
-  const record = sandbox.api.getPartyRecordForTest();
-  assert.deepEqual(Array.from(record.matchEvents, event => event.type), ['game-start', 'capture', 'checkmate']);
-  assert.equal(record.matchEvents[1].details, 'Black captured White rook.');
-  assert.equal(record.outcome.status, 'completed');
-  assert.equal(record.outcome.result, 'black_win');
-
-  sandbox.api.setPartyRecordForTest(null);
-  sandbox.api.setGameOverForTest(false);
+  try {
+    const before = position();
+    const after = position();
+    before.ply = 12;
+    after.ply = 13;
+    after.turn = 'b';
+    const startedAt = new Date().toISOString();
+    sandbox.api.setPartyRecordForTest({
+      schemaVersion: 1,
+      id: 'party-resume-regression',
+      startedAt,
+      origin: 'new-game',
+      variant: { id: 'jester-moat', version: 1 },
+      setupId: null,
+      configurationAtStart: sandbox.api.getEngineConfiguration(),
+      configurationChanges: [],
+      matchEvents: [{ at: startedAt, type: 'game-start', side: null, ply: 0, phase: 'opening', details: 'Started.' }],
+      outcome: { status: 'in_progress', result: null, reason: null, finishedAt: null }
+    });
+    sandbox.api.setHistoryForTest([before], [[]]);
+    sandbox.api.setState(after);
+    sandbox.api.recordPartyEvent('capture', 'White captured Black pawn.', 'w', 'opening');
+    sandbox.api.pushHistorySnapshot();
+    sandbox.api.setGameOverForTest(true, 'Checkmate! White wins.');
+    sandbox.api.completePartyRecord('Checkmate! White wins.');
+  
+    const saved = JSON.parse(JSON.stringify(sandbox.api.exportGameData()));
+    const imported = sandbox.api.parseGameData(saved, 600);
+    sandbox.api.applyLoadedGame(imported);
+    assert.equal(sandbox.api.getGameOver(), true);
+    assert.equal(sandbox.api.getPartyRecordForTest().outcome.status, 'completed');
+  
+    assert.equal(sandbox.api.undoHistoryStep(), true);
+    assert.equal(sandbox.api.getGameOver(), false);
+    assert.deepEqual(
+      Array.from(sandbox.api.getPartyRecordForTest().matchEvents, event => event.type),
+      ['game-start']
+    );
+    assert.equal(sandbox.api.getPartyRecordForTest().outcome.status, 'in_progress');
+  
+    const resumed = { ...before, ply: 13, turn: 'b' };
+    sandbox.api.setState(resumed);
+    sandbox.api.recordPartyEvent('capture', 'Black captured White rook.', 'b', 'opening');
+    sandbox.api.pushHistorySnapshot();
+    sandbox.api.setGameOverForTest(true, 'Checkmate! Black wins.');
+    sandbox.api.completePartyRecord('Checkmate! Black wins.');
+  
+    const record = sandbox.api.getPartyRecordForTest();
+    assert.deepEqual(Array.from(record.matchEvents, event => event.type), ['game-start', 'capture', 'checkmate']);
+    assert.equal(record.matchEvents[1].details, 'Black captured White rook.');
+    assert.equal(record.outcome.status, 'completed');
+    assert.equal(record.outcome.result, 'black_win');
+  
+    sandbox.api.setPartyRecordForTest(null);
+    sandbox.api.setGameOverForTest(false);
+  } finally {
+    sandbox.api.setPartyRecordForTest(null);
+    sandbox.api.setGameOverForTest(false);
+  }
 });
 
 test('history snapshots preserve the next moat-placement phase and turn', () => {
