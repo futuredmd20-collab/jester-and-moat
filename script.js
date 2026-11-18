@@ -1835,6 +1835,8 @@ function getPartyInsightReactionEvent() {
   if (!Array.isArray(events)) return null;
   const event = events.slice().reverse().find(item =>
     item && PARTY_INSIGHT_REACTION_EVENTS.has(item.type) &&
+    (!PARTY_INSIGHT_TERMINAL_EVENTS.has(item.type) ||
+      (gameOver && partyRecord?.outcome?.status === 'completed')) &&
     Number.isInteger(item.ply) && item.ply <= (state?.ply ?? 0));
   if (!event) return null;
   if (PARTY_INSIGHT_TERMINAL_EVENTS.has(event.type)) return event;
