@@ -2887,6 +2887,7 @@ function play(m, promoChoice = 'q', silent = false){
 
   const mode = document.getElementById('modeSelect').value;
   const p = state.board[m.from.r][m.from.c], mover = p.color;
+  const movingPieceType = p.type;
   const previousPhase = !silent && partyRecord ? getGamePhase(state) : null;
   const capturedBefore = state.captured?.[mover]?.length || 0;
 
@@ -2935,7 +2936,7 @@ function play(m, promoChoice = 'q', silent = false){
         mover, getGamePhase(state));
     }
   }
-  if (!silent && applyResult && p.type === 'p' && (m.to.r === 0 || m.to.r === ROWS - 1) && promo !== 'moat') {
+  if (!silent && applyResult && movingPieceType === 'p' && (m.to.r === 0 || m.to.r === ROWS - 1) && promo !== 'moat') {
     recordPartyEvent('promotion',
       `${mover === 'w' ? 'White' : 'Black'} promoted a pawn to ${PIECE_NAME[promo] || promo}.`,
       mover, getGamePhase(state));
