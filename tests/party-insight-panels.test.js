@@ -150,6 +150,15 @@ test('Loaded party snapshots survive undo and new captures enter the next snapsh
   assert.match(script, /historyPartySnapshots: clone\(historyPartySnapshots\)/);
 });
 
+test('Party Insight records castling and en-passant as side-specific reactions', () => {
+  assert.match(script, /'castling', 'en-passant'/);
+  assert.match(script, /const eventType = m\.enPassant \? 'en-passant' : 'capture'/);
+  assert.match(script, /recordPartyEvent\('castling'/);
+  assert.match(script, /'en-passant': isActor/);
+  assert.match(script, /castling: isActor \? '🏰 Castled!' : '🏰 Castling\.'/);
+  assert.match(script, /partyInsightEventLabel[\s\S]*?'en-passant': 'En passant'[\s\S]*?castling: 'Castling'/);
+});
+
 test('Party Insight records ordinary pawn promotions as temporary reactions', () => {
   assert.match(script, /'capture', 'promotion', 'check'/);
   assert.match(script, /recordPartyEvent\('promotion'/);
