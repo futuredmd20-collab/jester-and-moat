@@ -136,7 +136,7 @@ test('Party Insight reactions expire by elapsed time or ply progress and return 
 test('Party Insight terminal reactions persist after the game ends', () => {
   assert.match(script, /PARTY_INSIGHT_TERMINAL_EVENTS = new Set\(\['checkmate', 'stalemate', 'draw', 'timeout', 'game-end'\]\)/);
   assert.match(script, /if \(PARTY_INSIGHT_TERMINAL_EVENTS\.has\(event\.type\)\) return event/);
-  assert.match(script, /getPartyInsightReactionEvent\\(\\)/);
+  assert.match(script, /getPartyInsightReactionEvent\(\)/);
 });
 
 test('Party Insight records ordinary pawn promotions as temporary reactions', () => {
