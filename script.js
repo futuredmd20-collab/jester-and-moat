@@ -1708,6 +1708,7 @@ let partyInsightHandoverTimers = { white: null, black: null };
 let partyInsightReactionTimer = null;
 const PARTY_INSIGHT_REACTION_MAX_AGE_MS = 5000;
 const PARTY_INSIGHT_REACTION_MAX_PLIES = 2;
+const PARTY_INSIGHT_TERMINAL_EVENTS = new Set(['checkmate', 'stalemate', 'draw', 'timeout', 'game-end']);
 const PARTY_INSIGHT_REACTION_EVENTS = new Set([
   'capture', 'promotion', 'check', 'checkmate', 'stalemate', 'draw', 'timeout', 'game-end',
   'moat-destroyed', 'moat-redeployed'
@@ -1836,6 +1837,7 @@ function getPartyInsightReactionEvent() {
     item && PARTY_INSIGHT_REACTION_EVENTS.has(item.type) &&
     Number.isInteger(item.ply) && item.ply <= (state?.ply ?? 0));
   if (!event) return null;
+  if (PARTY_INSIGHT_TERMINAL_EVENTS.has(event.type)) return event;
   const age = Date.now() - Date.parse(event.at);
   const pliesElapsed = (state?.ply ?? 0) - event.ply;
   if (!Number.isFinite(age) || age < 0 || age >= PARTY_INSIGHT_REACTION_MAX_AGE_MS ||
