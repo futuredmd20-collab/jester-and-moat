@@ -1762,7 +1762,8 @@ function renderPartyInsightRecap() {
   if (!content) return;
   content.replaceChildren();
 
-  const events = partyRecord?.matchEvents || [];
+  const recordedEvents = partyRecord?.matchEvents || [];
+  const events = historyOrder === 'newest' ? recordedEvents.slice().reverse() : recordedEvents;
   const intro = document.createElement('p');
   intro.className = 'party-insight-details-intro';
   intro.textContent = partyRecord
@@ -3722,6 +3723,7 @@ if (historyOrderSelect) {
     historyOrder = historyOrderSelect.value === 'newest' ? 'newest' : 'oldest';
     try { localStorage.setItem('jm_history_order_v1', historyOrder); } catch (err) { /* ignore unavailable storage */ }
     renderMoveList();
+    if (historyView === 'recap') renderPartyInsightRecap();
   });
 }
 
