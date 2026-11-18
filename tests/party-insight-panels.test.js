@@ -130,7 +130,7 @@ test('Party Insight reactions expire by elapsed time or ply progress and return 
   assert.match(script, /age >= PARTY_INSIGHT_REACTION_MAX_AGE_MS/);
   assert.match(script, /pliesElapsed >= PARTY_INSIGHT_REACTION_MAX_PLIES/);
   assert.match(script, /partyInsightReactionTimer = setTimeout\(\(\) =>/);
-  assert.match(script, /clearTimeout\\(partyInsightReactionTimer\\)/);
+  assert.match(script, /clearTimeout\(partyInsightReactionTimer\)/);
 });
 
 test('Party Insight records ordinary pawn promotions as temporary reactions', () => {
