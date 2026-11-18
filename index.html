@@ -404,21 +404,10 @@
  </div>
 </div>
 
-<div class="party-insight-recap">
- <button type="button" class="party-insight-recap-button" id="partyInsightRecapButton" disabled>Match recap</button>
-</div>
-
 <dialog id="partyInsightDetailsDialog" class="party-insight-details-dialog" aria-labelledby="partyInsightDetailsTitle">
  <div class="party-insight-details-content" id="partyInsightDetailsContent"></div>
  <div class="party-insight-dialog-actions">
   <button type="button" class="secondary-btn" data-party-insight-close>Close</button>
- </div>
-</dialog>
-
-<dialog id="partyInsightRecapDialog" class="party-insight-details-dialog party-insight-recap-dialog" aria-labelledby="partyInsightRecapTitle">
- <div class="party-insight-details-content" id="partyInsightRecapContent"></div>
- <div class="party-insight-dialog-actions">
-  <button type="button" class="secondary-btn" data-party-insight-recap-close>Close</button>
  </div>
 </dialog>
 
@@ -435,7 +424,10 @@
 
 <div class="history-box">
  <div class="history-heading">
-  <strong>Move History</strong>
+  <div class="history-view-tabs" role="group" aria-label="History view">
+   <button type="button" class="history-view-tab" id="historyMovesTab" aria-pressed="true">Moves</button>
+   <button type="button" class="history-view-tab" id="historyRecapTab" aria-pressed="false" disabled>Recap</button>
+  </div>
   <label class="history-order-control">Order
    <select id="historyOrderSelect" aria-label="Move history order">
     <option value="oldest">Oldest first</option>
@@ -444,6 +436,7 @@
   </label>
  </div>
  <div id="history">No moves yet.</div>
+ <div id="partyInsightRecapContent" hidden></div>
 </div>
 </main>
 
