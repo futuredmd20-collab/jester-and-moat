@@ -137,6 +137,8 @@ test('Party Insight records ordinary pawn promotions as temporary reactions', ()
   assert.match(script, /'capture', 'promotion', 'check'/);
   assert.match(script, /recordPartyEvent\('promotion'/);
   assert.match(script, /promo !== 'moat'/);
+  assert.match(script, /const movingPieceType = p\.type/);
+  assert.match(script, /movingPieceType === 'p'/);
   assert.match(script, /promotion: isActor \? '🎉 Promotion!' : '😮 A promotion.'/);
 });
 
