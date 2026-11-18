@@ -157,6 +157,7 @@ The repository investigation at the start of each implementation stage must conf
 - Visibility and presentation modes can be configured, including hiding either or both tabs.
 - An unobtrusive handover indicator appears when a side's active engine changes, not on every move.
 - Recap statements are grounded in recorded game events and do not invent engine reasoning.
+- While the game is paused, selecting a move-history entry or recap event can navigate directly to its corresponding game position.
 - Expressions are event-triggered presentation only and cannot affect game rules or engine behavior.
 - Automated tests cover party metadata, snapshot lifecycle, export/import compatibility, event association, and recap/expression triggers as each stage is implemented.
 - Manual PWA verification is recorded separately and only after it has actually been performed.
