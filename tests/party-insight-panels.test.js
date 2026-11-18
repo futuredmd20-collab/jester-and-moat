@@ -168,6 +168,7 @@ test('Party Insight records ordinary pawn promotions as temporary reactions', ()
 
 test('Party Insight expressions use separate emoji and text elements', () => {
   assert.match(html, /party-insight-emoji/);
+  assert.match(html, /party-insight-side-label/);
   assert.match(html, /party-insight-reaction-text/);
   assert.match(css, /\.party-insight-expression \{[^}]*position:\s*relative/s);
   assert.match(css, /\.party-insight-emoji \{[^}]*position:\s*absolute[^}]*top:/s);
