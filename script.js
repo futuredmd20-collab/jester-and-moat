@@ -1822,6 +1822,39 @@ function renderPartyInsightRecap() {
   }
 }
 
+function getPartyInsightExpression(side, personalityId = DEFAULT_PERSONALITY_ID) {
+  const sideCode = side === 'white' ? 'w' : side === 'black' ? 'b' : null;
+  if (!sideCode) return '🙂';
+  const events = partyRecord?.matchEvents;
+  const event = Array.isArray(events) ? events.slice().reverse().find(item =>
+    item && item.type !== 'game-start' && Number.isInteger(item.ply) && item.ply <= (state?.ply ?? 0)) : null;
+  if (!event) return '🙂';
+
+  const actor = event.side;
+  const isActor = actor === sideCode;
+  const isMoveHunter = personalityId === 'move_hunter';
+  const reactions = {
+    capture: isActor
+      ? (isMoveHunter ? '🎯 Target acquired!' : '🙂 A capture.')
+      : '😮 A piece was lost.',
+    check: actor === sideCode ? '😟 Under pressure.' : '⚔️ Check.',
+    checkmate: actor === sideCode ? '🏁 Checkmate.' : '😔 The game is over.',
+    stalemate: '🤝 Stalemate.',
+    draw: '🤝 A draw.',
+    timeout: actor === sideCode ? '⏱️ Time ran out.' : '⏱️ Time decided it.',
+    'game-end': '🏁 Game over.',
+    'phase-change': '♟️ A new phase.',
+    'moat-placed': '🧱 Moats are in place.',
+    'moat-destroyed': actor === sideCode ? '😟 My moat is gone.' : '👀 A moat fell.',
+    'moat-redeployed': actor === sideCode ? '🧱 Moat restored.' : '👀 A moat was restored.'
+  };
+  if (Object.prototype.hasOwnProperty.call(reactions, event.type)) {
+    if (isMoveHunter && event.type === 'capture' && isActor) return '🎯 Excellent capture!';
+    return reactions[event.type];
+  }
+  return '🙂';
+}
+
 function updatePartyInsightPanels() {
   updatePartyInsightRecapControl();
   const host = document.getElementById('boardLayout');
@@ -1860,8 +1893,11 @@ function updatePartyInsightPanels() {
     if (!sideVisible) return;
     detailsButton.hidden = view !== 'information';
     if (view === 'expression') {
+      let personalityId = DEFAULT_PERSONALITY_ID;
+      try { personalityId = getEngineAssignment(side, activePhase).personalityId || DEFAULT_PERSONALITY_ID; }
+      catch (_) { /* Use the restrained default expression when configuration is unavailable. */ }
       expression.hidden = false; summary.hidden = true;
-      expression.textContent = '🙂 ' + sideLabel;
+      expression.textContent = getPartyInsightExpression(side, personalityId);
       button.setAttribute('aria-label', 'Show ' + sideLabel + ' AI information');
       button.setAttribute('aria-expanded', 'false');
     } else {
