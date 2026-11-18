@@ -160,7 +160,7 @@ test('Party Insight records castling and en-passant as side-specific reactions',
 });
 
 test('Party Insight records ordinary pawn promotions as temporary reactions', () => {
-  assert.match(script, /'capture', 'promotion', 'check'/);
+  assert.match(script, /'capture', 'en-passant', 'castling', 'promotion', 'check'/);
   assert.match(script, /recordPartyEvent\('promotion'/);
   assert.match(script, /promo !== 'moat'/);
   assert.match(script, /const movingPieceType = p\.type/);
