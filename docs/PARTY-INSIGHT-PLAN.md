@@ -138,9 +138,9 @@ This stage may be implemented independently of the recap, but should reuse the s
 
 1. **A — Completed:** party identity and configuration snapshot are established.
 2. **B — Implemented in PR #172:** party-scoped event records and a self-contained, separately versioned JSON event export.
-3. **C — Continue AI overview.** Reuse the party/configuration model to show the currently applicable assignments.
-4. **D — Factual recap.** Build summaries from reliable, recorded events.
-5. **E — Expressions.** Add optional personality-flavored presentation after event semantics are stable. Initial event/profile-driven reactions are now on the current task branch.
+3. **C — Completed:** the in-game AI overview shows the active assignments and engine handovers.
+4. **D — Completed:** the factual recap is built from recorded party events.
+5. **E — In progress:** event/profile-driven expressions are being added as a presentation-only layer.
 
 The repository investigation at the start of each implementation stage must confirm the current architecture and identify the smallest safe scope. Reorder stages only when a concrete dependency requires it.
 
