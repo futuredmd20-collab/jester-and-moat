@@ -152,7 +152,7 @@ test('Loaded party snapshots survive undo and new captures enter the next snapsh
 
 test('Party Insight records castling and en-passant as side-specific reactions', () => {
   assert.match(script, /'castling', 'en-passant'/);
-  assert.match(script, /const eventType = m\.enPassant \? 'en-passant' : 'capture'/);
+  assert.match(script, /if \(m\.enPassant\) \{[\s\S]*?recordPartyEvent\('en-passant'/);\n  assert.match(script, /recordPartyEvent\('capture', captureDetails/);
   assert.match(script, /recordPartyEvent\('castling'/);
   assert.match(script, /'en-passant': isActor/);
   assert.match(script, /castling: isActor \? '🏰 Castled!' : '🏰 Castling\.'/);
