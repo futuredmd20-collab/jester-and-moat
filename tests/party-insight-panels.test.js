@@ -123,12 +123,11 @@ test('Move history and factual match recap share one switchable display area', (
 });
 
 
-test('Party Insight reactions expire by elapsed time or ply progress and return to idle', () => {
+test('Party Insight reactions expire by elapsed time, not by move count', () => {
   assert.match(script, /PARTY_INSIGHT_REACTION_MAX_AGE_MS = 5000/);
-  assert.match(script, /PARTY_INSIGHT_REACTION_MAX_PLIES = 2/);
   assert.match(script, /function getPartyInsightReactionEvent\(\)/);
   assert.match(script, /age >= PARTY_INSIGHT_REACTION_MAX_AGE_MS/);
-  assert.match(script, /pliesElapsed >= PARTY_INSIGHT_REACTION_MAX_PLIES/);
+  assert.doesNotMatch(script, /PARTY_INSIGHT_REACTION_MAX_PLIES|pliesElapsed/);
   assert.match(script, /partyInsightReactionTimer = setTimeout\(\(\) =>/);
   assert.match(script, /clearTimeout\(partyInsightReactionTimer\)/);
 });
