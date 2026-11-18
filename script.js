@@ -1748,12 +1748,10 @@ function setHistoryView(view) {
   const recapButton = document.getElementById('historyRecapTab');
   const moves = document.getElementById('history');
   const recap = document.getElementById('partyInsightRecapContent');
-  const orderControl = document.querySelector('.history-order-control');
   if (movesButton) movesButton.setAttribute('aria-pressed', String(historyView === 'moves'));
   if (recapButton) recapButton.setAttribute('aria-pressed', String(historyView === 'recap'));
   if (moves) moves.hidden = historyView !== 'moves';
   if (recap) recap.hidden = historyView !== 'recap';
-  if (orderControl) orderControl.hidden = historyView !== 'moves';
   if (historyView === 'recap') renderPartyInsightRecap();
 }
 
