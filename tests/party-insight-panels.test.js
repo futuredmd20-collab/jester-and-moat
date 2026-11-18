@@ -179,7 +179,7 @@ test('Party Insight expressions use separate emoji and text elements', () => {
 
 test('Party Insight expressions are role-specific and personality-aware', () => {
   assert.match(script, /function getPartyInsightExpression\(side, personalityId = DEFAULT_PERSONALITY_ID\)/);
-  assert.match(script, /const isActor = event\.side === sideCode/);
+  assert.match(script, /const isActor = event\.side \? event\.side === sideCode : sideCode === 'w'/);
   assert.match(script, /isMoveHunter = personalityId === 'move_hunter'/);
   assert.match(script, /capture: isActor/);
   assert.match(script, /'en-passant': isActor/);
