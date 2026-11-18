@@ -119,5 +119,6 @@ test('Move history and factual match recap share one switchable display area', (
   assert.doesNotMatch(script, /orderControl\.hidden = historyView !== 'moves'/);
   assert.match(css, /#partyInsightRecapContent\[hidden\]/);
   assert.match(css, /\.party-insight-recap-list/);
+  assert.match(css, /#history, #partyInsightRecapContent \{ max-height: 220px; overflow: auto; \}/);
 });
 
