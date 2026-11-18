@@ -1730,30 +1730,43 @@ function partyInsightEventLabel(type) {
   return labels[type] || 'Game event';
 }
 
+let historyView = 'moves';
+
 function updatePartyInsightRecapControl() {
-  const button = document.getElementById('partyInsightRecapButton');
+  const button = document.getElementById('historyRecapTab');
   if (!button) return;
   const count = partyRecord?.matchEvents?.length || 0;
-  button.textContent = count ? `Match recap · ${count}` : 'Match recap';
+  button.textContent = count ? `Recap · ${count}` : 'Recap';
   button.disabled = !partyRecord;
+  if (!partyRecord && historyView === 'recap') setHistoryView('moves');
+  else if (historyView === 'recap') renderPartyInsightRecap();
 }
 
-function openPartyInsightRecap() {
-  const dialog = document.getElementById('partyInsightRecapDialog');
-  const content = document.getElementById('partyInsightRecapContent');
-  if (!dialog || !content || typeof dialog.showModal !== 'function') return;
-  content.replaceChildren();
+function setHistoryView(view) {
+  historyView = view === 'recap' ? 'recap' : 'moves';
+  const movesButton = document.getElementById('historyMovesTab');
+  const recapButton = document.getElementById('historyRecapTab');
+  const moves = document.getElementById('history');
+  const recap = document.getElementById('partyInsightRecapContent');
+  const orderControl = document.querySelector('.history-order-control');
+  if (movesButton) movesButton.setAttribute('aria-pressed', String(historyView === 'moves'));
+  if (recapButton) recapButton.setAttribute('aria-pressed', String(historyView === 'recap'));
+  if (moves) moves.hidden = historyView !== 'moves';
+  if (recap) recap.hidden = historyView !== 'recap';
+  if (orderControl) orderControl.hidden = historyView !== 'moves';
+  if (historyView === 'recap') renderPartyInsightRecap();
+}
 
-  const heading = document.createElement('h2');
-  heading.id = 'partyInsightRecapTitle';
-  heading.textContent = 'Match recap';
-  content.appendChild(heading);
+function renderPartyInsightRecap() {
+  const content = document.getElementById('partyInsightRecapContent');
+  if (!content) return;
+  content.replaceChildren();
 
   const events = partyRecord?.matchEvents || [];
   const intro = document.createElement('p');
   intro.className = 'party-insight-details-intro';
   intro.textContent = partyRecord
-    ? `${events.length} recorded events from this game. The recap contains observed game events, not inferred engine reasoning.`
+    ? `${events.length} recorded events. The recap contains observed game events, not inferred engine reasoning.`
     : 'No party record is available for this game.';
   content.appendChild(intro);
 
@@ -1786,7 +1799,6 @@ function openPartyInsightRecap() {
     }
     content.appendChild(list);
   }
-  dialog.showModal();
 }
 
 function updatePartyInsightPanels() {
@@ -2266,12 +2278,11 @@ if (partyInsightDialog) partyInsightDialog.addEventListener('click', event => {
   if (event.target.closest('[data-party-insight-close]')) partyInsightDialog.close();
 });
 
-const partyInsightRecapButton = document.getElementById('partyInsightRecapButton');
-if (partyInsightRecapButton) partyInsightRecapButton.addEventListener('click', openPartyInsightRecap);
-const partyInsightRecapDialog = document.getElementById('partyInsightRecapDialog');
-if (partyInsightRecapDialog) partyInsightRecapDialog.addEventListener('click', event => {
-  if (event.target.closest('[data-party-insight-recap-close]')) partyInsightRecapDialog.close();
-});
+const historyMovesTab = document.getElementById('historyMovesTab');
+if (historyMovesTab) historyMovesTab.addEventListener('click', () => setHistoryView('moves'));
+const historyRecapTab = document.getElementById('historyRecapTab');
+if (historyRecapTab) historyRecapTab.addEventListener('click', () => setHistoryView('recap'));
+setHistoryView('moves');
 
 const engineAssignmentsHost = document.getElementById('engineAssignments');
 if (engineAssignmentsHost) engineAssignmentsHost.addEventListener('change', handleEngineConfigurationChange);
