@@ -518,6 +518,27 @@ function recordPartyPhaseChange(previousPhase, nextPhase) {
   }
 }
 
+function recordPartyMoatPlacement(color, redeployed, silent = false) {
+  if (silent || !state?.moats?.[color]) return;
+  const positionLabel = position => {
+    const first = String.fromCharCode(65 + position.c);
+    const last = String.fromCharCode(65 + position.c + 2);
+    return `${first}${ROWS - position.r}-${last}${ROWS - position.r}`;
+  };
+
+  if (redeployed) {
+    recordPartyEvent('moat-redeployed',
+      `${color === 'w' ? 'White' : 'Black'} redeployed a moat at ${positionLabel(state.moats[color])}.`,
+      color, getGamePhase(state));
+    return;
+  }
+
+  if (!state.hasPlacedMoat?.w || !state.hasPlacedMoat?.b || !state.moats.w || !state.moats.b) return;
+  recordPartyEvent('moat-placed',
+    `White and Black placed their moats: White at ${positionLabel(state.moats.w)}; Black at ${positionLabel(state.moats.b)}.`,
+    null, getGamePhase(state));
+}
+
 function isPartyEngineConfigurationSnapshot(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value) ||
       value.schemaVersion !== ENGINE_CONFIG_SCHEMA_VERSION ||
@@ -3013,9 +3034,7 @@ function confirmMoatPlacement(){
   const col1 = String.fromCharCode(65 + c);
   const col3 = String.fromCharCode(65 + c + 2);
   const rowName = ROWS - r;
-  recordPartyEvent(redeployed ? 'moat-redeployed' : 'moat-placed',
-    `${color === 'w' ? 'White' : 'Black'} ${redeployed ? 'redeployed' : 'placed'} a moat at ${col1}${rowName}-${col3}${rowName}.`,
-    color, getGamePhase(state));
+  recordPartyMoatPlacement(color, redeployed);
   const moveNumber = moveLog.length + 1;
   moveLog.push(`${moveNumber}. ${color==='w'?'White':'Black'}: Moat ${col1}${rowName}-${col3}${rowName} (${formatTime(state.clocks[color])})`);
 
@@ -3059,9 +3078,7 @@ function aiPlaceMoatForColor(color, silent = false){
   const col1 = String.fromCharCode(65 + c);
   const col3 = String.fromCharCode(65 + c + 2);
   const rowName = ROWS - r;
-  if (!silent) recordPartyEvent(redeployed ? 'moat-redeployed' : 'moat-placed',
-    `${color === 'w' ? 'White' : 'Black'} ${redeployed ? 'redeployed' : 'placed'} a moat at ${col1}${rowName}-${col3}${rowName}.`,
-    color, getGamePhase(state));
+  recordPartyMoatPlacement(color, redeployed, silent);
   const moveNumber = moveLog.length + 1;
   moveLog.push(`${moveNumber}. ${color==='w'?'White':'Black'}: Moat ${col1}${rowName}-${col3}${rowName} (${formatTime(state.clocks[color])})`);
 
@@ -3709,7 +3726,7 @@ function renderMoveList(){
   el.scrollTop = historyOrder === 'newest' ? 0 : el.scrollHeight;
 }
 
-let historyOrder = 'oldest';
+let historyOrder = 'newest';
 const historyOrderSelect = document.getElementById('historyOrderSelect');
 try {
   const savedHistoryOrder = localStorage.getItem('jm_history_order_v1');
