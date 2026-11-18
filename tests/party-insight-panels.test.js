@@ -139,6 +139,17 @@ test('Party Insight terminal reactions persist after the game ends', () => {
   assert.match(script, /getPartyInsightReactionEvent\(\)/);
 });
 
+test('Terminal reactions require the current position to be a completed game', () => {
+  assert.match(script, /!PARTY_INSIGHT_TERMINAL_EVENTS\.has\(item\.type\)[\s\S]*?gameOver && partyRecord\?\.outcome\?\.status === 'completed'/);
+});
+
+test('Loaded party snapshots survive undo and new captures enter the next snapshot', () => {
+  assert.match(script, /historyPartySnapshots = Array\.isArray\(parsed\.historyPartySnapshots\)[\s\S]*?history\.map/);
+  assert.match(script, /restorePartyHistorySnapshot\(historyPartySnapshots\[historyPartySnapshots\.length - 1\]\)/);
+  assert.match(script, /recordPartyEvent\('capture',[\s\S]*?pushHistorySnapshot\(\);/);
+  assert.match(script, /historyPartySnapshots: clone\(historyPartySnapshots\)/);
+});
+
 test('Party Insight records ordinary pawn promotions as temporary reactions', () => {
   assert.match(script, /'capture', 'promotion', 'check'/);
   assert.match(script, /recordPartyEvent\('promotion'/);
