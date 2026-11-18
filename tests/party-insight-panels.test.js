@@ -108,6 +108,8 @@ test('Move history and factual match recap share one switchable display area', (
   assert.match(script, /The recap contains observed game events, not inferred engine reasoning/);
   assert.match(script, /details\.textContent = item\.details/);
   assert.match(script, /let historyOrder = 'newest'/);
+  assert.match(script, /const savedHistoryOrder = localStorage\.getItem\('jm_history_order_v1'\)/);
+  assert.match(script, /savedHistoryOrder === 'newest' \|\| savedHistoryOrder === 'oldest'/);
   assert.match(script, /const recordedEvents = partyRecord\?\.matchEvents \|\| \[\]/);
   assert.match(script, /const events = historyOrder === 'newest' \? recordedEvents\.slice\(\)\.reverse\(\) : recordedEvents/);
   assert.match(script, /if \(historyView === 'recap'\) renderPartyInsightRecap\(\)/);
