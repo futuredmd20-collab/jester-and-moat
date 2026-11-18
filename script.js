@@ -1805,6 +1805,7 @@ function renderPartyInsightRecap() {
   } else {
     const list = document.createElement('ol');
     list.className = 'party-insight-recap-list';
+    list.reversed = historyOrder === 'newest';
     for (const item of events) {
       const entry = document.createElement('li');
       const label = document.createElement('strong');
