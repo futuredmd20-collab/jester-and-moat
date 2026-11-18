@@ -96,15 +96,21 @@ test('Party Insight panel updates safely skip incomplete DOM hosts', () => {
   assert.match(script, /const host = document\.getElementById\('boardLayout'\);\s*if \(!host \|\| typeof host\.querySelectorAll !== 'function'\) return;/);
 });
 
-test('Party Insight exposes a factual match recap without depending on the debug log', () => {
-  assert.match(html, /id="partyInsightRecapButton"/);
-  assert.match(html, /id="partyInsightRecapDialog"/);
-  assert.match(html, /id="partyInsightRecapContent"/);
-  assert.match(script, /function openPartyInsightRecap\(\)/);
+test('Move history and factual match recap share one switchable display area', () => {
+  assert.match(html, /class="history-view-tabs"[^>]*aria-label="History view"/);
+  assert.match(html, /id="historyMovesTab"[^>]*aria-pressed="true"/);
+  assert.match(html, /id="historyRecapTab"[^>]*aria-pressed="false"[^>]*disabled/);
+  assert.match(html, /<div id="history">No moves yet\.<\/div>\s*<div id="partyInsightRecapContent" hidden><\/div>/);
+  assert.doesNotMatch(html, /partyInsightRecapButton|partyInsightRecapDialog/);
+  assert.match(script, /function setHistoryView\(view\)/);
+  assert.match(script, /function renderPartyInsightRecap\(\)/);
   assert.match(script, /partyRecord\?\.matchEvents \|\| \[\]/);
   assert.match(script, /The recap contains observed game events, not inferred engine reasoning/);
   assert.match(script, /details\.textContent = item\.details/);
-  assert.match(script, /addEventListener\('click', openPartyInsightRecap\)/);
+  assert.match(script, /addEventListener\('click', \(\) => setHistoryView\('moves'\)\)/);
+  assert.match(script, /addEventListener\('click', \(\) => setHistoryView\('recap'\)\)/);
+  assert.match(script, /orderControl\.hidden = historyView !== 'moves'/);
+  assert.match(css, /#partyInsightRecapContent\[hidden\]/);
   assert.match(css, /\.party-insight-recap-list/);
 });
 
