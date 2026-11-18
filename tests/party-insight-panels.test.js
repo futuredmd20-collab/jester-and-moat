@@ -123,6 +123,23 @@ test('Move history and factual match recap share one switchable display area', (
 });
 
 
+test('Party Insight reactions expire by elapsed time or ply progress and return to idle', () => {
+  assert.match(script, /PARTY_INSIGHT_REACTION_MAX_AGE_MS = 5000/);
+  assert.match(script, /PARTY_INSIGHT_REACTION_MAX_PLIES = 2/);
+  assert.match(script, /function getPartyInsightReactionEvent\\(\\)/);
+  assert.match(script, /age >= PARTY_INSIGHT_REACTION_MAX_AGE_MS/);
+  assert.match(script, /pliesElapsed >= PARTY_INSIGHT_REACTION_MAX_PLIES/);
+  assert.match(script, /partyInsightReactionTimer = setTimeout\\(\\(\\) =>/);
+  assert.match(script, /clearTimeout\\(partyInsightReactionTimer\\)/);
+});
+
+test('Party Insight records ordinary pawn promotions as temporary reactions', () => {
+  assert.match(script, /'capture', 'promotion', 'check'/);
+  assert.match(script, /recordPartyEvent\\('promotion'/);
+  assert.match(script, /promo !== 'moat'/);
+  assert.match(script, /promotion: isActor \\? '🎉 Promotion!' : '😮 A promotion.'/);
+});
+
 test('Party Insight expressions are derived from recorded events and remain presentation-only', () => {
   assert.match(script, /function getPartyInsightExpression\(side, personalityId = DEFAULT_PERSONALITY_ID\)/);
   assert.match(script, /partyRecord\?\.matchEvents/);
@@ -130,6 +147,7 @@ test('Party Insight expressions are derived from recorded events and remain pres
   assert.match(script, /expression\.textContent = getPartyInsightExpression\(side, personalityId\)/);
   assert.match(script, /getEngineAssignment\(side, activePhase\)\.personalityId/);
   assert.match(script, /if \(isMoveHunter && event\.type === 'capture' && isActor\)/);
+  assert.match(script, /getPartyInsightReactionEvent\(\)/);
   assert.match(script, /return '🙂'/);
   assert.match(script, /getPartyInsightExpression\(side, personalityId\)/);
 });
