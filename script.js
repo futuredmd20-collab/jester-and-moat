@@ -1855,7 +1855,7 @@ function getPartyInsightExpression(side, personalityId = DEFAULT_PERSONALITY_ID)
     text: sideCode === 'w' ? 'Ready to play.' : 'Waiting for my chance.'
   };
 
-  const isActor = event.side === sideCode;
+  const isActor = event.side ? event.side === sideCode : sideCode === 'w';
   const isMoveHunter = personalityId === 'move_hunter';
   const reactions = {
     capture: isActor
