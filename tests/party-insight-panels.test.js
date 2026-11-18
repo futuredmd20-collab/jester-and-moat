@@ -146,5 +146,7 @@ test('Party Insight expressions distinguish the two sides and supported personal
 test('Party Insight expressions use only recorded events at or before the current ply', () => {
   assert.match(script, /item\.ply <= \(state\?\.ply \?\? 0\)/);
   assert.match(script, /events\.slice\(\)\.reverse\(\)\.find/);
-  assert.doesNotMatch(script, /getPartyInsightExpression[\s\S]{0,1800}minimax|evaluateBoard|\.search\(/);
+  const expressionFunction = script.match(/function getPartyInsightExpression\([\s\S]*?\n}\n/);
+  assert.ok(expressionFunction);
+  assert.doesNotMatch(expressionFunction[0], /minimax|evaluateBoard|\.search\(/);
 });
