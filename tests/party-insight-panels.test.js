@@ -126,24 +126,24 @@ test('Move history and factual match recap share one switchable display area', (
 test('Party Insight reactions expire by elapsed time or ply progress and return to idle', () => {
   assert.match(script, /PARTY_INSIGHT_REACTION_MAX_AGE_MS = 5000/);
   assert.match(script, /PARTY_INSIGHT_REACTION_MAX_PLIES = 2/);
-  assert.match(script, /function getPartyInsightReactionEvent\\(\\)/);
+  assert.match(script, /function getPartyInsightReactionEvent\(\)/);
   assert.match(script, /age >= PARTY_INSIGHT_REACTION_MAX_AGE_MS/);
   assert.match(script, /pliesElapsed >= PARTY_INSIGHT_REACTION_MAX_PLIES/);
-  assert.match(script, /partyInsightReactionTimer = setTimeout\\(\\(\\) =>/);
+  assert.match(script, /partyInsightReactionTimer = setTimeout\(\(\) =>/);
   assert.match(script, /clearTimeout\\(partyInsightReactionTimer\\)/);
 });
 
 test('Party Insight records ordinary pawn promotions as temporary reactions', () => {
   assert.match(script, /'capture', 'promotion', 'check'/);
-  assert.match(script, /recordPartyEvent\\('promotion'/);
+  assert.match(script, /recordPartyEvent\('promotion'/);
   assert.match(script, /promo !== 'moat'/);
-  assert.match(script, /promotion: isActor \\? '🎉 Promotion!' : '😮 A promotion.'/);
+  assert.match(script, /promotion: isActor \? '🎉 Promotion!' : '😮 A promotion.'/);
 });
 
 test('Party Insight expressions are derived from recorded events and remain presentation-only', () => {
   assert.match(script, /function getPartyInsightExpression\(side, personalityId = DEFAULT_PERSONALITY_ID\)/);
   assert.match(script, /partyRecord\?\.matchEvents/);
-  assert.match(script, /item\.type !== 'game-start'/);
+  assert.match(script, /PARTY_INSIGHT_REACTION_EVENTS/);
   assert.match(script, /expression\.textContent = getPartyInsightExpression\(side, personalityId\)/);
   assert.match(script, /getEngineAssignment\(side, activePhase\)\.personalityId/);
   assert.match(script, /if \(isMoveHunter && event\.type === 'capture' && isActor\)/);
@@ -162,7 +162,7 @@ test('Party Insight expressions distinguish the two sides and supported personal
 });
 
 test('Party Insight expressions use only recorded events at or before the current ply', () => {
-  assert.match(script, /item\.ply <= \(state\?\.ply \?\? 0\)/);
+  assert.match(script, /function getPartyInsightReactionEvent\(\)[\s\S]*?item\.ply <= \(state\?\.ply \?\? 0\)/);
   assert.match(script, /events\.slice\(\)\.reverse\(\)\.find/);
   const expressionFunction = script.match(/function getPartyInsightExpression\([\s\S]*?\n}\n/);
   assert.ok(expressionFunction);
