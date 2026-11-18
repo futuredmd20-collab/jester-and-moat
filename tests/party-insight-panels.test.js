@@ -150,8 +150,18 @@ test('Loaded party snapshots survive undo and new captures enter the next snapsh
   assert.match(script, /historyPartySnapshots: clone\(historyPartySnapshots\)/);
 });
 
+test('Party Insight records castling and en-passant as side-specific reactions', () => {
+  assert.match(script, /'castling', 'en-passant'/);
+  assert.match(script, /if \(m\.enPassant\) \{[\s\S]*?recordPartyEvent\('en-passant'/);
+  assert.match(script, /recordPartyEvent\('capture', captureDetails/);
+  assert.match(script, /recordPartyEvent\('castling'/);
+  assert.match(script, /'en-passant': isActor/);
+  assert.match(script, /castling: isActor \? '🏰 Castled!' : '🏰 Castling\.'/);
+  assert.match(script, /partyInsightEventLabel[\s\S]*?'en-passant': 'En passant'[\s\S]*?castling: 'Castling'/);
+});
+
 test('Party Insight records ordinary pawn promotions as temporary reactions', () => {
-  assert.match(script, /'capture', 'promotion', 'check'/);
+  assert.match(script, /'capture', 'en-passant', 'castling', 'promotion', 'check'/);
   assert.match(script, /recordPartyEvent\('promotion'/);
   assert.match(script, /promo !== 'moat'/);
   assert.match(script, /const movingPieceType = p\.type/);
@@ -165,7 +175,7 @@ test('Party Insight expressions are derived from recorded events and remain pres
   assert.match(script, /PARTY_INSIGHT_REACTION_EVENTS/);
   assert.match(script, /expression\.textContent = getPartyInsightExpression\(side, personalityId\)/);
   assert.match(script, /getEngineAssignment\(side, activePhase\)\.personalityId/);
-  assert.match(script, /if \(isMoveHunter && event\.type === 'capture' && isActor\)/);
+  assert.match(script, /if \(isMoveHunter && \(event\.type === 'capture' \|\| event\.type === 'en-passant'\) && isActor\)/);
   assert.match(script, /getPartyInsightReactionEvent\(\)/);
   assert.match(script, /return '🙂'/);
   assert.match(script, /getPartyInsightExpression\(side, personalityId\)/);
