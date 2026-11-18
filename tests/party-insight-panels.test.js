@@ -122,3 +122,29 @@ test('Move history and factual match recap share one switchable display area', (
   assert.match(css, /#history, #partyInsightRecapContent \{ max-height: 220px; overflow: auto; \}/);
 });
 
+
+test('Party Insight expressions are derived from recorded events and remain presentation-only', () => {
+  assert.match(script, /function getPartyInsightExpression\(side, personalityId = DEFAULT_PERSONALITY_ID\)/);
+  assert.match(script, /partyRecord\?\.matchEvents/);
+  assert.match(script, /item\.type !== 'game-start'/);
+  assert.match(script, /expression\.textContent = getPartyInsightExpression\(side, personalityId\)/);
+  assert.match(script, /getEngineAssignment\(side, activePhase\)\.personalityId/);
+  assert.match(script, /if \(isMoveHunter && event\.type === 'capture' && isActor\)/);
+  assert.match(script, /return '🙂'/);
+  assert.match(script, /getPartyInsightExpression\(side, personalityId\)/);
+});
+
+test('Party Insight expressions distinguish the two sides and supported personality styles', () => {
+  assert.match(script, /const sideCode = side === 'white' \? 'w' : side === 'black' \? 'b' : null/);
+  assert.match(script, /capture: isActor/);
+  assert.match(script, /'checkmate': actor === sideCode/);
+  assert.match(script, /'moat-destroyed': actor === sideCode/);
+  assert.match(script, /isMoveHunter \? '🎯 Target acquired!'/);
+  assert.match(script, /'🎯 Excellent capture!'/);
+});
+
+test('Party Insight expressions use only recorded events at or before the current ply', () => {
+  assert.match(script, /item\.ply <= \(state\?\.ply \?\? 0\)/);
+  assert.match(script, /events\.slice\(\)\.reverse\(\)\.find/);
+  assert.doesNotMatch(script, /getPartyInsightExpression[\s\S]{0,1800}minimax|evaluateBoard|\.search\(/);
+});
