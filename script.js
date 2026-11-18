@@ -472,7 +472,7 @@ const PARTY_RECORD_SCHEMA_VERSION = 1;
 
 const PARTY_EVENT_TYPES = new Set([
   'game-start', 'phase-change', 'capture', 'promotion', 'check', 'checkmate', 'stalemate',
-  'draw', 'timeout', 'game-end', 'moat-placed', 'moat-destroyed', 'moat-redeployed'
+  'draw', 'timeout', 'game-end', 'castling', 'en-passant', 'moat-placed', 'moat-destroyed', 'moat-redeployed'
 ]);
 
 function createPartyRecord(origin = 'new-game') {
@@ -1710,7 +1710,7 @@ const PARTY_INSIGHT_REACTION_MAX_AGE_MS = 5000;
 const PARTY_INSIGHT_REACTION_MAX_PLIES = 2;
 const PARTY_INSIGHT_TERMINAL_EVENTS = new Set(['checkmate', 'stalemate', 'draw', 'timeout', 'game-end']);
 const PARTY_INSIGHT_REACTION_EVENTS = new Set([
-  'capture', 'promotion', 'check', 'checkmate', 'stalemate', 'draw', 'timeout', 'game-end',
+  'capture', 'en-passant', 'castling', 'promotion', 'check', 'checkmate', 'stalemate', 'draw', 'timeout', 'game-end',
   'moat-destroyed', 'moat-redeployed'
 ]);
 
@@ -1746,6 +1746,8 @@ function partyInsightEventLabel(type) {
     'game-start': 'Game started',
     'phase-change': 'Game phase changed',
     capture: 'Capture',
+    'en-passant': 'En passant',
+    castling: 'Castling',
     check: 'Check',
     checkmate: 'Checkmate',
     stalemate: 'Stalemate',
@@ -1860,6 +1862,10 @@ function getPartyInsightExpression(side, personalityId = DEFAULT_PERSONALITY_ID)
     capture: isActor
       ? (isMoveHunter ? '🎯 Target acquired!' : '🙂 A capture.')
       : '😮 A piece was lost.',
+    'en-passant': isActor
+      ? (isMoveHunter ? '🎯 Target acquired!' : '🙂 En passant!')
+      : '😮 An en-passant capture.',
+    castling: isActor ? '🏰 Castled!' : '🏰 Castling.',
     promotion: isActor ? '🎉 Promotion!' : '😮 A promotion.',
     check: actor === sideCode ? '😟 Under pressure.' : '⚔️ Check.',
     checkmate: actor === sideCode ? '🏁 Checkmate.' : '😔 The game is over.',
@@ -1871,7 +1877,7 @@ function getPartyInsightExpression(side, personalityId = DEFAULT_PERSONALITY_ID)
     'moat-redeployed': actor === sideCode ? '🧱 Moat restored.' : '👀 A moat was restored.'
   };
   if (Object.prototype.hasOwnProperty.call(reactions, event.type)) {
-    if (isMoveHunter && event.type === 'capture' && isActor) return '🎯 Excellent capture!';
+    if (isMoveHunter && (event.type === 'capture' || event.type === 'en-passant') && isActor) return '🎯 Excellent capture!';
     return reactions[event.type];
   }
   return '🙂';
@@ -2935,10 +2941,17 @@ function play(m, promoChoice = 'q', silent = false){
     if (capturedPiece) {
       const destination = `${String.fromCharCode(65 + m.to.c)}${ROWS - m.to.r}`;
       const pieceName = PIECE_NAME[capturedPiece.type] || capturedPiece.type;
-      recordPartyEvent('capture',
-        `${mover === 'w' ? 'White' : 'Black'} captured ${capturedPiece.color === 'w' ? 'White' : 'Black'} ${pieceName} on ${destination}.`,
+      const eventType = m.enPassant ? 'en-passant' : 'capture';
+      const specialMove = m.enPassant ? ' en passant' : '';
+      recordPartyEvent(eventType,
+        `${mover === 'w' ? 'White' : 'Black'} captured ${capturedPiece.color === 'w' ? 'White' : 'Black'} ${pieceName}${specialMove} on ${destination}.`,
         mover, getGamePhase(state));
     }
+  }
+  if (!silent && applyResult && m.castling) {
+    recordPartyEvent('castling',
+      `${mover === 'w' ? 'White' : 'Black'} castled ${m.castling === 'kingside' ? 'king-side' : 'queen-side'}.`,
+      mover, getGamePhase(state));
   }
   if (!silent && applyResult && movingPieceType === 'p' && (m.to.r === 0 || m.to.r === ROWS - 1) && promo !== 'moat') {
     recordPartyEvent('promotion',
