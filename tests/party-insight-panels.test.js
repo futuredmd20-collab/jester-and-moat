@@ -107,6 +107,9 @@ test('Move history and factual match recap share one switchable display area', (
   assert.match(script, /partyRecord\?\.matchEvents \|\| \[\]/);
   assert.match(script, /The recap contains observed game events, not inferred engine reasoning/);
   assert.match(script, /details\.textContent = item\.details/);
+  assert.match(script, /const recordedEvents = partyRecord\?\.matchEvents \|\| \[\]/);
+  assert.match(script, /const events = historyOrder === 'newest' \? recordedEvents\.slice\(\)\.reverse\(\) : recordedEvents/);
+  assert.match(script, /if \(historyView === 'recap'\) renderPartyInsightRecap\(\)/);
   assert.match(script, /addEventListener\('click', \(\) => setHistoryView\('moves'\)\)/);
   assert.match(script, /addEventListener\('click', \(\) => setHistoryView\('recap'\)\)/);
   assert.match(script, /orderControl\.hidden = historyView !== 'moves'/);
