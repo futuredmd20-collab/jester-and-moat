@@ -542,6 +542,23 @@
     box-shadow: 0 12px 40px #0005; overflow: auto;
   }
   .party-insight-details-dialog::backdrop { background: #0008; }
+  .history-view-tabs { display: inline-flex; align-items: center; gap: 4px; }
+  .history-view-tab {
+    min-height: 28px; padding: 4px 9px; border: 1px solid var(--line);
+    border-radius: 6px; background: var(--panel, #f5eee2); color: var(--muted-ink);
+    font: inherit; font-size: .74rem; cursor: pointer;
+  }
+  .history-view-tab[aria-pressed="true"] { background: var(--burgundy); border-color: var(--burgundy); color: #fffaf1; }
+  .history-view-tab:disabled { opacity: .55; cursor: default; }
+  #history[hidden], #partyInsightRecapContent[hidden] { display: none !important; }
+  #partyInsightRecapContent { margin-top: 4px; }
+  .party-insight-recap-outcome { margin: 0 0 10px; font-size: .84rem; font-weight: 700; }
+  .party-insight-recap-empty { color: var(--muted-ink); font-size: .82rem; }
+  .party-insight-recap-list { margin: 0; padding-left: 22px; }
+  .party-insight-recap-list li { padding: 8px 0; border-top: 1px solid var(--line); }
+  .party-insight-recap-list li strong { font-size: .82rem; }
+  .party-insight-recap-list li p { margin: 3px 0; font-size: .8rem; overflow-wrap: anywhere; }
+  .party-insight-recap-list li small { color: var(--muted-ink); font-size: .7rem; }
   .party-insight-details-content h2 { margin: 0 0 6px; font-size: 1.15rem; }
   .party-insight-details-intro { margin: 0 0 12px; color: var(--muted-ink); font-size: .82rem; }
   .party-insight-phase { padding: 10px 0; border-top: 1px solid var(--line); }
@@ -702,7 +719,8 @@
   .history-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
   .history-order-control { display: inline-flex; align-items: center; gap: 5px; font-size: .72rem; color: var(--muted-ink); white-space: nowrap; }
   .history-order-control select { flex: 0 0 auto; min-width: 0; min-height: 28px; padding: 3px 6px; font-size: .72rem; border-radius: 5px; background: var(--paper-panel); color: var(--ink); border-color: var(--line); }
-  #history { max-height: 82px; overflow: auto; margin-top: 4px; white-space: pre-wrap; color: #514b42; font-family: monospace; font-size: .82rem; }
+  #history, #partyInsightRecapContent { max-height: 220px; overflow: auto; }
+  #history { margin-top: 4px; white-space: pre-wrap; color: #514b42; font-family: monospace; font-size: .82rem; }
 
   /* Modal */
   .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #292723a8; backdrop-filter: blur(3px); z-index: 999; align-items: center; justify-content: center; }

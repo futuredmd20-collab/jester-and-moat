@@ -424,7 +424,10 @@
 
 <div class="history-box">
  <div class="history-heading">
-  <strong>Move History</strong>
+  <div class="history-view-tabs" role="group" aria-label="History view">
+   <button type="button" class="history-view-tab" id="historyMovesTab" aria-pressed="true">Moves</button>
+   <button type="button" class="history-view-tab" id="historyRecapTab" aria-pressed="false" disabled>Recap</button>
+  </div>
   <label class="history-order-control">Order
    <select id="historyOrderSelect" aria-label="Move history order">
     <option value="oldest">Oldest first</option>
@@ -433,6 +436,7 @@
   </label>
  </div>
  <div id="history">No moves yet.</div>
+ <div id="partyInsightRecapContent" hidden></div>
 </div>
 </main>
 

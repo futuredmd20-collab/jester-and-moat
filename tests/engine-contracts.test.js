@@ -94,7 +94,7 @@ vm.runInContext(evolutionaryFeatures, sandbox, { filename: 'scripts/evolutionary
 vm.runInContext(evolutionarySearch, sandbox, { filename: 'scripts/evolutionary-search.js' });
 vm.runInContext(evolutionaryEngine, sandbox, { filename: 'engines/evolutionary-engine.js' });
 vm.runInContext(source.slice(0, boundary) + `
-globalThis.api = { GAME_VARIANT, GAME_SETUP_IDS, createGameIdentity, EngineContract, PERSONALITY_PROFILES, DEFAULT_PERSONALITY_ID, assertEnginePersonalityCompatibility, MinMaxLegacy, cancelActiveAIRequest, setActiveAIForTest(worker, request) { aiWorker = worker; pendingAIRequest = request; aiRequestId = request.id; isAIThinking = true; }, getActiveAIForTest() { return { worker: aiWorker, request: pendingAIRequest, thinking: isAIThinking, id: aiRequestId }; }, allLegalState, inCheck, findLegalMoveMatch, MinMaxSearchCore, getBestMove: MinMaxSearchCore.getBestMove, getBestMoveAsync: MinMaxSearchCore.getBestMoveAsync, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout); aiWorkerTimeout = null; if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; gameOver = false; gameOverMessage = ''; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getEngineConfiguration() { return engineCopy(engineConfiguration); }, setEngineConfiguration(config) { engineConfiguration = validateEngineConfiguration(config); updateEngineConfigUI(); }, validateEngineConfiguration, getEngineAssignment, handleEngineConfigurationChange, applyEnginePreset, isAIMode, updateModeUI, stepNextMove, toggleAutoPlay, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, applyLoadedGame, resumeLoadedGamePlayback, getAutoPlayForTest() { return autoPlayInterval; }, stopAutoPlayForTest: stopAutoPlay, ENGINE_PHASES, debugLogger, DebugLogger, status, setPartyRecordForTest(record) { partyRecord = record ? clone(record) : null; }, getPartyRecordForTest() { return partyRecord ? clone(partyRecord) : null; } };
+globalThis.api = { GAME_VARIANT, GAME_SETUP_IDS, createGameIdentity, EngineContract, PERSONALITY_PROFILES, DEFAULT_PERSONALITY_ID, assertEnginePersonalityCompatibility, MinMaxLegacy, cancelActiveAIRequest, setActiveAIForTest(worker, request) { aiWorker = worker; pendingAIRequest = request; aiRequestId = request.id; isAIThinking = true; }, getActiveAIForTest() { return { worker: aiWorker, request: pendingAIRequest, thinking: isAIThinking, id: aiRequestId }; }, allLegalState, inCheck, findLegalMoveMatch, MinMaxSearchCore, getBestMove: MinMaxSearchCore.getBestMove, getBestMoveAsync: MinMaxSearchCore.getBestMoveAsync, applyRaw, initializeEditorCastlingRights, getGamePhase, ensureAIWorker, aiMove, enginePlugins, resetAIWorker() { if (aiWorkerTimeout !== null && typeof clearTimeout === 'function') clearTimeout(aiWorkerTimeout); aiWorkerTimeout = null; if (aiWorker && typeof aiWorker.terminate === 'function') aiWorker.terminate(); aiWorker = null; pendingAIRequest = null; isAIThinking = false; gameOver = false; gameOverMessage = ''; }, play, aiPlaceMoatForColor, confirmMoatPlacement, loadEngineConfig, updateEngineConfigUI, getEngineForSide, getEngineConfig, getEngineConfiguration() { return engineCopy(engineConfiguration); }, setEngineConfiguration(config) { engineConfiguration = validateEngineConfiguration(config); updateEngineConfigUI(); }, validateEngineConfiguration, getEngineAssignment, handleEngineConfigurationChange, applyEnginePreset, isAIMode, updateModeUI, stepNextMove, toggleAutoPlay, setPendingMoat(m) { pendingMoat = m; }, setState(s) { state = s; }, getState() { return state; }, setHistoryForTest(states, logs, isOver = false) { history = clone(states); historyMoveLogs = clone(logs); historyPartySnapshots = history.map(() => createPartyHistorySnapshot()); state = clone(history[history.length - 1]); moveLog = clone(historyMoveLogs[historyMoveLogs.length - 1]); redoStack = []; gameOver = isOver; gameOverMessage = isOver ? document.getElementById('status').textContent : ''; }, getHistory() { return clone(history); }, getHistoryMoveLogs() { return clone(historyMoveLogs); }, getMoveLog() { return moveLog.slice(); }, getRedoStack() { return clone(redoStack); }, getGameOver() { return gameOver; }, pushHistorySnapshot, replaceLatestHistorySnapshot, undoHistoryStep, redoHistoryStep, exportGameData, parseGameData, applyLoadedGame, resumeLoadedGamePlayback, getAutoPlayForTest() { return autoPlayInterval; }, stopAutoPlayForTest: stopAutoPlay, ENGINE_PHASES, debugLogger, DebugLogger, status, recordPartyEvent, completePartyRecord, setPartyRecordForTest(record) { partyRecord = record ? clone(record) : null; }, getPartyRecordForTest() { return partyRecord ? clone(partyRecord) : null; }, getHistoryPartySnapshots() { return clone(historyPartySnapshots); } };
 `, sandbox, { filename: 'script.js' });
 vm.runInContext(mcts, sandbox, { filename: 'engines/mcts-engine.js' });
 // The app's HTML loads the MCTS module before script.js; register its plugin here
@@ -2576,6 +2576,33 @@ test('undo and redo restore complete move-log snapshots, including extra moat no
   assert.equal(JSON.stringify(getState()), JSON.stringify(after));
   assert.equal(JSON.stringify(getMoveLog()), JSON.stringify(expectedLog));
   assert.equal(JSON.stringify(getHistoryMoveLogs()), JSON.stringify([[], expectedLog]));
+});
+
+test('party recap events and terminal outcomes follow undo and redo history', () => {
+  const before = position();
+  const after = position();
+  after.turn = 'b';
+  after.ply = 1;
+  const startedAt = new Date().toISOString();
+  sandbox.api.setPartyRecordForTest({
+    matchEvents: [{ at: startedAt, type: 'game-start', side: null, ply: 0, phase: 'opening', details: 'Started.' }],
+    outcome: { status: 'in_progress', result: null, reason: null, finishedAt: null }
+  });
+  sandbox.api.setHistoryForTest([before], [[]]);
+  sandbox.api.setState(after);
+  sandbox.api.recordPartyEvent('capture', 'White captured Black pawn.', 'w', 'opening');
+  sandbox.api.pushHistorySnapshot();
+  sandbox.api.completePartyRecord('Checkmate! White wins.');
+
+  assert.equal(sandbox.api.getPartyRecordForTest().matchEvents.length, 3);
+  assert.equal(sandbox.api.getPartyRecordForTest().outcome.status, 'completed');
+  assert.equal(sandbox.api.undoHistoryStep(), true);
+  assert.equal(sandbox.api.getPartyRecordForTest().matchEvents.length, 1);
+  assert.equal(sandbox.api.getPartyRecordForTest().outcome.status, 'in_progress');
+  assert.equal(sandbox.api.redoHistoryStep(), true);
+  assert.equal(sandbox.api.getPartyRecordForTest().matchEvents.length, 3);
+  assert.equal(sandbox.api.getPartyRecordForTest().outcome.status, 'completed');
+  sandbox.api.setPartyRecordForTest(null);
 });
 
 test('history snapshots preserve the next moat-placement phase and turn', () => {

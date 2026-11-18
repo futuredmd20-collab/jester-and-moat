@@ -27,7 +27,7 @@ test('party configuration changes are appended without replacing the start snaps
 
 test('party metadata roundtrips with saves and legacy saves remain importable', () => {
   assert.match(script, /partyRecord: partyRecord \? clone\(partyRecord\) : null/);
-  assert.match(script, /partyRecord: normalizePartyRecord\(parsed\.partyRecord, normalizedState\)/);
+  assert.match(script, /const normalizedPartyRecord = normalizePartyRecord\(parsed\.partyRecord, normalizedState\)/);
   assert.match(script, /function normalizePartyRecord\(candidate, savedState\)/);
   assert.match(script, /function isPartyEngineConfigurationSnapshot\(value\)/);
   assert.match(script, /isPartyEngineConfigurationSnapshot\(candidate\.configurationAtStart\)/);
@@ -40,4 +40,43 @@ test('completed games record factual outcome and completion metadata', () => {
   assert.match(script, /function completePartyRecord\(message\)/);
   assert.match(script, /status: 'completed', result, reason, finishedAt: new Date\(\)\.toISOString\(\)/);
   assert.match(script, /completePartyRecord\(fullMsg\);/);
+});
+
+test('party match events are recorded independently of debug logging', () => {
+  assert.match(script, /const PARTY_EVENT_TYPES = new Set\(/);
+  assert.match(script, /matchEvents: \[\{[\s\S]*?type: 'game-start'/);
+  assert.match(script, /function recordPartyEvent\(type, details, side = null, phase = null\)/);
+  assert.match(script, /function recordPartyPhaseChange\(previousPhase, nextPhase\)/);
+  assert.match(script, /recordPartyEvent\('capture'/);
+  assert.match(script, /recordPartyEvent\('check'/);
+  assert.match(script, /recordPartyEvent\('moat-destroyed'/);
+  assert.match(script, /function recordPartyMoatPlacement\(color, redeployed, silent = false\)/);
+  assert.match(script, /if \(!state\.hasPlacedMoat\?\.w \|\| !state\.hasPlacedMoat\?\.b \|\| !state\.moats\.w \|\| !state\.moats\.b\) return/);
+  assert.match(script, /White and Black placed their moats: White at/);
+  assert.match(script, /recordPartyMoatPlacement\(color, redeployed\)/);
+  assert.match(script, /recordPartyMoatPlacement\(color, redeployed, silent\)/);
+  assert.doesNotMatch(script, /recordPartyEvent\(redeployed \? 'moat-redeployed' : 'moat-placed'/);
+  assert.match(script, /recordPartyEvent\(eventType, reason/);
+});
+
+test('party match events are validated, persisted, and legacy party records default to an empty event list', () => {
+  assert.match(script, /const matchEvents = candidate\.matchEvents === undefined \? \[\] : candidate\.matchEvents/);
+  assert.match(script, /Invalid party match events in save file/);
+  assert.match(script, /Invalid party match event in save file/);
+  assert.match(script, /matchEvents: normalizedEvents/);
+  assert.match(script, /partyRecord: partyRecord \? clone\(partyRecord\) : null/);
+});
+
+
+test('party recap events and outcomes follow undo/redo and saved history snapshots', () => {
+  assert.match(script, /let historyPartySnapshots = \[\]/);
+  assert.match(script, /function createPartyHistorySnapshot\(\)/);
+  assert.match(script, /function restorePartyHistorySnapshot\(snapshot\)/);
+  assert.match(script, /historyPartySnapshots\.push\(createPartyHistorySnapshot\(\)\)/);
+  assert.match(script, /partySnapshot: clone\(currentPartySnapshot\)/);
+  assert.match(script, /restorePartyHistorySnapshot\(historyPartySnapshots\[historyPartySnapshots\.length - 1\]\)/);
+  assert.match(script, /historyPartySnapshots: clone\(historyPartySnapshots\)/);
+  assert.match(script, /parsed\.historyPartySnapshots/);
+  assert.match(script, /Current party record does not match the latest party history snapshot/);
+  assert.match(script, /if \(!silent\) replaceLatestHistorySnapshot\(\)/);
 });

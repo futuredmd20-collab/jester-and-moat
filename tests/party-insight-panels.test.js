@@ -86,7 +86,7 @@ test('Party Insight shows a temporary handover marker only when the active engin
   assert.match(script, /partyInsightActiveEngines\[side\] = engineId/);
   assert.match(script, /\}, 3000\)/);
   assert.match(script, /if \(partyInsightHandoverPartyId !== partyId \|\| !visible\) resetPartyInsightHandover\(partyId\)/);
-  assert.match(script, /resetPartyInsightHandover\(\);\s*gameStarted = parsed\.gameStarted/);
+  assert.match(script, /resetPartyInsightHandover\(\);\s*updatePartyInsightRecapControl\(\);\s*gameStarted = parsed\.gameStarted/);
   assert.match(script, /recordPartyConfigurationChange\(\);\s*updatePartyInsightPanels\(\);/);
   assert.match(css, /\.party-insight-handover\[hidden\]\s*\{\s*display:\s*none;/);
   assert.match(css, /\.party-insight-handover\s*\{/);
@@ -95,3 +95,30 @@ test('Party Insight shows a temporary handover marker only when the active engin
 test('Party Insight panel updates safely skip incomplete DOM hosts', () => {
   assert.match(script, /const host = document\.getElementById\('boardLayout'\);\s*if \(!host \|\| typeof host\.querySelectorAll !== 'function'\) return;/);
 });
+
+test('Move history and factual match recap share one switchable display area', () => {
+  assert.match(html, /class="history-view-tabs"[^>]*aria-label="History view"/);
+  assert.match(html, /id="historyMovesTab"[^>]*aria-pressed="true"/);
+  assert.match(html, /id="historyRecapTab"[^>]*aria-pressed="false"[^>]*disabled/);
+  assert.match(html, /<div id="history">No moves yet\.<\/div>\s*<div id="partyInsightRecapContent" hidden><\/div>/);
+  assert.doesNotMatch(html, /partyInsightRecapButton|partyInsightRecapDialog/);
+  assert.match(script, /function setHistoryView\(view\)/);
+  assert.match(script, /function renderPartyInsightRecap\(\)/);
+  assert.match(script, /partyRecord\?\.matchEvents \|\| \[\]/);
+  assert.match(script, /The recap contains observed game events, not inferred engine reasoning/);
+  assert.match(script, /details\.textContent = item\.details/);
+  assert.match(script, /let historyOrder = 'newest'/);
+  assert.match(script, /const savedHistoryOrder = localStorage\.getItem\('jm_history_order_v1'\)/);
+  assert.match(script, /savedHistoryOrder === 'newest' \|\| savedHistoryOrder === 'oldest'/);
+  assert.match(script, /const recordedEvents = partyRecord\?\.matchEvents \|\| \[\]/);
+  assert.match(script, /const events = historyOrder === 'newest' \? recordedEvents\.slice\(\)\.reverse\(\) : recordedEvents/);
+  assert.match(script, /list\.reversed = historyOrder === 'newest'/);
+  assert.match(script, /if \(historyView === 'recap'\) renderPartyInsightRecap\(\)/);
+  assert.match(script, /addEventListener\('click', \(\) => setHistoryView\('moves'\)\)/);
+  assert.match(script, /addEventListener\('click', \(\) => setHistoryView\('recap'\)\)/);
+  assert.doesNotMatch(script, /orderControl\.hidden = historyView !== 'moves'/);
+  assert.match(css, /#partyInsightRecapContent\[hidden\]/);
+  assert.match(css, /\.party-insight-recap-list/);
+  assert.match(css, /#history, #partyInsightRecapContent \{ max-height: 220px; overflow: auto; \}/);
+});
+

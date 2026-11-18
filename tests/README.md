@@ -16,8 +16,9 @@ The separate engine-strength calibration runner has a short smoke test and a ful
 
 ## Current coverage
 
-- Party Insight panel markup and board-surrounding layout hooks; per-side expression/information toggling; active phase-specific engine summary; saved visibility selection for both sides, White only, Black only, or neither.
+- Party Insight panel markup and board-surrounding layout hooks; per-side expression/information toggling; active phase-specific engine summary; saved visibility selection for both sides, White only, Black only, or neither. Move history and the factual match recap share one area with mutually exclusive Moves/Recap views. Both views use the same saved Oldest first/Newest first ordering preference, defaulting to Newest first.
 - Party identity and configuration snapshots: source-contract checks for new-game/editor initialization, append-only active-party configuration changes, save/load metadata wiring and validation, legacy-save compatibility, and completion metadata.
+- Party-scoped match events and recap: game start, phase transitions, captures, checks, terminal outcomes, one combined initial moat-placement event after both positions are final, and individual moat redeployments are recorded independently of debug logging; events are validated and persisted with the party record, including backward-compatible loading of older party records without an event list. Per-position event/outcome snapshots keep recap content synchronized with undo/redo and are validated and persisted alongside move history; legacy saves without these snapshots retain the imported recap at the current position; earlier undo positions fall back to the known game-start event and in-progress outcome rather than inventing historical event placement.
 - Party-scoped debug event export: log entries capture the active party ID; the separate JSON event export includes the complete party record/configuration snapshots and only matching filtered events. Legacy log entries remain unassigned.
 
 - MinMax returns a legal move in a simple position and does not mutate the input state.

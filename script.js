@@ -272,6 +272,7 @@ let animateNextMove = false;
 let legalTargets = [];
 let history = [];
 let historyMoveLogs = [];
+let historyPartySnapshots = [];
 let redoStack = [];
 let moveLog = [];
 let gameOver = false;
@@ -334,24 +335,39 @@ let lastClockTickTime = null;
 
 function clone(x) { return JSON.parse(JSON.stringify(x)); }
 
+function createPartyHistorySnapshot() {
+  if (!partyRecord) return null;
+  return { matchEvents: clone(partyRecord.matchEvents || []), outcome: clone(partyRecord.outcome) };
+}
+function restorePartyHistorySnapshot(snapshot) {
+  if (!partyRecord || !snapshot) return;
+  partyRecord.matchEvents = clone(snapshot.matchEvents);
+  partyRecord.outcome = clone(snapshot.outcome);
+  updatePartyInsightRecapControl();
+}
+
 function pushHistorySnapshot() {
   history.push(clone(state));
   historyMoveLogs.push(moveLog.slice());
+  historyPartySnapshots.push(createPartyHistorySnapshot());
   redoStack = [];
 }
 function replaceLatestHistorySnapshot() {
   if (!history.length) { pushHistorySnapshot(); return; }
   history[history.length - 1] = clone(state);
   historyMoveLogs[historyMoveLogs.length - 1] = moveLog.slice();
+  historyPartySnapshots[historyPartySnapshots.length - 1] = createPartyHistorySnapshot();
 }
 function undoHistoryStep() {
   if (history.length <= 1) return false;
   const currentState = history.pop();
   const currentMoveLog = historyMoveLogs.pop() || moveLog.slice();
-  redoStack.push({ state: clone(currentState), moveLog: currentMoveLog.slice(), gameOver,
+  const currentPartySnapshot = historyPartySnapshots.pop() || createPartyHistorySnapshot();
+  redoStack.push({ state: clone(currentState), moveLog: currentMoveLog.slice(), partySnapshot: clone(currentPartySnapshot), gameOver,
     gameOverMessage, statusText: document.getElementById('status').textContent });
   state = clone(history[history.length - 1]);
   moveLog = (historyMoveLogs[historyMoveLogs.length - 1] || []).slice();
+  restorePartyHistorySnapshot(historyPartySnapshots[historyPartySnapshots.length - 1]);
   gameOver = false;
   gameOverMessage = '';
   return true;
@@ -363,6 +379,8 @@ function redoHistoryStep() {
   moveLog = (nextEntry.moveLog || []).slice();
   history.push(clone(state));
   historyMoveLogs.push(moveLog.slice());
+  historyPartySnapshots.push(clone(nextEntry.partySnapshot ?? createPartyHistorySnapshot()));
+  restorePartyHistorySnapshot(historyPartySnapshots[historyPartySnapshots.length - 1]);
   gameOver = Boolean(nextEntry.gameOver);
   gameOverMessage = gameOver ? (nextEntry.gameOverMessage || nextEntry.statusText || '') : '';
   if (gameOver) {
@@ -452,9 +470,15 @@ function savedValuesEqual(a, b) {
 }
 const PARTY_RECORD_SCHEMA_VERSION = 1;
 
+const PARTY_EVENT_TYPES = new Set([
+  'game-start', 'phase-change', 'capture', 'check', 'checkmate', 'stalemate',
+  'draw', 'timeout', 'game-end', 'moat-placed', 'moat-destroyed', 'moat-redeployed'
+]);
+
 function createPartyRecord(origin = 'new-game') {
   if (!state) return null;
   const timestamp = new Date().toISOString();
+  const phase = getGamePhase(state);
   return {
     schemaVersion: PARTY_RECORD_SCHEMA_VERSION,
     id: 'party-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10),
@@ -464,8 +488,55 @@ function createPartyRecord(origin = 'new-game') {
     setupId: state.setupId || null,
     configurationAtStart: engineCopy(engineConfiguration),
     configurationChanges: [],
+    matchEvents: [{
+      at: timestamp, type: 'game-start', side: null, ply: state.ply || 0,
+      phase, details: origin === 'board-editor' ? 'Game started from a Board Editor position.' : 'New game started.'
+    }],
     outcome: { status: 'in_progress', result: null, reason: null, finishedAt: null }
   };
+}
+
+function recordPartyEvent(type, details, side = null, phase = null) {
+  if (!partyRecord || partyRecord.outcome.status !== 'in_progress' || !PARTY_EVENT_TYPES.has(type)) return null;
+  if (!Array.isArray(partyRecord.matchEvents)) partyRecord.matchEvents = [];
+  const event = {
+    at: new Date().toISOString(),
+    type,
+    side: ['w', 'b'].includes(side) ? side : null,
+    ply: Number.isInteger(state?.ply) && state.ply >= 0 ? state.ply : 0,
+    phase: Object.values(ENGINE_PHASES).includes(phase) ? phase : null,
+    details: String(details || '')
+  };
+  partyRecord.matchEvents.push(event);
+  updatePartyInsightRecapControl();
+  return event;
+}
+
+function recordPartyPhaseChange(previousPhase, nextPhase) {
+  if (previousPhase && nextPhase && previousPhase !== nextPhase) {
+    recordPartyEvent('phase-change', `Phase changed: ${previousPhase} → ${nextPhase}.`, null, nextPhase);
+  }
+}
+
+function recordPartyMoatPlacement(color, redeployed, silent = false) {
+  if (silent || !state?.moats?.[color]) return;
+  const positionLabel = position => {
+    const first = String.fromCharCode(65 + position.c);
+    const last = String.fromCharCode(65 + position.c + 2);
+    return `${first}${ROWS - position.r}-${last}${ROWS - position.r}`;
+  };
+
+  if (redeployed) {
+    recordPartyEvent('moat-redeployed',
+      `${color === 'w' ? 'White' : 'Black'} redeployed a moat at ${positionLabel(state.moats[color])}.`,
+      color, getGamePhase(state));
+    return;
+  }
+
+  if (!state.hasPlacedMoat?.w || !state.hasPlacedMoat?.b || !state.moats.w || !state.moats.b) return;
+  recordPartyEvent('moat-placed',
+    `White and Black placed their moats: White at ${positionLabel(state.moats.w)}; Black at ${positionLabel(state.moats.b)}.`,
+    null, getGamePhase(state));
 }
 
 function isPartyEngineConfigurationSnapshot(value) {
@@ -523,6 +594,23 @@ function normalizePartyRecord(candidate, savedState) {
     }
     return { at: change.at, configuration: clone(change.configuration) };
   });
+  const matchEvents = candidate.matchEvents === undefined ? [] : candidate.matchEvents;
+  if (!Array.isArray(matchEvents)) throw new Error('Invalid party match events in save file.');
+  const normalizedEvents = matchEvents.map(event => {
+    if (!event || typeof event !== 'object' || Array.isArray(event) ||
+        typeof event.at !== 'string' || !Number.isFinite(Date.parse(event.at)) ||
+        !PARTY_EVENT_TYPES.has(event.type) ||
+        ![null, 'w', 'b'].includes(event.side ?? null) ||
+        !Number.isInteger(event.ply) || event.ply < 0 ||
+        (event.phase !== null && !Object.values(ENGINE_PHASES).includes(event.phase)) ||
+        typeof event.details !== 'string') {
+      throw new Error('Invalid party match event in save file.');
+    }
+    return {
+      at: event.at, type: event.type, side: event.side ?? null, ply: event.ply,
+      phase: event.phase ?? null, details: event.details
+    };
+  });
   return {
     schemaVersion: PARTY_RECORD_SCHEMA_VERSION,
     id: candidate.id,
@@ -533,6 +621,7 @@ function normalizePartyRecord(candidate, savedState) {
     configurationAtStart: candidate.configurationAtStart === null
       ? null : clone(candidate.configurationAtStart),
     configurationChanges: changes,
+    matchEvents: normalizedEvents,
     outcome: {
       status: outcome.status,
       result: outcome.result ?? null,
@@ -558,14 +647,23 @@ function completePartyRecord(message) {
   const winner = reason.match(/\b(White|Black) wins\b/i);
   const result = winner ? winner[1].toLowerCase() + '_win'
     : /draw|stalemate/i.test(reason) ? 'draw' : 'unknown';
+  const eventType = /checkmate/i.test(reason) ? 'checkmate'
+    : /stalemate/i.test(reason) ? 'stalemate'
+    : /time\s*out|timeout/i.test(reason) ? 'timeout'
+    : /draw/i.test(reason) ? 'draw' : 'game-end';
+  recordPartyEvent(eventType, reason, winner ? winner[1].toLowerCase()[0] : null,
+    state ? getGamePhase(state) : null);
   partyRecord.outcome = {
     status: 'completed', result, reason, finishedAt: new Date().toISOString()
   };
+  updatePartyInsightRecapControl();
+  replaceLatestHistorySnapshot();
 }
 
 function exportGameData() {
   return { state: clone(state), moveLog: moveLog.slice(), history: clone(history),
-    historyMoveLogs: clone(historyMoveLogs), gameStarted, playerColor, gameOver, gameOverMessage,
+    historyMoveLogs: clone(historyMoveLogs), historyPartySnapshots: clone(historyPartySnapshots),
+    gameStarted, playerColor, gameOver, gameOverMessage,
     partyRecord: partyRecord ? clone(partyRecord) : null };
 }
 function parseGameData(input, initialTime = 0) {
@@ -598,10 +696,50 @@ function parseGameData(input, initialTime = 0) {
   if (parsed.gameStarted !== undefined && typeof parsed.gameStarted !== 'boolean') throw new Error('Invalid game-started flag in save file.');
   if (parsed.gameOver !== undefined && typeof parsed.gameOver !== 'boolean') throw new Error('Invalid game-over flag in save file.');
   if (parsed.gameOverMessage !== undefined && typeof parsed.gameOverMessage !== 'string') throw new Error('Invalid game-over message in save file.');
+  const normalizedPartyRecord = normalizePartyRecord(parsed.partyRecord, normalizedState);
+  let partyHistorySnapshots;
+  if (parsed.historyPartySnapshots !== undefined) {
+    partyHistorySnapshots = parsed.historyPartySnapshots;
+    if (!Array.isArray(partyHistorySnapshots) || partyHistorySnapshots.length !== normalizedHistory.length) {
+      throw new Error('Invalid party history snapshots in save file.');
+    }
+    partyHistorySnapshots = partyHistorySnapshots.map(snapshot => {
+      if (normalizedPartyRecord === null) {
+        if (snapshot !== null) throw new Error('Invalid party history snapshots in save file.');
+        return null;
+      }
+      if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot) ||
+          !Array.isArray(snapshot.matchEvents) || !snapshot.outcome || typeof snapshot.outcome !== 'object') {
+        throw new Error('Invalid party history snapshot in save file.');
+      }
+      const normalizedSnapshot = normalizePartyRecord({ ...normalizedPartyRecord,
+        matchEvents: snapshot.matchEvents, outcome: snapshot.outcome }, normalizedState);
+      return { matchEvents: normalizedSnapshot.matchEvents, outcome: normalizedSnapshot.outcome };
+    });
+    const latestPartySnapshot = partyHistorySnapshots[partyHistorySnapshots.length - 1];
+    const currentPartySnapshot = normalizedPartyRecord
+      ? { matchEvents: normalizedPartyRecord.matchEvents, outcome: normalizedPartyRecord.outcome } : null;
+    if (!savedValuesEqual(latestPartySnapshot, currentPartySnapshot)) {
+      throw new Error('Current party record does not match the latest party history snapshot.');
+    }
+  } else {
+    const fallbackSnapshot = normalizedPartyRecord ? {
+      matchEvents: normalizedPartyRecord.matchEvents.filter(event => event.type === 'game-start').slice(0, 1),
+      outcome: { status: 'in_progress', result: null, reason: null, finishedAt: null }
+    } : null;
+    partyHistorySnapshots = normalizedHistory.map((_, index) =>
+      index === normalizedHistory.length - 1
+        ? (normalizedPartyRecord ? {
+            matchEvents: clone(normalizedPartyRecord.matchEvents),
+            outcome: clone(normalizedPartyRecord.outcome)
+          } : null)
+        : clone(fallbackSnapshot));
+  }
   return { state: normalizedState, moveLog: logs.slice(), history: normalizedHistory, historyMoveLogs: logHistory,
+    historyPartySnapshots,
     gameStarted: parsed.gameStarted === undefined ? true : parsed.gameStarted, playerColor: savedPlayerColor,
     gameOver: parsed.gameOver === true, gameOverMessage: parsed.gameOverMessage || '',
-    partyRecord: normalizePartyRecord(parsed.partyRecord, normalizedState) };
+    partyRecord: normalizedPartyRecord };
 }
 
 function inside(r, c) { return r >= 0 && r < ROWS && c >= 0 && c < COLS; }
@@ -823,8 +961,9 @@ function setup(){
   };
 
   state.positionHistory[getPositionKey(state)] = 1;
-  selected = null; legalTargets = []; moveLog = []; history = [clone(state)]; historyMoveLogs = [moveLog.slice()]; redoStack = []; lastMove = null; gameOver = false; gameOverMessage = ''; gameStarted = false; pendingPromotionMove = null;
+  selected = null; legalTargets = []; moveLog = []; history = [clone(state)]; historyMoveLogs = [moveLog.slice()]; historyPartySnapshots = []; redoStack = []; lastMove = null; gameOver = false; gameOverMessage = ''; gameStarted = false; pendingPromotionMove = null;
   partyRecord = createPartyRecord('new-game');
+  historyPartySnapshots = [createPartyHistorySnapshot()];
   hideGameOverOverlay();
   
   lastClockDisplay = { w: null, b: null };
@@ -1594,7 +1733,97 @@ function updatePartyInsightHandover(side, engineId, indicator, sideVisible) {
   }, 3000);
 }
 
+function partyInsightEventLabel(type) {
+  const labels = {
+    'game-start': 'Game started',
+    'phase-change': 'Game phase changed',
+    capture: 'Capture',
+    check: 'Check',
+    checkmate: 'Checkmate',
+    stalemate: 'Stalemate',
+    draw: 'Draw',
+    timeout: 'Time expired',
+    'game-end': 'Game ended',
+    'moat-placed': 'Moat placed',
+    'moat-destroyed': 'Moat destroyed',
+    'moat-redeployed': 'Moat redeployed'
+  };
+  return labels[type] || 'Game event';
+}
+
+let historyView = 'moves';
+
+function updatePartyInsightRecapControl() {
+  const button = document.getElementById('historyRecapTab');
+  if (!button) return;
+  const count = partyRecord?.matchEvents?.length || 0;
+  button.textContent = count ? `Recap · ${count}` : 'Recap';
+  button.disabled = !partyRecord;
+  if (!partyRecord && historyView === 'recap') setHistoryView('moves');
+  else if (historyView === 'recap') renderPartyInsightRecap();
+}
+
+function setHistoryView(view) {
+  historyView = view === 'recap' ? 'recap' : 'moves';
+  const movesButton = document.getElementById('historyMovesTab');
+  const recapButton = document.getElementById('historyRecapTab');
+  const moves = document.getElementById('history');
+  const recap = document.getElementById('partyInsightRecapContent');
+  if (movesButton) movesButton.setAttribute('aria-pressed', String(historyView === 'moves'));
+  if (recapButton) recapButton.setAttribute('aria-pressed', String(historyView === 'recap'));
+  if (moves) moves.hidden = historyView !== 'moves';
+  if (recap) recap.hidden = historyView !== 'recap';
+  if (historyView === 'recap') renderPartyInsightRecap();
+}
+
+function renderPartyInsightRecap() {
+  const content = document.getElementById('partyInsightRecapContent');
+  if (!content) return;
+  content.replaceChildren();
+
+  const recordedEvents = partyRecord?.matchEvents || [];
+  const events = historyOrder === 'newest' ? recordedEvents.slice().reverse() : recordedEvents;
+  const intro = document.createElement('p');
+  intro.className = 'party-insight-details-intro';
+  intro.textContent = partyRecord
+    ? `${events.length} recorded events. The recap contains observed game events, not inferred engine reasoning.`
+    : 'No party record is available for this game.';
+  content.appendChild(intro);
+
+  if (partyRecord?.outcome?.status === 'completed') {
+    const outcome = document.createElement('p');
+    outcome.className = 'party-insight-recap-outcome';
+    outcome.textContent = 'Result: ' + partyRecord.outcome.reason;
+    content.appendChild(outcome);
+  }
+
+  if (!events.length) {
+    const empty = document.createElement('p');
+    empty.className = 'party-insight-recap-empty';
+    empty.textContent = 'No match events were recorded for this saved game.';
+    content.appendChild(empty);
+  } else {
+    const list = document.createElement('ol');
+    list.className = 'party-insight-recap-list';
+    list.reversed = historyOrder === 'newest';
+    for (const item of events) {
+      const entry = document.createElement('li');
+      const label = document.createElement('strong');
+      label.textContent = partyInsightEventLabel(item.type);
+      const details = document.createElement('p');
+      details.textContent = item.details;
+      const meta = document.createElement('small');
+      const move = item.ply > 0 ? `Ply ${item.ply}` : 'Start';
+      meta.textContent = `${move} · ${new Date(item.at).toLocaleString()}`;
+      entry.append(label, details, meta);
+      list.appendChild(entry);
+    }
+    content.appendChild(list);
+  }
+}
+
 function updatePartyInsightPanels() {
+  updatePartyInsightRecapControl();
   const host = document.getElementById('boardLayout');
   if (!host || typeof host.querySelectorAll !== 'function') return;
   const mode = document.getElementById('modeSelect')?.value;
@@ -2069,6 +2298,12 @@ const partyInsightDialog = document.getElementById('partyInsightDetailsDialog');
 if (partyInsightDialog) partyInsightDialog.addEventListener('click', event => {
   if (event.target.closest('[data-party-insight-close]')) partyInsightDialog.close();
 });
+
+const historyMovesTab = document.getElementById('historyMovesTab');
+if (historyMovesTab) historyMovesTab.addEventListener('click', () => setHistoryView('moves'));
+const historyRecapTab = document.getElementById('historyRecapTab');
+if (historyRecapTab) historyRecapTab.addEventListener('click', () => setHistoryView('recap'));
+setHistoryView('moves');
 
 const engineAssignmentsHost = document.getElementById('engineAssignments');
 if (engineAssignmentsHost) engineAssignmentsHost.addEventListener('change', handleEngineConfigurationChange);
@@ -2587,7 +2822,9 @@ function play(m, promoChoice = 'q', silent = false){
 
   const mode = document.getElementById('modeSelect').value;
   const p = state.board[m.from.r][m.from.c], mover = p.color;
-  
+  const previousPhase = !silent && partyRecord ? getGamePhase(state) : null;
+  const capturedBefore = state.captured?.[mover]?.length || 0;
+
   if (p.type === 'p' && (m.to.r === 0 || m.to.r === ROWS - 1) && (mode === 'pvp' || (isAIMode() && mode !== 'ai_vs_ai' && mover === playerColor)) && !autoPlayInterval && promoChoice === 'pending') {
     pendingPromotionMove = m;
     showPromotionModal(mover);
@@ -2623,9 +2860,22 @@ function play(m, promoChoice = 'q', silent = false){
     }
   }
 
+  if (!silent && applyResult) {
+    const capturedPiece = state.captured?.[mover]?.[capturedBefore];
+    if (capturedPiece) {
+      const destination = `${String.fromCharCode(65 + m.to.c)}${ROWS - m.to.r}`;
+      const pieceName = PIECE_NAME[capturedPiece.type] || capturedPiece.type;
+      recordPartyEvent('capture',
+        `${mover === 'w' ? 'White' : 'Black'} captured ${capturedPiece.color === 'w' ? 'White' : 'Black'} ${pieceName} on ${destination}.`,
+        mover, getGamePhase(state));
+    }
+  }
+  if (!silent && previousPhase) recordPartyPhaseChange(previousPhase, getGamePhase(state));
+
   const destroyedColors = m.swap ? checkMoatDestructionState(state) : (applyResult ? applyResult.moatsDestroyed : []);
   for (const mc of destroyedColors) {
     const msg = `MOAT DESTROYED: ${mc==='w'?'White':'Black'}'s moat has been destroyed!`;
+    if (!silent) recordPartyEvent('moat-destroyed', msg, mc, getGamePhase(state));
     status(msg);
     moveLog.push(`💥 ${msg}`);
   }
@@ -2709,6 +2959,9 @@ function play(m, promoChoice = 'q', silent = false){
     stopClock();
     if (!silent) status("Draw by insufficient material.");
   } else {
+    if (!silent && check) {
+      recordPartyEvent('check', `${state.turn === 'w' ? 'White' : 'Black'} is in check.`, state.turn, getGamePhase(state));
+    }
     if (!silent) status(check ? `${state.turn==='w'?'White':'Black'} is in check.` : `Turn: ${state.turn==='w'?'White':'Black'}${m.swap?' — Jester swap executed.':''}`);
   }
 
@@ -2728,6 +2981,7 @@ function play(m, promoChoice = 'q', silent = false){
       }
     }
   }
+  if (!silent) replaceLatestHistorySnapshot();
 }
 
 function showPromotionModal(color){
@@ -2772,7 +3026,8 @@ function confirmMoatPlacement(){
   const mode = document.getElementById('modeSelect').value;
   const color = state.phase.split('_')[2];
   const {r, c} = pendingMoat;
-  
+  const redeployed = !!(state.moatDestroyed && state.moatDestroyed[color]);
+
   state.moats[color] = {r, c};
   state.hasPlacedMoat[color] = true;
   if (state.moatDestroyed) state.moatDestroyed[color] = false;
@@ -2780,6 +3035,7 @@ function confirmMoatPlacement(){
   const col1 = String.fromCharCode(65 + c);
   const col3 = String.fromCharCode(65 + c + 2);
   const rowName = ROWS - r;
+  recordPartyMoatPlacement(color, redeployed);
   const moveNumber = moveLog.length + 1;
   moveLog.push(`${moveNumber}. ${color==='w'?'White':'Black'}: Moat ${col1}${rowName}-${col3}${rowName} (${formatTime(state.clocks[color])})`);
 
@@ -2815,6 +3071,7 @@ function aiPlaceMoatForColor(color, silent = false){
   const validRows = color === 'w' ? [4, 5] : [2, 3];
   const r = validRows[Math.floor(Math.random() * validRows.length)];
   const c = Math.floor(Math.random() * 6) + 1;
+  const redeployed = !!(state.moatDestroyed && state.moatDestroyed[color]);
   state.moats[color] = {r, c};
   state.hasPlacedMoat[color] = true;
   if (state.moatDestroyed) state.moatDestroyed[color] = false;
@@ -2822,6 +3079,7 @@ function aiPlaceMoatForColor(color, silent = false){
   const col1 = String.fromCharCode(65 + c);
   const col3 = String.fromCharCode(65 + c + 2);
   const rowName = ROWS - r;
+  recordPartyMoatPlacement(color, redeployed, silent);
   const moveNumber = moveLog.length + 1;
   moveLog.push(`${moveNumber}. ${color==='w'?'White':'Black'}: Moat ${col1}${rowName}-${col3}${rowName} (${formatTime(state.clocks[color])})`);
 
@@ -2951,6 +3209,7 @@ function validateAndPlayPosition(){
   moveLog = ["1. Position & clocks set via Board Editor."];
   history = [clone(state)];
   historyMoveLogs = [moveLog.slice()];
+  historyPartySnapshots = [createPartyHistorySnapshot()];
   redoStack = [];
   selected = null; legalTargets = [];
   status(`Custom position loaded! Game started. Turn: ${state.turn==='w'?'White':'Black'}`);
@@ -3286,6 +3545,7 @@ function applyLoadedGame(parsed) {
   state = parsed.state;
   partyRecord = parsed.partyRecord || null;
   resetPartyInsightHandover();
+  updatePartyInsightRecapControl();
   gameStarted = parsed.gameStarted;
   playerColor = parsed.playerColor;
   document.getElementById('playerSideSelect').value = playerColor;
@@ -3295,6 +3555,14 @@ function applyLoadedGame(parsed) {
   moveLog = parsed.moveLog;
   history = parsed.history;
   historyMoveLogs = parsed.historyMoveLogs;
+  historyPartySnapshots = Array.isArray(parsed.historyPartySnapshots)
+    ? parsed.historyPartySnapshots
+    : history.map((_, index) => index === history.length - 1
+      ? createPartyHistorySnapshot()
+      : partyRecord ? {
+          matchEvents: partyRecord.matchEvents.filter(event => event.type === 'game-start').slice(0, 1),
+          outcome: { status: 'in_progress', result: null, reason: null, finishedAt: null }
+        } : null);
   redoStack = [];
   gameOver = parsed.gameOver;
   gameOverMessage = parsed.gameOverMessage;
@@ -3459,7 +3727,7 @@ function renderMoveList(){
   el.scrollTop = historyOrder === 'newest' ? 0 : el.scrollHeight;
 }
 
-let historyOrder = 'oldest';
+let historyOrder = 'newest';
 const historyOrderSelect = document.getElementById('historyOrderSelect');
 try {
   const savedHistoryOrder = localStorage.getItem('jm_history_order_v1');
@@ -3471,6 +3739,7 @@ if (historyOrderSelect) {
     historyOrder = historyOrderSelect.value === 'newest' ? 'newest' : 'oldest';
     try { localStorage.setItem('jm_history_order_v1', historyOrder); } catch (err) { /* ignore unavailable storage */ }
     renderMoveList();
+    if (historyView === 'recap') renderPartyInsightRecap();
   });
 }
 
