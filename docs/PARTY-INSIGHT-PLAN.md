@@ -223,6 +223,8 @@ The repository investigation at the start of each implementation stage must conf
 
 ## Change log
 
+- **2026-11-18:** Added a runtime regression for loading a completed party, undoing its terminal move, continuing on a new branch, recording a new capture, and completing the party again. The test verifies that the discarded branch's capture is absent and the resumed branch's event is accepted.
+
 - **2026-11-09:** Created as a separate planned workstream for party identity/configuration, event-log context/export, in-game AI visibility, factual recaps, and optional event-driven expressions. No implementation is authorized by this plan alone.
 - **2026-11-13:** Recorded the agreed in-game presentation concept: compact clickable White/Black tabs around the board, expression and information views, common basic information with engine-specific detail, active-engine-only summary, configurable visibility/presentation, stable board layout, and an engine-handover indicator.
 - **2026-11-14:** Reconciled the plan with PR #169, which implemented the first portion of stage C, and PR #170, which completed stage A. Recorded the party-record lifecycle, snapshot and change-history behavior, outcome metadata, save/import validation and legacy compatibility. The dedicated A tests are source-contract checks; runtime integration and manual PWA verification are not claimed.
