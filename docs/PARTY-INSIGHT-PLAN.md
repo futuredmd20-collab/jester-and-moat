@@ -193,12 +193,12 @@ The repository investigation at the start of each implementation stage must conf
 - Recap statements are grounded in recorded game events and do not invent engine reasoning.
 - While the game is paused, selecting a move-history entry or recap event can navigate directly to its corresponding game position.
 - Expressions are event-triggered presentation only and cannot affect game rules or engine behavior.
+- Automated tests cover party metadata, snapshot lifecycle, export/import compatibility, event association, and recap/expression triggers as each stage is implemented.
+- Manual PWA verification is recorded separately and only after it has actually been performed.
 - Event reactions expire after a short time limit or a small number of plies, whichever occurs first; a new meaningful event replaces the prior reaction, and an idle/default expression returns afterward.
 - Tactical reactions such as fork and pin are shown only when the pattern is reliably detected from the actual variant's board rules; no hidden engine reasoning is inferred.
 - Material-loss reactions scale with the captured piece's trustworthy relative value and event context, without assuming one universal value table across variants.
 - Reactions are attributed to the correct side and vary by supported personality profile.
-- Automated tests cover party metadata, snapshot lifecycle, export/import compatibility, event association, and recap/expression triggers as each stage is implemented.
-- Manual PWA verification is recorded separately and only after it has actually been performed.
 
 ## Out of scope
 
