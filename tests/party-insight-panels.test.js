@@ -112,7 +112,7 @@ test('Move history and factual match recap share one switchable display area', (
   assert.match(script, /if \(historyView === 'recap'\) renderPartyInsightRecap\(\)/);
   assert.match(script, /addEventListener\('click', \(\) => setHistoryView\('moves'\)\)/);
   assert.match(script, /addEventListener\('click', \(\) => setHistoryView\('recap'\)\)/);
-  assert.match(script, /orderControl\.hidden = historyView !== 'moves'/);
+  assert.doesNotMatch(script, /orderControl\.hidden = historyView !== 'moves'/);
   assert.match(css, /#partyInsightRecapContent\[hidden\]/);
   assert.match(css, /\.party-insight-recap-list/);
 });
