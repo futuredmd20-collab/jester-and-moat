@@ -123,13 +123,50 @@ test('Move history and factual match recap share one switchable display area', (
 });
 
 
+test('Party Insight reactions expire by elapsed time or ply progress and return to idle', () => {
+  assert.match(script, /PARTY_INSIGHT_REACTION_MAX_AGE_MS = 5000/);
+  assert.match(script, /PARTY_INSIGHT_REACTION_MAX_PLIES = 2/);
+  assert.match(script, /function getPartyInsightReactionEvent\(\)/);
+  assert.match(script, /age >= PARTY_INSIGHT_REACTION_MAX_AGE_MS/);
+  assert.match(script, /pliesElapsed >= PARTY_INSIGHT_REACTION_MAX_PLIES/);
+  assert.match(script, /partyInsightReactionTimer = setTimeout\(\(\) =>/);
+  assert.match(script, /clearTimeout\(partyInsightReactionTimer\)/);
+});
+
+test('Party Insight terminal reactions persist after the game ends', () => {
+  assert.match(script, /PARTY_INSIGHT_TERMINAL_EVENTS = new Set\(\['checkmate', 'stalemate', 'draw', 'timeout', 'game-end'\]\)/);
+  assert.match(script, /if \(PARTY_INSIGHT_TERMINAL_EVENTS\.has\(event\.type\)\) return event/);
+  assert.match(script, /getPartyInsightReactionEvent\(\)/);
+});
+
+test('Terminal reactions require the current position to be a completed game', () => {
+  assert.match(script, /!PARTY_INSIGHT_TERMINAL_EVENTS\.has\(item\.type\)[\s\S]*?gameOver && partyRecord\?\.outcome\?\.status === 'completed'/);
+});
+
+test('Loaded party snapshots survive undo and new captures enter the next snapshot', () => {
+  assert.match(script, /historyPartySnapshots = Array\.isArray\(parsed\.historyPartySnapshots\)[\s\S]*?history\.map/);
+  assert.match(script, /restorePartyHistorySnapshot\(historyPartySnapshots\[historyPartySnapshots\.length - 1\]\)/);
+  assert.match(script, /recordPartyEvent\('capture',[\s\S]*?pushHistorySnapshot\(\);/);
+  assert.match(script, /historyPartySnapshots: clone\(historyPartySnapshots\)/);
+});
+
+test('Party Insight records ordinary pawn promotions as temporary reactions', () => {
+  assert.match(script, /'capture', 'promotion', 'check'/);
+  assert.match(script, /recordPartyEvent\('promotion'/);
+  assert.match(script, /promo !== 'moat'/);
+  assert.match(script, /const movingPieceType = p\.type/);
+  assert.match(script, /movingPieceType === 'p'/);
+  assert.match(script, /promotion: isActor \? '🎉 Promotion!' : '😮 A promotion.'/);
+});
+
 test('Party Insight expressions are derived from recorded events and remain presentation-only', () => {
   assert.match(script, /function getPartyInsightExpression\(side, personalityId = DEFAULT_PERSONALITY_ID\)/);
   assert.match(script, /partyRecord\?\.matchEvents/);
-  assert.match(script, /item\.type !== 'game-start'/);
+  assert.match(script, /PARTY_INSIGHT_REACTION_EVENTS/);
   assert.match(script, /expression\.textContent = getPartyInsightExpression\(side, personalityId\)/);
   assert.match(script, /getEngineAssignment\(side, activePhase\)\.personalityId/);
   assert.match(script, /if \(isMoveHunter && event\.type === 'capture' && isActor\)/);
+  assert.match(script, /getPartyInsightReactionEvent\(\)/);
   assert.match(script, /return '🙂'/);
   assert.match(script, /getPartyInsightExpression\(side, personalityId\)/);
 });
@@ -144,7 +181,7 @@ test('Party Insight expressions distinguish the two sides and supported personal
 });
 
 test('Party Insight expressions use only recorded events at or before the current ply', () => {
-  assert.match(script, /item\.ply <= \(state\?\.ply \?\? 0\)/);
+  assert.match(script, /function getPartyInsightReactionEvent\(\)[\s\S]*?item\.ply <= \(state\?\.ply \?\? 0\)/);
   assert.match(script, /events\.slice\(\)\.reverse\(\)\.find/);
   const expressionFunction = script.match(/function getPartyInsightExpression\([\s\S]*?\n}\n/);
   assert.ok(expressionFunction);
