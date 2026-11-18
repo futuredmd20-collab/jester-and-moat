@@ -50,7 +50,12 @@ test('party match events are recorded independently of debug logging', () => {
   assert.match(script, /recordPartyEvent\('capture'/);
   assert.match(script, /recordPartyEvent\('check'/);
   assert.match(script, /recordPartyEvent\('moat-destroyed'/);
-  assert.match(script, /'moat-redeployed' : 'moat-placed'/);
+  assert.match(script, /function recordPartyMoatPlacement\(color, redeployed, silent = false\)/);
+  assert.match(script, /if \(!state\.hasPlacedMoat\?\.w \|\| !state\.hasPlacedMoat\?\.b \|\| !state\.moats\.w \|\| !state\.moats\.b\) return/);
+  assert.match(script, /White and Black placed their moats: White at/);
+  assert.match(script, /recordPartyMoatPlacement\(color, redeployed\)/);
+  assert.match(script, /recordPartyMoatPlacement\(color, redeployed, silent\)/);
+  assert.doesNotMatch(script, /recordPartyEvent\(redeployed \? 'moat-redeployed' : 'moat-placed'/);
   assert.match(script, /recordPartyEvent\(eventType, reason/);
 });
 
