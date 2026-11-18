@@ -2941,11 +2941,12 @@ function play(m, promoChoice = 'q', silent = false){
     if (capturedPiece) {
       const destination = `${String.fromCharCode(65 + m.to.c)}${ROWS - m.to.r}`;
       const pieceName = PIECE_NAME[capturedPiece.type] || capturedPiece.type;
-      const eventType = m.enPassant ? 'en-passant' : 'capture';
-      const specialMove = m.enPassant ? ' en passant' : '';
-      recordPartyEvent(eventType,
-        `${mover === 'w' ? 'White' : 'Black'} captured ${capturedPiece.color === 'w' ? 'White' : 'Black'} ${pieceName}${specialMove} on ${destination}.`,
-        mover, getGamePhase(state));
+      const captureDetails = `${mover === 'w' ? 'White' : 'Black'} captured ${capturedPiece.color === 'w' ? 'White' : 'Black'} ${pieceName} on ${destination}.`;
+      if (m.enPassant) {
+        recordPartyEvent('en-passant', captureDetails.replace(' on ', ' en passant on '), mover, getGamePhase(state));
+      } else {
+        recordPartyEvent('capture', captureDetails, mover, getGamePhase(state));
+      }
     }
   }
   if (!silent && applyResult && m.castling) {
