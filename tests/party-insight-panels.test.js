@@ -137,7 +137,7 @@ test('Party Insight expressions are derived from recorded events and remain pres
 test('Party Insight expressions distinguish the two sides and supported personality styles', () => {
   assert.match(script, /const sideCode = side === 'white' \? 'w' : side === 'black' \? 'b' : null/);
   assert.match(script, /capture: isActor/);
-  assert.match(script, /'checkmate': actor === sideCode/);
+  assert.match(script, /checkmate: actor === sideCode/);
   assert.match(script, /'moat-destroyed': actor === sideCode/);
   assert.match(script, /isMoveHunter \? '🎯 Target acquired!'/);
   assert.match(script, /'🎯 Excellent capture!'/);
