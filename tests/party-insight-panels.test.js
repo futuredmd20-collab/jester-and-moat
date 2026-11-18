@@ -175,7 +175,7 @@ test('Party Insight expressions are derived from recorded events and remain pres
   assert.match(script, /PARTY_INSIGHT_REACTION_EVENTS/);
   assert.match(script, /expression\.textContent = getPartyInsightExpression\(side, personalityId\)/);
   assert.match(script, /getEngineAssignment\(side, activePhase\)\.personalityId/);
-  assert.match(script, /if \(isMoveHunter && event\.type === 'capture' && isActor\)/);
+  assert.match(script, /if \(isMoveHunter && \(event\.type === 'capture' \|\| event\.type === 'en-passant'\) && isActor\)/);
   assert.match(script, /getPartyInsightReactionEvent\(\)/);
   assert.match(script, /return '🙂'/);
   assert.match(script, /getPartyInsightExpression\(side, personalityId\)/);
