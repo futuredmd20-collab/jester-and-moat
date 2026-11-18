@@ -471,7 +471,7 @@ function savedValuesEqual(a, b) {
 const PARTY_RECORD_SCHEMA_VERSION = 1;
 
 const PARTY_EVENT_TYPES = new Set([
-  'game-start', 'phase-change', 'capture', 'check', 'checkmate', 'stalemate',
+  'game-start', 'phase-change', 'capture', 'promotion', 'check', 'checkmate', 'stalemate',
   'draw', 'timeout', 'game-end', 'moat-placed', 'moat-destroyed', 'moat-redeployed'
 ]);
 
@@ -1705,6 +1705,13 @@ let partyInsightViews = { white: 'expression', black: 'expression' };
 let partyInsightHandoverPartyId = undefined;
 let partyInsightActiveEngines = { white: null, black: null };
 let partyInsightHandoverTimers = { white: null, black: null };
+let partyInsightReactionTimer = null;
+const PARTY_INSIGHT_REACTION_MAX_AGE_MS = 5000;
+const PARTY_INSIGHT_REACTION_MAX_PLIES = 2;
+const PARTY_INSIGHT_REACTION_EVENTS = new Set([
+  'capture', 'promotion', 'check', 'checkmate', 'stalemate', 'draw', 'timeout', 'game-end',
+  'moat-destroyed', 'moat-redeployed'
+]);
 
 function resetPartyInsightHandover(partyId = partyRecord?.id ?? null) {
   for (const side of ['white', 'black']) {
@@ -1822,12 +1829,24 @@ function renderPartyInsightRecap() {
   }
 }
 
+function getPartyInsightReactionEvent() {
+  const events = partyRecord?.matchEvents;
+  if (!Array.isArray(events)) return null;
+  const event = events.slice().reverse().find(item =>
+    item && PARTY_INSIGHT_REACTION_EVENTS.has(item.type) &&
+    Number.isInteger(item.ply) && item.ply <= (state?.ply ?? 0));
+  if (!event) return null;
+  const age = Date.now() - Date.parse(event.at);
+  const pliesElapsed = (state?.ply ?? 0) - event.ply;
+  if (!Number.isFinite(age) || age < 0 || age >= PARTY_INSIGHT_REACTION_MAX_AGE_MS ||
+      pliesElapsed < 0 || pliesElapsed >= PARTY_INSIGHT_REACTION_MAX_PLIES) return null;
+  return event;
+}
+
 function getPartyInsightExpression(side, personalityId = DEFAULT_PERSONALITY_ID) {
   const sideCode = side === 'white' ? 'w' : side === 'black' ? 'b' : null;
   if (!sideCode) return '🙂';
-  const events = partyRecord?.matchEvents;
-  const event = Array.isArray(events) ? events.slice().reverse().find(item =>
-    item && item.type !== 'game-start' && Number.isInteger(item.ply) && item.ply <= (state?.ply ?? 0)) : null;
+  const event = getPartyInsightReactionEvent();
   if (!event) return '🙂';
 
   const actor = event.side;
@@ -1837,14 +1856,13 @@ function getPartyInsightExpression(side, personalityId = DEFAULT_PERSONALITY_ID)
     capture: isActor
       ? (isMoveHunter ? '🎯 Target acquired!' : '🙂 A capture.')
       : '😮 A piece was lost.',
+    promotion: isActor ? '🎉 Promotion!' : '😮 A promotion.',
     check: actor === sideCode ? '😟 Under pressure.' : '⚔️ Check.',
     checkmate: actor === sideCode ? '🏁 Checkmate.' : '😔 The game is over.',
     stalemate: '🤝 Stalemate.',
     draw: '🤝 A draw.',
     timeout: actor === sideCode ? '⏱️ Time ran out.' : '⏱️ Time decided it.',
     'game-end': '🏁 Game over.',
-    'phase-change': '♟️ A new phase.',
-    'moat-placed': '🧱 Moats are in place.',
     'moat-destroyed': actor === sideCode ? '😟 My moat is gone.' : '👀 A moat fell.',
     'moat-redeployed': actor === sideCode ? '🧱 Moat restored.' : '👀 A moat was restored.'
   };
@@ -1854,8 +1872,9 @@ function getPartyInsightExpression(side, personalityId = DEFAULT_PERSONALITY_ID)
   }
   return '🙂';
 }
-
 function updatePartyInsightPanels() {
+  if (partyInsightReactionTimer !== null) clearTimeout(partyInsightReactionTimer);
+  partyInsightReactionTimer = null;
   updatePartyInsightRecapControl();
   const host = document.getElementById('boardLayout');
   if (!host || typeof host.querySelectorAll !== 'function') return;
@@ -1919,6 +1938,16 @@ function updatePartyInsightPanels() {
       button.setAttribute('aria-expanded', 'true');
     }
   });
+  const reactionEvent = getPartyInsightReactionEvent();
+  if (reactionEvent) {
+    const remaining = PARTY_INSIGHT_REACTION_MAX_AGE_MS - (Date.now() - Date.parse(reactionEvent.at));
+    if (remaining > 0) {
+      partyInsightReactionTimer = setTimeout(() => {
+        partyInsightReactionTimer = null;
+        updatePartyInsightPanels();
+      }, remaining + 1);
+    }
+  }
 }
 
 function formatPartyInsightSettingValue(value, unit = '') {
@@ -2905,6 +2934,11 @@ function play(m, promoChoice = 'q', silent = false){
         `${mover === 'w' ? 'White' : 'Black'} captured ${capturedPiece.color === 'w' ? 'White' : 'Black'} ${pieceName} on ${destination}.`,
         mover, getGamePhase(state));
     }
+  }
+  if (!silent && applyResult && p.type === 'p' && (m.to.r === 0 || m.to.r === ROWS - 1) && promo !== 'moat') {
+    recordPartyEvent('promotion',
+      `${mover === 'w' ? 'White' : 'Black'} promoted a pawn to ${PIECE_NAME[promo] || promo}.`,
+      mover, getGamePhase(state));
   }
   if (!silent && previousPhase) recordPartyPhaseChange(previousPhase, getGamePhase(state));
 
