@@ -1848,36 +1848,57 @@ function getPartyInsightReactionEvent() {
 
 function getPartyInsightExpression(side, personalityId = DEFAULT_PERSONALITY_ID) {
   const sideCode = side === 'white' ? 'w' : side === 'black' ? 'b' : null;
-  if (!sideCode) return '🙂';
+  if (!sideCode) return { emoji: '🙂', text: 'Ready to play.' };
   const event = getPartyInsightReactionEvent();
-  if (!event) return '🙂';
+  if (!event) return {
+    emoji: '🙂',
+    text: sideCode === 'w' ? 'Ready to play.' : 'Waiting for my chance.'
+  };
 
-  const actor = event.side;
-  const isActor = actor === sideCode;
+  const isActor = event.side === sideCode;
   const isMoveHunter = personalityId === 'move_hunter';
   const reactions = {
     capture: isActor
-      ? (isMoveHunter ? '🎯 Target acquired!' : '🙂 A capture.')
-      : '😮 A piece was lost.',
+      ? { emoji: isMoveHunter ? '🎯' : '😏', text: isMoveHunter ? 'Excellent target!' : 'A clean capture.' }
+      : { emoji: '😟', text: 'I could do without that loss.' },
     'en-passant': isActor
-      ? (isMoveHunter ? '🎯 Target acquired!' : '🙂 En passant!')
-      : '😮 An en-passant capture.',
-    castling: isActor ? '🏰 Castled!' : '🏰 Castling.',
-    promotion: isActor ? '🎉 Promotion!' : '😮 A promotion.',
-    check: actor === sideCode ? '😟 Under pressure.' : '⚔️ Check.',
-    checkmate: actor === sideCode ? '🏁 Checkmate.' : '😔 The game is over.',
-    stalemate: '🤝 Stalemate.',
-    draw: '🤝 A draw.',
-    timeout: actor === sideCode ? '⏱️ Time ran out.' : '⏱️ Time decided it.',
-    'game-end': '🏁 Game over.',
-    'moat-destroyed': actor === sideCode ? '😟 My moat is gone.' : '👀 A moat fell.',
-    'moat-redeployed': actor === sideCode ? '🧱 Moat restored.' : '👀 A moat was restored.'
+      ? { emoji: isMoveHunter ? '🎯' : '😉', text: isMoveHunter ? 'An excellent ambush!' : 'En passant, nicely done.' }
+      : { emoji: '😮', text: 'That was unexpected.' },
+    castling: isActor
+      ? { emoji: '😌', text: 'My king is safe.' }
+      : { emoji: '🤔', text: 'A cautious move.' },
+    promotion: isActor
+      ? { emoji: '🎉', text: 'A new piece joins my side!' }
+      : { emoji: '😬', text: 'That could be trouble.' },
+    check: isActor
+      ? { emoji: '😟', text: 'I am under pressure.' }
+      : { emoji: '⚔️', text: 'Check! Let us see you answer.' },
+    checkmate: isActor
+      ? { emoji: '🏁', text: 'That is checkmate!' }
+      : { emoji: '😔', text: 'My game is over.' },
+    stalemate: isActor
+      ? { emoji: '😮', text: 'No legal moves. What a turn.' }
+      : { emoji: '🤝', text: 'A stalemate. Neither of us wins.' },
+    draw: isActor
+      ? { emoji: '🤝', text: 'I will accept the draw.' }
+      : { emoji: '😐', text: 'A draw it is, then.' },
+    timeout: isActor
+      ? { emoji: '⏱️', text: 'I ran out of time!' }
+      : { emoji: '😮', text: 'The clock decided this one.' },
+    'game-end': isActor
+      ? { emoji: '🏁', text: 'That is the end of the game.' }
+      : { emoji: '🙂', text: 'Time to review the game.' },
+    'moat-destroyed': isActor
+      ? { emoji: '😟', text: 'My moat is gone.' }
+      : { emoji: '👀', text: 'There goes the moat.' },
+    'moat-redeployed': isActor
+      ? { emoji: '🧱', text: 'My moat is back!' }
+      : { emoji: '😯', text: 'The moat has been restored.' }
   };
-  if (Object.prototype.hasOwnProperty.call(reactions, event.type)) {
-    if (isMoveHunter && (event.type === 'capture' || event.type === 'en-passant') && isActor) return '🎯 Excellent capture!';
-    return reactions[event.type];
-  }
-  return '🙂';
+  return reactions[event.type] || {
+    emoji: '🙂',
+    text: sideCode === 'w' ? 'I am watching the board.' : 'I am looking for an opening.'
+  };
 }
 function updatePartyInsightPanels() {
   if (partyInsightReactionTimer !== null) clearTimeout(partyInsightReactionTimer);
@@ -1902,6 +1923,8 @@ function updatePartyInsightPanels() {
     button.disabled = !sideVisible;
     const view = partyInsightViews[side] || 'expression';
     const expression = button.querySelector('.party-insight-expression');
+    const expressionEmoji = button.querySelector('.party-insight-emoji');
+    const expressionText = button.querySelector('.party-insight-reaction-text');
     const summary = button.querySelector('.party-insight-summary');
     const detailsButton = panel.querySelector('[data-party-insight-details]');
     const handoverIndicator = panel.querySelector('[data-party-insight-handover]');
@@ -1923,7 +1946,9 @@ function updatePartyInsightPanels() {
       try { personalityId = getEngineAssignment(side, activePhase).personalityId || DEFAULT_PERSONALITY_ID; }
       catch (_) { /* Use the restrained default expression when configuration is unavailable. */ }
       expression.hidden = false; summary.hidden = true;
-      expression.textContent = getPartyInsightExpression(side, personalityId);
+      const reaction = getPartyInsightExpression(side, personalityId);
+      expressionEmoji.textContent = reaction.emoji;
+      expressionText.textContent = reaction.text;
       button.setAttribute('aria-label', 'Show ' + sideLabel + ' AI information');
       button.setAttribute('aria-expanded', 'false');
     } else {
