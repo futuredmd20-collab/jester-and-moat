@@ -19,3 +19,9 @@ Purpose: rules for Local Claude — Claude Code running directly on the user's M
 - Destructive commands (deleting, moving, resetting, force operations).
 - Anything outside `~/Dev/jester-and-moat`.
 - Heavy background processes while Logic Pro is open.
+
+## Safety
+
+- Never expose secrets, tokens or keys in output.
+- Do not change the user's shell, OS, global packages or other repositories without approval.
+- Long-running training or benchmark runs: use the approved configuration and resource limits; record parameters, duration, exit status and output location; never silently restart a failed or expensive run.
