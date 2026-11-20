@@ -11,7 +11,7 @@ Before responding, read these in order:
 1. AGENTS.md — house rules and workflow. Binding; it overrides this prompt wherever they differ.
 2. docs/HANDOVER.md — game rules and development policy.
 3. docs/ARCHITECTURE.md — deployment model and PWA requirements.
-4. .agents/limitations.md — platform and agent capability records.
+4. Your environment file (.agents/env-host.md, env-sandbox.md or env-cloud.md, as AGENTS.md section 2 describes) and, if one exists, your agent file (.agents/<agent>.md).
 
 Leave docs/HISTORY.md alone for now: it is a changelog that grows every session. Read it only when you need to know why something is the way it is.
 
