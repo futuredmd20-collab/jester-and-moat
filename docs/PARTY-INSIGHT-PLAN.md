@@ -157,7 +157,7 @@ Forks, pins, and other tactical patterns must be based on explicit, testable boa
 #### Personality and side isolation
 
 - The same event may produce different tone and intensity for different personality profiles.
-- Reactions belong to the side that experienced the event. A loss by White must not accidentally trigger Black's loss reaction, though Black may separately react to a verified success against White.
+- Each side reacts from its own role and perspective. The side that performs an event may describe the action or express satisfaction; the opposing side may respond with an opinion or emotion. The two panels must not accidentally display the same reaction when their roles differ.
 - Reuse the existing personality/event interfaces where they provide reliable information. Do not require every engine or future personality to support an identical reaction vocabulary.
 - Keep event classification separate from personality wording/presentation so additional engines, personalities, variants, and board configurations can be added without redesigning the reaction system.
 
@@ -199,7 +199,7 @@ The repository investigation at the start of each implementation stage must conf
 - Event reactions expire after a short elapsed-time limit only; move/ply count does not shorten their visibility. A newer meaningful event replaces the prior reaction and starts its own visibility period, then the idle/default expression returns.
 - Tactical reactions such as fork and pin are shown only when the pattern is reliably detected from the actual variant's board rules; no hidden engine reasoning is inferred.
 - Material-loss reactions scale with the captured piece's trustworthy relative value and event context, without assuming one universal value table across variants.
-- Reactions are attributed to the correct side and vary by supported personality profile.
+- Each side receives a role-appropriate reaction to the same event; the two reactions may differ in factual wording, opinion, emotion, and emoji. Supported personality profiles may further shape each side's tone.
 
 ## Out of scope
 
@@ -223,6 +223,7 @@ The repository investigation at the start of each implementation stage must conf
 
 ## Change log
 
+- **2026-11-18:** Refined the expression tabs so each side reacts from its own role and personality: one side may describe the event while the other expresses an opinion or emotion. Emoji and reaction text are separate elements, with the emoji fixed in a panel corner. Updated the reaction lifecycle to the five-second time-based expiry now implemented.
 - **2026-11-18:** Added a runtime regression for loading a completed party, undoing its terminal move, continuing on a new branch, recording a new capture, and completing the party again. The test verifies that the discarded branch's capture is absent and the resumed branch's event is accepted.
 
 - **2026-11-09:** Created as a separate planned workstream for party identity/configuration, event-log context/export, in-game AI visibility, factual recaps, and optional event-driven expressions. No implementation is authorized by this plan alone.

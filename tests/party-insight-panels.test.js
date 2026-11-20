@@ -154,8 +154,6 @@ test('Party Insight records castling and en-passant as side-specific reactions',
   assert.match(script, /if \(m\.enPassant\) \{[\s\S]*?recordPartyEvent\('en-passant'/);
   assert.match(script, /recordPartyEvent\('capture', captureDetails/);
   assert.match(script, /recordPartyEvent\('castling'/);
-  assert.match(script, /'en-passant': isActor/);
-  assert.match(script, /castling: isActor \? '🏰 Castled!' : '🏰 Castling\.'/);
   assert.match(script, /partyInsightEventLabel[\s\S]*?'en-passant': 'En passant'[\s\S]*?castling: 'Castling'/);
 });
 
@@ -165,28 +163,37 @@ test('Party Insight records ordinary pawn promotions as temporary reactions', ()
   assert.match(script, /promo !== 'moat'/);
   assert.match(script, /const movingPieceType = p\.type/);
   assert.match(script, /movingPieceType === 'p'/);
-  assert.match(script, /promotion: isActor \? '🎉 Promotion!' : '😮 A promotion.'/);
+  assert.match(script, /promotion: isActor/);
 });
 
-test('Party Insight expressions are derived from recorded events and remain presentation-only', () => {
+test('Party Insight expressions use separate emoji and text elements', () => {
+  assert.match(html, /party-insight-emoji/);
+  assert.match(html, /party-insight-side-label/);
+  assert.match(html, /party-insight-reaction-text/);
+  assert.match(css, /\.party-insight-expression \{[^}]*position:\s*relative/s);
+  assert.match(css, /\.party-insight-emoji \{[^}]*position:\s*absolute[^}]*top:/s);
+  assert.match(script, /const expressionEmoji = button\.querySelector\('\.party-insight-emoji'\)/);
+  assert.match(script, /const expressionText = button\.querySelector\('\.party-insight-reaction-text'\)/);
+  assert.match(script, /expressionEmoji\.textContent = reaction\.emoji/);
+  assert.match(script, /expressionText\.textContent = reaction\.text/);
+});
+
+test('Party Insight expressions are role-specific and personality-aware', () => {
   assert.match(script, /function getPartyInsightExpression\(side, personalityId = DEFAULT_PERSONALITY_ID\)/);
-  assert.match(script, /partyRecord\?\.matchEvents/);
-  assert.match(script, /PARTY_INSIGHT_REACTION_EVENTS/);
-  assert.match(script, /expression\.textContent = getPartyInsightExpression\(side, personalityId\)/);
-  assert.match(script, /getEngineAssignment\(side, activePhase\)\.personalityId/);
-  assert.match(script, /if \(isMoveHunter && \(event\.type === 'capture' \|\| event\.type === 'en-passant'\) && isActor\)/);
-  assert.match(script, /getPartyInsightReactionEvent\(\)/);
-  assert.match(script, /return '🙂'/);
-  assert.match(script, /getPartyInsightExpression\(side, personalityId\)/);
-});
-
-test('Party Insight expressions distinguish the two sides and supported personality styles', () => {
-  assert.match(script, /const sideCode = side === 'white' \? 'w' : side === 'black' \? 'b' : null/);
+  assert.match(script, /const isActor = event\.side \? event\.side === sideCode : sideCode === 'w'/);
+  assert.match(script, /isMoveHunter = personalityId === 'move_hunter'/);
   assert.match(script, /capture: isActor/);
-  assert.match(script, /checkmate: actor === sideCode/);
-  assert.match(script, /'moat-destroyed': actor === sideCode/);
-  assert.match(script, /isMoveHunter \? '🎯 Target acquired!'/);
-  assert.match(script, /'🎯 Excellent capture!'/);
+  assert.match(script, /'en-passant': isActor/);
+  assert.match(script, /'That could be trouble\.'/);
+  assert.match(script, /'I could do without that loss\.'/);
+  assert.match(script, /'Check! Let us see you answer\.'/);
+  assert.match(script, /'My game is over\.'/);
+  assert.match(script, /getPartyInsightExpression\(side, personalityId\)/);
+  assert.match(script, /getEngineAssignment\(side, activePhase\)\.personalityId/);
+  assert.match(script, /getPartyInsightReactionEvent\(\)/);
+  const expressionFunction = script.match(/function getPartyInsightExpression\([\s\S]*?\n}\n/);
+  assert.ok(expressionFunction);
+  assert.doesNotMatch(expressionFunction[0], /minimax|evaluateBoard|\.search\(/);
 });
 
 test('Party Insight expressions use only recorded events at or before the current ply', () => {
