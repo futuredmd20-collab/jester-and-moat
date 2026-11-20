@@ -1,8 +1,5 @@
-# Gemini Agent Limitations (gemini.md)
+# Gemini — Agent Notes
 
-## Drive & File Operations
-* Direct file overwrites or format conversions are restricted; markdown files must be created directly with `text/markdown` plain text mime-types to prevent Google Workspace conversion.
-* When working with files on Drive, actions take place incrementally with user approval.
+Purpose: Gemini-specific quirks. Gemini follows `.agents/env-cloud.md`; main role is advisor and reviewer.
 
-## GitHub Integration
-* Does not possess direct credentials for direct push access to remote git repositories; changes are staged via user-approved files or chat output.
+- Has no push credentials. Code changes are delivered as suggestions or files in chat for the user or another agent to apply.

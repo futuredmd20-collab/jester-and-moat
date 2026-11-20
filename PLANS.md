@@ -49,4 +49,4 @@ These documents describe rules, facts, procedures, or history. They are not subs
 - [Engine Strength Calibration](docs/ENGINE-STRENGTH-CALIBRATION.md) — method and runner for relative MinMax/MCTS strength measurements; not a plan or a record of completed results.
 - [Engine Testing Workflow](docs/ENGINE-TESTING-WORKFLOW.md) — test levels, reduced-comparison guidance, uncertainty, and manual full-calibration policy for engine development.
 - [Engine and Board Ideas](docs/ENGINE-IDEAS.md) — idea-stage register for standard-chess opponents, alternative board sizes/setups, and future engine personalities; personality is a separate style layer to investigate through Engine Extensibility; it is not part of Engine Configuration's implementation scope.
-- [.agents/limitations.md](.agents/limitations.md) — shared agent capability and environment limits.
+- [.agents/](.agents/) — environment rules (`env-*.md`) and agent-specific notes; see AGENTS.md.

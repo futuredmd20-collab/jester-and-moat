@@ -1,9 +1,8 @@
-# Freebuff Agent Limitations (freebuff.md)
+# Freebuff — Agent Notes
 
-## UI & Preview Constraints
-* The Files panel in the Freebuff mobile app and mobile website previews workspace files but has no download action; long-pressing a file does not open a download menu.
-* A workspace file path is not a public download URL.
+Purpose: Freebuff/Buffy-specific quirks. The CLI runs in the `freebuff-jam` sandbox (`.agents/env-sandbox.md`); the web/mobile app follows `.agents/env-cloud.md`.
 
-## Publishing & MIME Types
-* With the user’s explicit approval, Buffy can temporarily publish only the requested artifact for download, then unpublish it after confirmation.
-* Markdown files in Drive, when created at all, must remain plain text with the text/markdown MIME type.
+## Web/mobile app
+
+- The Files panel previews workspace files but cannot download them. A workspace path is not a public download URL.
+- With the user's explicit approval, Buffy may temporarily publish only the requested artifact for download, then unpublish it after the user confirms.

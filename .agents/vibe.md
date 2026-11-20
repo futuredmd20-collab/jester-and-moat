@@ -1,9 +1,13 @@
-# Vibe / Mistral Agent Limitations (vibe.md)
+# Vibe / Mistral — Agent Notes
 
-## Binary & Image Constraints
-* Files uploaded in chat are not stored as bytes: the filesystem holds a placeholder, text extraction fails on binary uploads, and images are only viewable through a vision model's textual description. Pixel-level work on uploaded images (cropping, background removal) is impossible.
-* Text is the working route: SVG sources can be read verbatim from Drive or GitHub and split without touching path data.
+Purpose: Vibe-specific quirks. Vibe follows `.agents/env-cloud.md`.
 
-## Session & Release Workflows
-* The sandbox resets between some calls, so intermediate workspace files can vanish; keep durable copies on Drive or in the repo.
-* The GitHub integration can list and read tags and releases but has no function to create them; annotated tags and GitHub Releases must be cut by the user from a local clone (gh release create vX.Y.Z).
+## Binary & images
+
+- Files uploaded in chat are stored as placeholders, not bytes: text extraction of binaries fails and pixel-level image work (cropping, background removal) is impossible.
+- Work with text instead: read SVG sources verbatim from GitHub and edit them without touching path data.
+
+## Session & releases
+
+- The sandbox resets between some calls; keep durable copies in the repo, not in the workspace.
+- The GitHub integration can read tags and releases but not create them. The user cuts annotated tags and releases from a local clone (`docs/VERSIONING.md`).

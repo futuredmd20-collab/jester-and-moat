@@ -1,5 +1,5 @@
 ARCHITECTURE.md — Deployment Model & PWA Requirements
-Purpose: how the game is built and shipped. Not for game rules (HANDOVER.md) or change history (HISTORY.md).
+Purpose: how the game is built and shipped, including debugging tooling and previews. Not for game rules (HANDOVER.md) or change history (HISTORY.md).
 
 Deployment Model: PWA
 * The multi-file source (index.html, style.css, pieces.css, script.js, pieces.svg, pieces-flat.svg, manifest.json, sw.js) is the primary deployment target and shipped form of the app.
@@ -13,6 +13,8 @@ Optional mobile debugging and previews
 * Eruda's local distribution lives under `scripts/eruda.min.js`; `scripts/eruda-loader.js` loads it only when `?eruda=true` is present. This opt-in integration may remain on `main` and in release source snapshots. Keep the existing `?debug=1` logger separate.
 * Do not precache Eruda in `sw.js` or include it in `jester-and-moat.html`; `build.js` strips the loader from the single-file build. Automated tests cover opt-in loading and these exclusions.
 * Use the selected branch's GitHub Pages preview or an existing preview service for browser/mobile verification; do not build a custom test page by default.
+* Prefer existing automated tests and available preview services before proposing a custom test page.
+* A branch being selectable for Pages does not guarantee a preview is configured or that tests pass. Confirm the actual preview URL and CI result before claiming verification.
 
 Optional Single-File Build ("Test Build")
 * A single self-contained HTML file (jester-and-moat.html) may be compiled using build.js to combine index.html, inline style.css and pieces.css, both piece sprites, the MCTS engine module, and script.js. The MCTS module must be embedded before script.js because the engine registry initializes during script evaluation. Build only upon explicit request for quick local phone testing on Android over file:// via Acode.
