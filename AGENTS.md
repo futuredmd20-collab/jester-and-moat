@@ -13,15 +13,17 @@ Purpose: binding rules shared by all agents — roles, approval, scope, Git work
 
 ## 2. Environment & Startup
 
-Identify your environment first and follow its file:
+Identify your environment by checking, not by how you are described:
 
-| Environment | How to recognise it | File |
+| Environment | Check | File |
 |---|---|---|
-| Host | macOS, the user's Mac, repo in `~/Dev/jester-and-moat` | `.agents/env-host.md` |
-| Sandbox | Linux microVM, user `agent`, own clone in the home directory | `.agents/env-sandbox.md` |
-| Cloud | Chat/web agent using a GitHub integration, no shell on the user's machine | `.agents/env-cloud.md` |
+| Sandbox | You can run shell commands, OS is Linux and `whoami` returns `agent` — even if your model runs remotely | `.agents/env-sandbox.md` |
+| Host | You can run shell commands and OS is macOS (`uname` returns `Darwin`) | `.agents/env-host.md` |
+| Cloud | You cannot run shell commands; you work only through integrations | `.agents/env-cloud.md` |
 
-If unclear, ask. Before changing project files, read: this file, your environment file, your agent file (if one exists), `docs/HANDOVER.md`, `docs/ARCHITECTURE.md`. Consult `PLANS.md` only when the task touches planned work, and open only the relevant plan(s).
+Read only your own environment file. If unclear, ask.
+
+Before changing project files, read: this file, your environment file, your agent file (if one exists), `docs/HANDOVER.md`, `docs/ARCHITECTURE.md`. Consult `PLANS.md` only when the task touches planned work, and open only the relevant plan(s).
 
 ## 3. Approval
 
