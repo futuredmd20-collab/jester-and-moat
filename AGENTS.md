@@ -1,130 +1,87 @@
 # AGENTS.md — Jester & Moat
 
-Purpose: binding agent rules for execution, approvals, Git workflow, scope, and documentation. Game rules and architecture live in the referenced docs.
+Purpose: binding rules shared by all agents — roles, approval, scope, Git workflow, documentation and communication. Environment rules live in `.agents/env-*.md`, tool quirks in `.agents/<agent>.md`, game rules and architecture in `docs/`.
 
-## 1. Intent & Approval
+## 1. Roles
+
+| Role | Who | Does |
+|---|---|---|
+| Decision-maker | The user | Assigns tasks, approves, and is the only one who merges to `main`. |
+| Orchestrator / reviewer | Local Claude (host) | Distributes tasks, reviews branches, runs tests locally. Never merges. |
+| Worker | Sandbox agents (Claude Code, Freebuff) | Clone, build, test and push task branches on their own. |
+| Advisor / reviewer | Cloud agents (ChatGPT, Gemini, others) | Second opinions and code review; occasional code via branch + PR. |
+
+## 2. Environment & Startup
+
+Identify your environment first and follow its file:
+
+| Environment | How to recognise it | File |
+|---|---|---|
+| Host | macOS, the user's Mac, repo in `~/Dev/jester-and-moat` | `.agents/env-host.md` |
+| Sandbox | Linux microVM, user `agent`, own clone in the home directory | `.agents/env-sandbox.md` |
+| Cloud | Chat/web agent using a GitHub integration, no shell on the user's machine | `.agents/env-cloud.md` |
+
+If unclear, ask. Before changing project files, read: this file, your environment file, your agent file (if one exists), `docs/HANDOVER.md`, `docs/ARCHITECTURE.md`. Consult `PLANS.md` only when the task touches planned work, and open only the relevant plan(s).
+
+## 3. Approval
+
+- Questions, discussion and suggestions do not authorize edits.
+- An assigned task authorizes the steps it logically needs. Your environment file sets how much you may do without asking.
+- If new information materially changes the task, stop and explain before continuing.
+- Ask only when interpretations differ in a way that matters; otherwise take the most reasonable reading and state it.
+- Never, in any environment: merge to `main`; bypass branch protection, rulesets or access controls; change agent instruction files (`AGENTS.md`, `CLAUDE.md`, `.agents/`) unless the user asks.
+
+## 4. Scope
+
+- The GitHub repo `futuredmd20-collab/jester-and-moat` is canonical. Clones are working copies.
+- Keep edits to the task: no unrelated cleanup, refactoring or formatting.
+- `BACKUPS/` is out of scope and never authoritative.
+
+## 5. Git Workflow
 
 | Rule | Requirement |
 |---|---|
-| Interpret | Use full conversation, established decisions, and approved plans; prefer intent over isolated wording. |
-| Authorization | Questions, discussion, hypotheticals, and suggestions do **not** authorize action. File edits require clear intent, explicit or unambiguous from context. |
-| Plan | Before multi-step work, state scope, files, workflow, branch, and expected result; wait for approval. |
-| Execute | Approval covers stated work and logically dependent steps only. Do not re-ask for in-scope steps or extend approval to unrelated/materially different work. |
-| Re-plan | If new information materially changes the plan, explain and obtain approval first. |
-| Clarify | Ask only when materially different interpretations risk consequential unwanted action. Resolve conflicts by context and instruction priority first. |
-| Read-only | Reading, searching, and planning are allowed; explicit safeguards still apply. A question, file read, search, or proposed plan alone never authorizes edits. |
-
-## 2. Startup Context
-
-Before changing project files, read in order:
-1. `AGENTS.md`
-2. `docs/HANDOVER.md`
-3. `docs/ARCHITECTURE.md`
-4. `.agents/limitations.md`
-
-Use them to understand current state, game/development rules, architecture, and constraints. Establish current repository state by inspection. Consult `PLANS.md` when the task intersects planned work or needs prioritization; open only the relevant plan(s), not every plan.
-
-## 3. Scope & Canonical Sources
-
-- GitHub repo `futuredmd20-collab/jester-and-moat` is canonical; do not substitute Drive mirrors.
-- `BACKUPS/` and all contents are out of scope for ordinary project work. Never treat backups as authoritative.
-- Keep edits limited to the approved objective/files; no unrelated cleanup, refactoring, or formatting.
-- In Drive, work only in `Jester & Moat`. Touch nothing outside it unless specifically requested.
-- Create elsewhere in Drive only if tools cannot target the project folder; disclose this.
-- Never overwrite a Drive original without asking.
-
-## 4. Branch, Commit & Review
-
-| Rule | Requirement |
-|---|---|
-| Default branch | Protect `main`; never make project changes directly on it. |
-| Branching | One branch per task/feature. Include branch name in plan; create only after approval. |
-| Existing branch | For continuation, verify purpose, state, and relation to `main`; if unclear, stop and clarify. |
-| State | Before editing, verify repo/branch state. Keep task commits on its branch. GitHub is the shared workspace. |
-| Local clone | Use only if supported and after explicit user approval. It is a cache, not source of truth; task work must reach its branch before any PR. |
-| Commit | Reversible commits need no separate approval when covered by the approved plan. |
-| Review | Compare diff with base; check unrelated changes and run relevant checks only when appropriate and authorized. Show diff before opening a PR. |
-| PR/merge | Never open a PR unless explicitly permitted; a plan explicitly including a draft PR grants permission. Never merge without explicit authorization. Edit/commit/push permission alone does not permit PR creation or merge. |
-| Cleanup | After merge and verification, remove the task branch only if no longer needed and cleanup is appropriate. |
-
-### Remote GitHub workflow
-
-- For remote repository work, prefer the dedicated GitHub integration actions for branch creation, file reads/writes, comparisons, and PR creation. Do not default to a local clone or generic REST calls.
-- Inspect the current `main` and check whether the intended task branch already exists before writing. Create a new task branch from current `main` with the GitHub branch action.
-- Use the native file update/create actions on that task branch, then verify the resulting commit(s), branch contents, and diff against `main`.
-- An approved workflow C or D explicitly authorizes creating the named task branch and all branch/commit operations required by that workflow. Do not ask for a second confirmation for those in-scope operations.
-- Workflow D also authorizes showing the reviewed diff and opening the specified draft PR. It does not authorize merging.
-- Use Git Database Objects only if the relevant native GitHub action is unavailable or actually fails. Diagnose the specific failure; do not infer that other GitHub actions are blocked.
-
-### Local repository access
-
-- The agent is authorized to clone the canonical GitHub repository locally and use the clone for inspection, editing, testing, and Git operations.
-- Reuse an existing clone when available, after verifying its repository, branch, and working-tree state; otherwise use a stable workspace location.
-- Before editing, verify the current branch, working-tree status, and required repository instructions.
-- Never edit directly on `main`; use one dedicated task branch per task.
-- Local-clone authorization does not authorize unrelated file changes, commits, pushes, PRs, merges, or branch deletion. Existing approval and workflow rules still apply.
-- Prefer local Git operations when GitHub integration cannot safely perform the required operation. Verify remote state before pushing and verify the resulting GitHub state afterward.
-- Never claim a test, Git operation, push, or deployment succeeded without checking its result.
-
-### Workflow selection
-
-Use the established choice; if unclear, ask. Execute the chosen workflow without silently substituting another.
+| `main` | Protected by GitHub. Never commit to it; only the user merges. |
+| Branch | One per task, created from the latest `main`. Name: `<type>/<short-description>` (e.g. `fix/…`, `feat/…`, `docs/…`). |
+| Existing branch | Verify purpose, state and relation to `main` before continuing; if unclear, ask. |
+| Commits | One per discrete step, with a message that says what and why. |
+| Tests | When code changed, run `node --test tests/*.test.js` (Node 20) before pushing, or check CI if you cannot run them. |
+| PR | Only when your environment file or the user allows it. |
+| Results | Never claim a test, push or other operation succeeded without checking its result. |
 
 | Code | Workflow |
 |---|---|
-| A | Local commit only; no push or remote changes. |
-| B | Commit and push to a specified existing remote branch. |
-| C | Create branch from `main`, edit, commit, push. |
-| D | C + review diff + show it to user + open draft PR. |
-| E | Custom sequence agreed with user. |
+| A | Local commit only; no push. |
+| B | Commit and push to a specified existing branch. |
+| C | Branch from `main`, edit, commit, push. |
+| D | C + review the diff, show it to the user, open a draft PR. |
+| E | Custom sequence agreed with the user. |
 
-If blocked, state the limitation and ask how to proceed.
-
-### Browser testing and previews
-
-- Prefer the existing automated tests and available browser-preview/deployment services before proposing a custom test page. For mobile/browser verification, consider GitHub Pages serving the selected working branch when configured, or an existing preview service such as Freebuff. Do not suggest building a test page by default.
-- A branch being selectable for Pages does not itself guarantee that a preview is configured or that tests pass. Confirm the actual preview URL and CI result before claiming verification.
-- Eruda is opt-in debugging tooling. Its local library and loader may remain on `main` and in release source snapshots, but it loads only when `?eruda=true` is present; do not change the existing `?debug=1` logger convention. Keep Eruda out of the service-worker precache and the self-contained single-file build. Preserve tests for opt-in loading and these exclusions.
-
-## 5. Changes & External Operations
-
-- Change only approved scope; preserve content/conventions unless the task requires otherwise.
-- Verify resulting repository state when tools permit.
-- Claim success only after the relevant operation succeeds. Report tool errors accurately; do not repeat failed approaches without reason.
-- Never bypass permissions, branch protection, or access controls.
-- Builds, installs, downloads, and uploads require explicit authorization. If necessary, include them in the approved plan first.
+Each environment file sets the default workflow. If blocked, state what was attempted, the actual result, and the next viable option.
 
 ## 6. Documentation Map
 
-Every documentation file must start with an accurate `Purpose` line describing what it includes/excludes. Keep it accurate when editing.
+Every documentation file starts with an accurate `Purpose` line; keep it accurate when editing.
 
 | File | Role |
 |---|---|
 | `docs/HANDOVER.md` | Game rules and development policy |
-| `docs/ARCHITECTURE.md` | Deployment model and PWA requirements |
-| `.agents/limitations.md` | Shared boundaries and agent capabilities; update the relevant record if an action is impossible, or ask the user |
-| `docs/VERSIONING.md` | Release/tag procedure; read for releases, not startup |
-| `docs/HISTORY.md` | Dated decisions/change history; background only, not current rules/state; not startup |
+| `docs/ARCHITECTURE.md` | Deployment model, PWA requirements, debugging tooling |
+| `docs/VERSIONING.md` | Release/tag procedure; read for releases only |
+| `docs/HISTORY.md` | Dated decisions; background only, not current rules |
 | `docs/PROMPT.md` | Paste-ready kickoff prompt |
-| `PLANS.md` | Index of topic-specific work plans; consult when relevant, then read only the plan(s) needed. It is a directory, not a status report or source of implementation truth. |
-| `CLAUDE.md`, `.agents/claude.md` | Claude Code entry point and agent-specific operating profile |
-| `.agents/freebuff.md`, `.agents/vibe.md`, `.agents/gemini.md` | Other agent-specific capability notes |
+| `PLANS.md` | Index of work plans; open only the plan(s) needed |
+| `.agents/env-*.md` | Environment rules (host, sandbox, cloud) |
+| `.agents/<agent>.md` | Tool-specific quirks (ChatGPT, Freebuff, Gemini, Vibe) |
 
-## 7. Markdown Integrity
+If you hit a limitation not recorded here, tell the user and suggest adding it to the relevant environment or agent file.
 
-- Drive `.md` files must remain plain Markdown with MIME type `text/markdown`, never Google Docs/Word.
-- After creating/editing a Drive `.md`, verify MIME type. If tools cannot preserve or verify it, stop and ask; do not convert.
+## 7. Communication
 
-## 8. Communication Protocol
-
-| Output type | Format |
+| Output | Format |
 |---|---|
-| Decisions/choices | Lettered options: A, B, C…; identify the decision required. Recommend one when useful and explain briefly. |
-| Questions requiring answers | Numbered: 1, 2, 3… |
-| Status/actions/blockers | State facts plainly; distinguish proposed, approved, in progress, completed, and blocked. Never invent a decision or claim an unverified success. |
-| Routine replies | Lead with answer; concise, specific, plain English; usually ≤15 lines. Add detail only to prevent material ambiguity (normally ≤20–25 extra lines). |
-| No choice needed | End naturally; do not add a decision list or “no decisions needed.” |
+| Choices | Numbered options (1, 2, 3…); letters for combined decisions. Recommend one when useful, briefly. |
+| Status | Plain facts; distinguish proposed, approved, in progress, done and blocked. |
+| Routine replies | Lead with the answer; concise, plain English; usually ≤15 lines. |
 
-**Escape valve:** Use the format only when it improves clarity. You may depart from letter/number formatting, headings, lists, or line limits whenever needed for a clear, natural, accurate answer. Never add structure solely to satisfy a template.
-
-When blocked, report what was attempted, the actual result, and the next viable option. Avoid needless clarification; address recurring user corrections by fixing the underlying instruction/process where possible.
+Use the format only when it improves clarity; never add structure just to satisfy a template.
