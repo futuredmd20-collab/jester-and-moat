@@ -20,9 +20,9 @@ The app is a static site and requires no backend. Once loaded and cached, its PW
 
 The primary app is the multi-file version: `index.html`, `style.css`, `pieces.css`, `script.js`, the piece sprites, `manifest.json`, and `sw.js`. Serve it over HTTPS for the intended PWA experience.
 
-Requires Node 26 (see .nvmrc)
-Run tests with: `node --test tests/*.test.js`
-See [tests/README.md](tests/README.md) for test setup.
+- Requires Node 26 (see `.nvmrc`).
+- Run tests with `node --test tests/*.test.js`.
+- See [tests/README.md](tests/README.md) for test setup.
 
 A single-file test build can optionally be generated with `build.js` for local mobile testing; it is not the primary deployment target.
 
