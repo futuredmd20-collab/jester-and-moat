@@ -23,6 +23,10 @@ Identify your environment by checking, not by how you are described:
 
 Read only your own environment file. If unclear, ask.
 
+At session start (Host and Sandbox):
+- Run `git fetch`. On `main` with a clean working tree: `git pull --ff-only`. On another branch: stay on it and report if it is behind `origin/main`.
+- Check that you are in the repository root, that `node --version` matches `.nvmrc`, and that the working tree is clean. If anything does not match, report it before starting work.
+
 Before changing project files, read: this file, your environment file, your agent file (if one exists), `docs/HANDOVER.md`, `docs/ARCHITECTURE.md`. Consult `PLANS.md` only when the task touches planned work, and open only the relevant plan(s).
 
 ## 3. Approval
