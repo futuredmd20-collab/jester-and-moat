@@ -27,4 +27,4 @@ Report: branch name, what changed, test result, and anything open or uncertain.
 
 ## If push fails
 
-Fallback (untested): `git bundle create ~/<branch>.bundle origin/main..<branch>`, then tell the user the path and branch name.
+Fallback (tested): `git bundle create ~/handover.bundle origin/main..<branch>`, then tell the user the branch name. Local Claude fetches it with `sbx cp <sandbox>:/home/agent/handover.bundle /tmp/handover.bundle`, then `git bundle verify /tmp/handover.bundle` and `git fetch /tmp/handover.bundle <branch>:<branch>`.

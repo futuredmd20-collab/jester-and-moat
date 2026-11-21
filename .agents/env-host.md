@@ -23,6 +23,7 @@ Purpose: rules for Local Claude — Claude Code running directly on the user's M
 - Start each new, unrelated task with `/clear` (or the tool's equivalent; check its help). For follow-ups on the same branch, keep the context.
 - Answer an agent's question only when the answer follows from the task or its environment file; otherwise ask the user. Report what you answered.
 - Verify the result yourself (`git fetch`, `git diff origin/main...origin/<branch>`) before reporting.
+- Bundle handover: if a sandbox cannot push, fetch with `sbx cp <sandbox>:/home/agent/handover.bundle /tmp/handover.bundle`, then `git bundle verify /tmp/handover.bundle` and `git fetch /tmp/handover.bundle <branch>:<branch>`.
 
 ### Freebuff notes
 
