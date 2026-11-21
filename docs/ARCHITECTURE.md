@@ -13,7 +13,6 @@ Optional mobile debugging and previews
 * Eruda's local distribution lives under `scripts/eruda.min.js`; `scripts/eruda-loader.js` loads it only when `?eruda=true` is present. This opt-in integration may remain on `main` and in release source snapshots. Keep the existing `?debug=1` logger separate.
 * Do not precache Eruda in `sw.js` or include it in `jester-and-moat.html`; `build.js` strips the loader from the single-file build. Automated tests cover opt-in loading and these exclusions.
 * Use the selected branch's GitHub Pages preview or an existing preview service for browser/mobile verification; do not build a custom test page by default.
-* Prefer existing automated tests and available preview services before proposing a custom test page.
 * A branch being selectable for Pages does not guarantee a preview is configured or that tests pass. Confirm the actual preview URL and CI result before claiming verification.
 
 Optional Single-File Build ("Test Build")
