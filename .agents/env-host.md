@@ -28,7 +28,7 @@ Purpose: rules for Local Claude — Claude Code running directly on the user's M
 
 - Placeholder: an empty input box shows grey suggestion text, and `hc read` prints it as plain text (it has no formatting flag; `--json` is plain text too). Treat the box as empty. Confirm a send by Freebuff starting to work (new output or "working", case-insensitive), not by the box looking empty.
 - Enter not working: if text stays in the box and `hc keys <t> enter` does nothing (seen twice, with the layout narrowed and wrapped), the input cannot be submitted. Workarounds exist, but the simplest is to restart Freebuff (below).
-- Restart: Freebuff runs inside an `sbx` sandbox. Exit it: press `esc` or type `exit` to get back to the sandbox shell, then run `cd /home/agent/jester-and-moat && freebuff`. If an agent-selection or login screen appears, follow the screen-reading rule above.
+- Restart: Freebuff runs inside an `sbx` sandbox. Exit it with `hc send <t> "exit"` (`esc` and `ctrl+c` via `hc keys` did nothing) to get back to the sandbox shell, then run `cd /home/agent/jester-and-moat && freebuff`. If an agent-selection or login screen appears, follow the screen-reading rule above.
 - After a restart it is a new chat: re-send the task. Do not assume the earlier send went through.
 
 ## Ask first
