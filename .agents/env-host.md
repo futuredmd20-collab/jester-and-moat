@@ -31,6 +31,10 @@ Purpose: rules for Local Claude — Claude Code running directly on the user's M
 - Restart: Freebuff runs inside an `sbx` sandbox. Exit it with `hc send <t> "exit"` (`esc` and `ctrl+c` via `hc keys` did nothing) to get back to the sandbox shell, then run `cd /home/agent/jester-and-moat && freebuff`. If an agent-selection or login screen appears, follow the screen-reading rule above.
 - After a restart it is a new chat: re-send the task. Do not assume the earlier send went through.
 
+### Claude sandbox notes
+
+- Start directory: `sbx run` starts Claude in `/home/agent/workspace`. Start it in the repo with `sbx run --name claude-jam -w /home/agent/jester-and-moat`; `-w` applies to that session only, so repeat it on every restart. To end the old session use `hc keys <t> ctrl+c ctrl+c` (`/exit` sent with `hc send` arrives as plain text). `hc send` wraps text in a tag that breaks a plain zsh prompt, so type the command there with `hc keys`, one character per key (`space` for spaces), then `enter`.
+
 ## Ask first
 
 - Installs, downloads, builds and long-running processes on the Mac.
