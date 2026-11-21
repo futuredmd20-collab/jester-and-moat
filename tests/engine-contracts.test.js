@@ -390,6 +390,7 @@ test('Piece Hunter attack evaluation is preserved through structured worker disp
       const workerSource = await workerBlobs.get(this.url).text();
       let response = null;
       workerContext = {
+        onmessage: null,
         postMessage(message) { response = message; },
         setTimeout(callback) { callback(); return 1; }
       };
@@ -1347,6 +1348,7 @@ test('worker dispatches MinMax and returns a legal move', async () => {
       const source = await workerBlobs.get(this.url).text();
       let response;
       const workerContext = {
+        onmessage: null,
         postMessage(message) { response = message; },
         setTimeout(callback) { callback(); return 1; }
       };
@@ -1445,6 +1447,7 @@ test('worker dispatches Evolutionary requests with the cooperative search path',
       const source = await workerBlobs.get(this.url).text();
       let response;
       const workerContext = {
+        onmessage: null,
         postMessage(message) { response = message; },
         setTimeout(callback) { callback(); return 1; }
       };
@@ -1530,7 +1533,7 @@ test('structured worker dispatch rejects unsupported variant identities with a s
     async postMessage(data) {
       const source = await workerBlobs.get(this.url).text();
       let response;
-      const workerContext = { postMessage(message) { response = message; }, setTimeout(callback) { callback(); return 1; } };
+      const workerContext = { onmessage: null, postMessage(message) { response = message; }, setTimeout(callback) { callback(); return 1; } };
       vm.createContext(workerContext);
       vm.runInContext(source, workerContext, { filename: 'ai-worker.js' });
       await workerContext.onmessage({ data });
