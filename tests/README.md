@@ -4,7 +4,7 @@ Purpose: explain the automated test harness, its run command, current coverage, 
 
 ## Run the current tests
 
-Requires Node.js with the built-in test runner (Node 18 or newer recommended). No npm install is needed.
+Requires Node.js with the built-in test runner (Node 26). No npm install is needed.
 
 ```sh
 node --test tests/*.test.js

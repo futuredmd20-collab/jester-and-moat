@@ -66,7 +66,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 26
       - name: Validate baseline inputs
         shell: bash
         run: |
@@ -112,7 +112,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 26
       - name: Validate seed
         shell: bash
         run: |
@@ -190,7 +190,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 26
       - name: Prepare and validate resume inputs
         shell: bash
         run: |
@@ -250,7 +250,7 @@ jobs:
         uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 26
       - name: Evaluate selected candidate
         run: node scripts/evolutionary-trainer.js evaluate --report source-run/report.json --candidate-id "$CANDIDATE_ID" --protocol "$PROTOCOL_PATH"
         env:
