@@ -19,6 +19,8 @@ Purpose: rules for Local Claude — Claude Code running directly on the user's M
 - Before sending: the target must be idle and the agent started in `/home/agent/jester-and-moat`. Check the agent's own status line; the sandbox shell opens in `~/workspace`.
 - Send one task per message, on a single line. Confirm with `hc read` that it was submitted; if the text is still in the input box, run `hc keys <t> enter`.
 - Waiting: Claude terminals have Herdr status, so use `hc wait <t>`. Freebuff has no status in Herdr: poll with `hc read` until its input box is idle again. Do not rely on marker text; it can match the prompt itself or come back reformatted.
+- Read the target screen before every send. If it shows anything other than an empty input box (a menu, agent selection, login), handle it only when the answer is obvious; otherwise ask the user.
+- Start each new, unrelated task with `/clear` (or the tool's equivalent; check its help). For follow-ups on the same branch, keep the context.
 - Answer an agent's question only when the answer follows from the task or its environment file; otherwise ask the user. Report what you answered.
 - Verify the result yourself (`git fetch`, `git diff origin/main...origin/<branch>`) before reporting.
 
