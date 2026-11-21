@@ -47,7 +47,7 @@ Before changing project files, read: this file, your environment file, your agen
 | Branch | One per task, created from the latest `main`. Name: `<type>/<short-description>` (e.g. `fix/…`, `feat/…`, `docs/…`). |
 | Existing branch | Verify purpose, state and relation to `main` before continuing; if unclear, ask. |
 | Commits | One per discrete step, with a message that says what and why. |
-| Tests | When code changed, run `node --test tests/*.test.js` (Node 20) before pushing, or check CI if you cannot run them. |
+| Tests | When code changed, run `node --test tests/*.test.js` (Node 26) before pushing, or check CI if you cannot run them. |
 | PR | Only when your environment file or the user allows it. |
 | Results | Never claim a test, push or other operation succeeded without checking its result. |
 
