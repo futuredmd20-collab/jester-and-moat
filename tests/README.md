@@ -14,6 +14,20 @@ The engine contract suite evaluates canonical rule/search functions from `script
 
 The separate engine-strength calibration runner has a short smoke test and a full tournament mode; see [Engine Strength Calibration](../docs/ENGINE-STRENGTH-CALIBRATION.md). Run `node scripts/engine-strength-calibration.js --self-test` to check its local harness. This smoke test is not a strength result. The evolutionary baseline is a separate manual operation: `node scripts/evolutionary-trainer.js baseline --seed 20261110 --games 4`. It records equal-weight self-play, equal-weight versus MinMax Medium, and per-feature costs; it does not train or set performance floors.
 
+## Test files
+
+- `engine-contracts.test.js`: game rules, engine protocol, worker dispatch, budgets, configuration, save/load.
+- `engine-strength-calibration.test.js`: calibration harness loads MCTS before engine registration.
+- `evolutionary-baseline.test.js`: balanced baseline fixtures, self-play, scoring, and feature-cost measurement.
+- `evolutionary-core.test.js`: evolutionary features, population, mutation, fitness, and bounded search.
+- `evolutionary-persistence.test.js`: evolutionary checkpoints, JSONL events, recovery, and gated model export.
+- `evolutionary-trainer-cli.test.js`: trainer CLI parsing, option errors, and fail-closed holdout evaluation.
+- `party-identity-snapshot.test.js`: party snapshots, match events, recap, and save/load metadata.
+- `party-insight-panels.test.js`: Party Insight panels, visibility, details dialog, reactions, and history/recap view.
+- `pwa-startup-contracts.test.js`: startup loading, service worker caching, Eruda loader, and single-file build.
+- `responsive-piece-set-default.test.js`: mobile/desktop piece-set default and saved preference override.
+- `visual-color-options.test.js`: independent piece and board palettes, themes, persistence, and appearance reset.
+
 ## Current coverage
 
 - Party Insight panel markup and board-surrounding layout hooks; per-side expression/information toggling; active phase-specific engine summary; saved visibility selection for both sides, White only, Black only, or neither. Move history and the factual match recap share one area with mutually exclusive Moves/Recap views. Both views use the same saved Oldest first/Newest first ordering preference, defaulting to Newest first.
