@@ -4,7 +4,7 @@ Purpose: define the architectural investigation and staged direction for adding 
 
 ## Status
 
-**Status: In progress (2026-11-09).** Stages A–D and E.4/E.5 are complete and merged. Stage E.6 is complete and merged in PR #150; GitHub Actions run #594 passed 162 tests (0 failures), and the user completed manual PWA verification. PR #147 enabled Pjäsjägaren (Piece Hunter) in opening, midgame, and endgame for both MinMax and MCTS. Additional engine and alternative-board implementation remains unstarted. The evolutionary third engine is now the selected next engine direction; see [Evolutionary Engine Plan](EVOLUTIONARY-ENGINE-PLAN.md).
+**Status: In progress (updated 2026-11-23).** Stages A–D and E.4/E.5/E.6 are complete and merged. The evolutionary third engine is also implemented and integrated through PR #158; the user manually verified it across all currently available variants and modes (see [Evolutionary Engine Plan](EVOLUTIONARY-ENGINE-PLAN.md)). Its training pilot, controlled holdout evaluation, and approved parameter export remain unfinished. The current engine roster is MinMax, MCTS, and Evolutionary. Further engines beyond these three, additional personality profiles, alternative board geometries/setups, and additional variant variables remain future work.
 
 ## Goal
 
@@ -20,13 +20,13 @@ Do not build a general-purpose game framework, public plugin SDK, dynamic market
 
 ## Current baseline
 
-- Engine Contract protocol v1 is complete for MinMax and MCTS. Reuse its request identity, immutable position snapshots, canonical move boundary, cancellation, stale-result rejection, and failure handling.
-- Engine Configuration is merged in PR #138. It provides independent engine, strength, and advanced settings for each current side × phase assignment.
+- Engine Contract protocol v1 is complete for MinMax and MCTS; the Evolutionary engine was subsequently integrated through the same engine contract in PR #158. Reuse the established request identity, immutable position snapshots, canonical move boundary, cancellation, stale-result rejection, and failure handling.
+- Engine Configuration began in PR #138; the inherited schema-v2 model superseded the original side × phase-only assignment structure in PR #150. The current model resolves general per-side values with sparse field-level phase overrides.
 - The current game uses a 10-column × 8-row board and currently detects opening, midgame, and endgame in `getGamePhase()`.
 - The current registry is a static `enginePlugins` Map. Keep registration simple unless a concrete requirement proves otherwise.
 - Variant identity is explicit: the current game is `jester-moat` v1 (PR #140).
 - MinMax and MCTS declare supported variants; configuration and pre-search checks, including worker dispatch, reject unsupported variants with `UNSUPPORTED_VARIANT` (PR #141).
-- The minimal personality contract is merged in PR #143: a global `Default` profile and engine-declared support metadata. Pjäsjägaren (Piece Hunter) is supported by both MinMax and MCTS in all three detected phases (PR #147). Alternative board sizes remain unimplemented. Other illustrative profile names and behavior examples remain exploratory. See [Engine and Board Ideas](ENGINE-IDEAS.md).
+- The minimal personality contract is merged in PR #143: a global `Default` profile and engine-declared support metadata. Pjäsjägaren (Piece Hunter) is supported by MinMax and MCTS in all three detected phases (PR #147); the Evolutionary engine was also manually verified with the profile during the PR #158 runtime check. Alternative board sizes remain unimplemented. Other illustrative profile names and behavior examples remain exploratory. See [Engine and Board Ideas](ENGINE-IDEAS.md).
 - The bitboard proposal is a separate engine-internal performance investigation. It must not silently replace the canonical game-state representation.
 
 This is a baseline, not a promise that every current implementation detail is suitable for future variants. Re-inspect code and tests before each implementation stage.
@@ -162,7 +162,7 @@ Recommended implementation order after the design gates above:
 5. Add personality support to further engines one at a time, preserving engine-owned interpretation and shared contract tests. **Complete in PR #146:** add the existing Pjäsjägaren profile to MCTS, initially for midgame.
 6. Add further engines one at a time, with explicit variant/capability declarations and shared contract tests.
 7. Add a reduced board such as 5×8 only after geometry, setup, rule differences, serialization, editor, rendering, and engine compatibility have explicit designs and tests.
-8. Develop the selected evolutionary third engine as a separate, staged track. Begin with a small offline CLI trainer that evolves bounded evaluation weights and exports versioned JSON parameter packages; keep training history/checkpoints outside the PWA and runtime. Preserve a future path to in-game evolution without implementing it in the first version. See [Evolutionary Engine Plan](EVOLUTIONARY-ENGINE-PLAN.md).
+8. Develop the evolutionary third engine as a separate, staged track. **Runtime engine implementation complete in PR #158:** offline CLI trainer, bounded parameter model, versioned `Default` package, engine-contract integration, worker/main-thread search, and PWA inclusion. Manual runtime verification across available variants and modes is recorded in the [Evolutionary Engine Plan](EVOLUTIONARY-ENGINE-PLAN.md). Training, controlled holdout evaluation, and approved export remain Stage 5 work; training history/checkpoints stay outside the PWA and runtime.
 
 The ordering may be revised if the dependency audit demonstrates a lower-risk sequence. A new engine does not need to wait for every personality or board variant if its scope is compatible with the current game.
 
@@ -251,6 +251,8 @@ Browser/mobile verification must be recorded separately from automated tests and
 - [Evolutionary Engine Plan](EVOLUTIONARY-ENGINE-PLAN.md): selected third-engine direction and separate offline CLI training workflow.
 
 ## Change log
+
+- **2026-11-23:** Reconciled the engine baseline with PR #158 and the user's manual verification: Evolutionary is now the implemented third engine, not merely the selected next direction. Its Stage 5 training/holdout/export work remains incomplete; further engines, personalities, and alternative boards remain future extensions.
 
 - **2026-11-09:** PR #150 merged, completing Stage E.6: schema-v2 inherited configuration, CI run #594 (162 tests passed, 0 failed), and user-confirmed PWA verification. The supplied runtime log showed phase transitions, engine changes, worker search activity, and successful main-thread retry after a rejected worker move.
 - **2026-11-09:** Selected an evolutionary engine as the next engine direction. Initial scope is a small offline CLI trainer that evolves evaluation weights and exports versioned parameter packages; in-game evolution remains a future-compatible possibility, not first-version scope. See [Evolutionary Engine Plan](EVOLUTIONARY-ENGINE-PLAN.md).
