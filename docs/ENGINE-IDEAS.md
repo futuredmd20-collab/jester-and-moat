@@ -4,7 +4,9 @@ Purpose: preserve exploratory ideas for future engine, board, and opponent modes
 
 ## Status
 
-The engine-personality architecture direction is agreed. Pjäsjägaren (Piece Hunter) is implemented for MinMax and MCTS in opening, midgame, and endgame (PR #147); CI passed 158 tests and the user approved manual PWA verification. An evolutionary third engine with offline CLI training has been selected as the next engine direction and is tracked in [Evolutionary Engine Plan](EVOLUTIONARY-ENGINE-PLAN.md); its implementation details remain to be designed. Other personality examples and the remaining ideas below are exploratory unless explicitly noted.
+**Update (2026-11-23):** The third engine is no longer merely a selected direction: Evolutionary is implemented and integrated (PR #158). Its current play has been manually exercised, but its strength has not been established by controlled training/holdout evaluation. The remaining ideas below retain their exploratory status unless explicitly marked otherwise.
+
+The engine-personality architecture direction is agreed. Pjäsjägaren (Piece Hunter) is implemented for MinMax and MCTS in opening, midgame, and endgame (PR #147); the user also manually exercised the profile with Evolutionary during runtime verification. Evolutionary is now implemented as the third engine and integrated through PR #158; the user reported that it works across all currently available variants and modes. Its offline training pilot, controlled holdout evaluation, and approved parameter export remain unfinished; see [Evolutionary Engine Plan](EVOLUTIONARY-ENGINE-PLAN.md). Other personality examples, further engines, and the remaining ideas below are exploratory unless explicitly noted.
 
 ## 1. Standard Chess Opponents and Strength Measurement
 
