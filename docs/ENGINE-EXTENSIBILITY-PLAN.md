@@ -248,7 +248,7 @@ Browser/mobile verification must be recorded separately from automated tests and
 - [Engine Plugins](ENGINE-PLUGINS.md): current integration, verification, and parked follow-up work.
 - [Engine and Board Ideas](ENGINE-IDEAS.md): exploratory personality examples, standard-chess, and alternative-board ideas.
 - [Bitboard Engine Evaluation and Migration](BITBOARD-ENGINE-PLAN.md): separate engine-internal performance evaluation.
-- [Evolutionary Engine Plan](EVOLUTIONARY-ENGINE-PLAN.md): selected third-engine direction and separate offline CLI training workflow.
+- [Evolutionary Engine Plan](EVOLUTIONARY-ENGINE-PLAN.md): implemented third-engine runtime and separate offline CLI training, holdout, and export workflow.
 
 ## Change log
 
