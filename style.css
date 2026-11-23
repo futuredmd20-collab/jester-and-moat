@@ -824,6 +824,8 @@
     .board-layout .clock-container { grid-row: 1; }
     .board-layout .board-frame-wrap { grid-column: 1; grid-row: 3; }
     .board-layout .party-insight-panel-black { grid-row: 4; }
+    .board-layout.is-black-perspective .party-insight-panel-black { grid-row: 2; }
+    .board-layout.is-black-perspective .party-insight-panel-white { grid-row: 4; }
     .board-layout #board { width: 100%; }
     .board-layout .board-eval-track { display: none !important; }
     .clock-container { grid-column: 1; grid-row: 1; width: 100%; flex-direction: row; order: 0; }
