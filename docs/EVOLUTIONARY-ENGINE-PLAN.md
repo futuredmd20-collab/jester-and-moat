@@ -4,7 +4,7 @@ Purpose: record the staged plan, approved model decisions, and implementation pr
 
 ## Status
 
-**Status: In progress.** Stages 3A (trainer core), 3B (CLI/persistence), and 4 (runtime-engine integration) are merged. Stage 4 was merged in PR #158; CI passed 187 tests, and manual browser/PWA testing was completed on 2026-11-10 (see the Stage 4 verification record below). The shipped `Default` package is a frozen equal-weight control, not an empirically calibrated or evolved result. The Mac mini M1 baseline measurement is complete (recorded under Stage 5); no evolutionary training pilot, holdout evaluation, or model export has been completed.
+**Status: In progress (reviewed 2026-11-23).** Stages 3A (trainer core), 3B (CLI/persistence), and 4 (runtime-engine integration) are merged. Stage 4 was merged in PR #158; CI passed 187 tests, and manual browser/PWA testing was completed on 2026-11-10 (see the Stage 4 verification record below). The shipped `Default` package is a frozen equal-weight control, not an empirically calibrated or evolved result. The Mac mini M1 baseline measurement is complete (recorded under Stage 5); no evolutionary training pilot, holdout evaluation, or model export has been completed.
 
 ## Goal
 
@@ -363,6 +363,8 @@ After the engine has a stable baseline:
 - [Engine and Board Ideas](ENGINE-IDEAS.md) — exploratory ideas and future personality examples.
 
 ## Change log
+
+- **2026-11-23:** Reconciled the Stage 4 verification wording with the recorded evidence: manual browser/PWA testing was completed on 2026-11-10. No broader variant/mode coverage is asserted. No training pilot, controlled holdout evaluation, or parameter export is claimed.
 
 - **2026-11-13:** Recorded the completed Mac mini M1 baseline, established the Mac mini as the experiment/training environment and GitHub as the source-control/CI/review/release environment, and specified an initial two-process parallel-training measurement. Independent runs use distinct seeds and output directories; matches remain sequential within each run.
 

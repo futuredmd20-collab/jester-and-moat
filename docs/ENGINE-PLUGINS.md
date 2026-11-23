@@ -4,7 +4,7 @@ Purpose: record design decisions, repository implementation, verification gaps, 
 
 ## Status
 
-**Status: In progress (2026-11-09).** The current integration and contract-test pass remain complete; PR #119 (including PR #120) is merged. PR #150 is merged and implements schema-v2 inherited engine configuration; GitHub Actions run #594 passed all 162 tests (0 failures), and the user completed manual PWA verification. The supplied runtime log confirms phase transitions, engine switches, worker searches, and main-thread recovery after a rejected worker move. The calibration runner and methodology are available. A previous run covering all 15 pairings with 20 games per pairing was completed and used to make adjustments (user-confirmed); the separate CI matrix in PR #133 was cancelled and produced no results. Full calibration is now an optional, manually requested measurement—not a prerequisite for continued engine development. Other follow-up areas remain parked; unverified browser/device behavior is not marked as passed.
+**Status: In progress (updated 2026-11-23).** The shared engine integration baseline is complete for the current three-engine roster: MinMax and MCTS use the shared protocol-v1 contract (PRs #119–120), schema-v2 inherited engine configuration is integrated (PR #150), and Evolutionary is integrated as the third engine (PR #158). Manual browser/PWA testing of Evolutionary was completed on 2026-11-10 (see [Evolutionary Engine Plan](EVOLUTIONARY-ENGINE-PLAN.md)); this is runtime verification, not a controlled strength measurement. The calibration runner and methodology cover MinMax/MCTS. A previous run covering all 15 MinMax/MCTS pairings with 20 games per pairing was completed and used to make adjustments (user-confirmed); full calibration remains optional and manually requested. Remaining browser/device failure-path checks and responsiveness observations are listed below; they are not marked as passed.
 
 ## Goal and contract
 
@@ -41,7 +41,7 @@ Each side (White/Black) has one general engine, strength, personality, and Advan
 
 | Area | Present in repository / source-reviewed | Still unverified or remaining |
 | --- | --- | --- |
-| Plugin setup | Registry, MinMax adapter, MCTS module and dispatch were exercised in manual browser play; both engines ran without visible errors. | These checks do not establish exhaustive engine correctness. |
+| Plugin setup | The registry integrates MinMax, MCTS, and Evolutionary. MinMax/MCTS contract and worker paths are covered by the shared engine-contract suite; Evolutionary was integrated through the contract in PR #158, with automated verification and manual browser/PWA testing on 2026-11-10. | Manual play is qualitative evidence, not a controlled strength comparison; it does not establish exhaustive engine correctness. |
 | Side/phase UI | PR #138 delivered the earlier side × phase configuration and its PWA verification. PR #150 replaces that assignment model with schema-v2 general settings per side and sparse field-level phase overrides; CI run #594 passed 162 tests, and the user completed manual PWA verification of inheritance, overrides, engine changes, Advanced settings, and persistence. | Broader engine/phase policy validation and untested failure paths remain separate follow-up work. |
 | Loading/build | MCTS script loading, service-worker precache and version alignment (PR #23); loading fix (PR #24); single-file builder embeds MCTS before `script.js`. | Exercise multi-file and built single-file pages. If MCTS fails to load on the multi-file page, startup warns and keeps board/MinMax available; MCTS selection falls back to MinMax. Confirm this recovery path in a browser. |
 | Worker dispatch | The reviewed game log showed matching engine-to-worker dispatch and 108 worker replies, with no obvious worker/engine errors. Offline behavior was also verified on the user's Android: after an online load, the app reopened in airplane mode and MCTS was selectable and made a move. | Browser verification of MCTS load failure, worker-construction fallback and induced worker-runtime recovery remains outstanding. |
@@ -49,6 +49,8 @@ Each side (White/Black) has one general engine, strength, personality, and Advan
 | Phase policy and ratings | Thresholds and provisional MCTS presets/labels are defined. A reproducible, colour-balanced pairwise calibration runner and methodology are available. A previous full 15-pair × 20-game run and resulting adjustments are user-confirmed. | No current universal Elo rating is established. Further full calibration is optional and should be run only on request. |
 
 ## Decisions to preserve
+
+- The current internal engine roster is MinMax, MCTS, and Evolutionary. Evolutionary runtime integration is complete; training and controlled strength acceptance are tracked separately in [Evolutionary Engine Plan](EVOLUTIONARY-ENGINE-PLAN.md).
 
 - Keep one general engine/strength/personality/Advanced configuration per side, with sparse, field-level phase overrides.
 - Use common Easy/Medium/Hard strength names, translated by each engine's own profiles.
@@ -96,6 +98,8 @@ Historical checklist items below remain candidates for future work, not requirem
 Do not mark these checks complete until they have actually been observed in a browser. The optional single-file build is outside this checklist unless a built artifact is already available or the user explicitly requests building it.
 
 ## Progress log
+
+- **2026-11-23:** Updated the integration baseline to include Evolutionary as the third engine (PR #158). Kept its manual browser/PWA verification scoped to the recorded 2026-11-10 test; controlled strength measurement remains separate. MinMax/MCTS calibration scope is unchanged.
 
 - **2026-11-07:** Documented the tiered engine testing workflow. The earlier full 15-pair × 20-game run and resulting adjustments were user-confirmed. PR #133's separate automatic CI matrix was cancelled; full calibration is now manually dispatched on request, not run on every push or PR.
 - **2026-11-06:** Added `scripts/engine-strength-calibration.js` and `docs/ENGINE-STRENGTH-CALIBRATION.md`. The runner compares MinMax/MCTS levels 1–3 from fixed opening layouts with balanced colours, seeded randomness, existing search budgets, pairwise relative Elo estimates, and approximate 95% intervals. The runner's initial verification used a smoke test; the earlier full run and resulting adjustments are recorded as user-confirmed above, but its raw tournament output is not stored here.
