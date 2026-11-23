@@ -1,6 +1,6 @@
 # Sandbox Environment
 
-Purpose: rules for worker agents running in Docker Sandboxes (`sbx`) — Claude Code (`claude-jam`) and Freebuff (`freebuff-jam`).
+Purpose: rules for worker agents running in Docker Sandboxes (`sbx`) — Claude Code (`claude-jam`), Freebuff (`freebuff-jam`) and OpenCode (`opencode-jam`).
 
 ## Situation
 
