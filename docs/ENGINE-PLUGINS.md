@@ -4,7 +4,7 @@ Purpose: record design decisions, repository implementation, verification gaps, 
 
 ## Status
 
-**Status: In progress (updated 2026-11-23).** The shared engine integration baseline is complete for the current three-engine roster: MinMax and MCTS use the shared protocol-v1 contract (PRs #119–120), schema-v2 inherited engine configuration is integrated (PR #150), and Evolutionary is integrated as the third engine (PR #158). The user manually verified Evolutionary across all currently available variants and modes; this is runtime verification, not a controlled strength measurement. The calibration runner and methodology cover MinMax/MCTS. A previous run covering all 15 MinMax/MCTS pairings with 20 games per pairing was completed and used to make adjustments (user-confirmed); full calibration remains optional and manually requested. Remaining browser/device failure-path checks and responsiveness observations are listed below; they are not marked as passed.
+**Status: In progress (updated 2026-11-23).** The shared engine integration baseline is complete for the current three-engine roster: MinMax and MCTS use the shared protocol-v1 contract (PRs #119–120), schema-v2 inherited engine configuration is integrated (PR #150), and Evolutionary is integrated as the third engine (PR #158). Manual browser/PWA testing of Evolutionary was completed on 2026-11-10 (see [Evolutionary Engine Plan](EVOLUTIONARY-ENGINE-PLAN.md)); this is runtime verification, not a controlled strength measurement. The calibration runner and methodology cover MinMax/MCTS. A previous run covering all 15 MinMax/MCTS pairings with 20 games per pairing was completed and used to make adjustments (user-confirmed); full calibration remains optional and manually requested. Remaining browser/device failure-path checks and responsiveness observations are listed below; they are not marked as passed.
 
 ## Goal and contract
 
@@ -99,7 +99,7 @@ Do not mark these checks complete until they have actually been observed in a br
 
 ## Progress log
 
-- **2026-11-23:** Updated the integration baseline to include Evolutionary as the third engine (PR #158). Recorded the user's manual verification across currently available variants and modes, while keeping controlled strength measurement separate from runtime verification. MinMax/MCTS calibration scope is unchanged.
+- **2026-11-23:** Updated the integration baseline to include Evolutionary as the third engine (PR #158). Kept its manual browser/PWA verification scoped to the recorded 2026-11-10 test; controlled strength measurement remains separate. MinMax/MCTS calibration scope is unchanged.
 
 - **2026-11-07:** Documented the tiered engine testing workflow. The earlier full 15-pair × 20-game run and resulting adjustments were user-confirmed. PR #133's separate automatic CI matrix was cancelled; full calibration is now manually dispatched on request, not run on every push or PR.
 - **2026-11-06:** Added `scripts/engine-strength-calibration.js` and `docs/ENGINE-STRENGTH-CALIBRATION.md`. The runner compares MinMax/MCTS levels 1–3 from fixed opening layouts with balanced colours, seeded randomness, existing search budgets, pairwise relative Elo estimates, and approximate 95% intervals. The runner's initial verification used a smoke test; the earlier full run and resulting adjustments are recorded as user-confirmed above, but its raw tournament output is not stored here.
