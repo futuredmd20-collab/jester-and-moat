@@ -4,7 +4,7 @@ Purpose: define the architectural investigation and staged direction for adding 
 
 ## Status
 
-**Status: In progress (updated 2026-11-23).** Stages A–D and E.4/E.5/E.6 are complete and merged. The evolutionary third engine is also implemented and integrated through PR #158; the user manually verified it across all currently available variants and modes (see [Evolutionary Engine Plan](EVOLUTIONARY-ENGINE-PLAN.md)). Its training pilot, controlled holdout evaluation, and approved parameter export remain unfinished. The current engine roster is MinMax, MCTS, and Evolutionary. Further engines beyond these three, additional personality profiles, alternative board geometries/setups, and additional variant variables remain future work.
+**Status: In progress (updated 2026-11-23).** Stages A–D and E.4/E.5/E.6 are complete and merged. The evolutionary third engine is implemented and integrated through PR #158; manual browser/PWA testing was completed on 2026-11-10 (see [Evolutionary Engine Plan](EVOLUTIONARY-ENGINE-PLAN.md)). Its training pilot, controlled holdout evaluation, and approved parameter export remain unfinished. The current engine roster is MinMax, MCTS, and Evolutionary. Further engines beyond these three, additional personality profiles, alternative board geometries/setups, and additional variant variables remain future work.
 
 ## Goal
 
@@ -26,7 +26,7 @@ Do not build a general-purpose game framework, public plugin SDK, dynamic market
 - The current registry is a static `enginePlugins` Map. Keep registration simple unless a concrete requirement proves otherwise.
 - Variant identity is explicit: the current game is `jester-moat` v1 (PR #140).
 - MinMax and MCTS declare supported variants; configuration and pre-search checks, including worker dispatch, reject unsupported variants with `UNSUPPORTED_VARIANT` (PR #141).
-- The minimal personality contract is merged in PR #143: a global `Default` profile and engine-declared support metadata. Pjäsjägaren (Piece Hunter) is supported by MinMax and MCTS in all three detected phases (PR #147); the Evolutionary engine was also manually verified with the profile during the PR #158 runtime check. Alternative board sizes remain unimplemented. Other illustrative profile names and behavior examples remain exploratory. See [Engine and Board Ideas](ENGINE-IDEAS.md).
+- The minimal personality contract is merged in PR #143: a global `Default` profile and engine-declared support metadata. Pjäsjägaren (Piece Hunter) is supported by MinMax and MCTS in all three detected phases (PR #147). Alternative board sizes remain unimplemented. Other illustrative profile names and behavior examples remain exploratory. See [Engine and Board Ideas](ENGINE-IDEAS.md).
 - The bitboard proposal is a separate engine-internal performance investigation. It must not silently replace the canonical game-state representation.
 
 This is a baseline, not a promise that every current implementation detail is suitable for future variants. Re-inspect code and tests before each implementation stage.
@@ -252,7 +252,7 @@ Browser/mobile verification must be recorded separately from automated tests and
 
 ## Change log
 
-- **2026-11-23:** Reconciled the engine baseline with PR #158 and the user's manual verification: Evolutionary is now the implemented third engine, not merely the selected next direction. Its Stage 5 training/holdout/export work remains incomplete; further engines, personalities, and alternative boards remain future extensions.
+- **2026-11-23:** Reconciled the engine baseline with PR #158: Evolutionary is now the implemented third engine, not merely the selected next direction. The recorded manual browser/PWA verification is dated 2026-11-10; no broader variant/mode coverage is asserted. Its Stage 5 training/holdout/export work remains incomplete; further engines, personalities, and alternative boards remain future extensions.
 
 - **2026-11-09:** PR #150 merged, completing Stage E.6: schema-v2 inherited configuration, CI run #594 (162 tests passed, 0 failed), and user-confirmed PWA verification. The supplied runtime log showed phase transitions, engine changes, worker search activity, and successful main-thread retry after a rejected worker move.
 - **2026-11-09:** Selected an evolutionary engine as the next engine direction. Initial scope is a small offline CLI trainer that evolves evaluation weights and exports versioned parameter packages; in-game evolution remains a future-compatible possibility, not first-version scope. See [Evolutionary Engine Plan](EVOLUTIONARY-ENGINE-PLAN.md).
