@@ -4,7 +4,7 @@ Purpose: record the design, implementation, and verification of configurable eng
 
 ## Status
 
-**Status: Completed (2026-11-07; PR #138 merged).** The implementation is integrated into `main` at `bbc0357`. The engine-configuration CI workflow passed. The user completed manual PWA verification of the configuration features; Edit Board edge cases were recorded separately and are not part of this plan.
+**Status: Completed (2026-11-07; PR #138 merged).** This plan records the original configurable engine-assignment feature and its verification. The later inherited schema-v2 model was implemented in PR #150 and is documented in [Engine Extensibility Plan](ENGINE-EXTENSIBILITY-PLAN.md); this completed plan remains the historical record of the original configuration scope. The engine-configuration CI workflow passed, and the user completed manual PWA verification. Edit Board edge cases were recorded separately and are not part of this plan.
 
 ## Goal
 
@@ -83,6 +83,8 @@ The configuration unit is one **side × phase** assignment:
 - Tests and browser checks support completion claims. Browser/mobile checks are recorded only after they are performed.
 
 ## Change log
+
+- **2026-11-23:** Clarified that this completed plan records the original PR #138 configuration scope; the inherited schema-v2 model is documented in the Engine Extensibility Plan following PR #150.
 
 - **2026-11-07:** User approved nine design decisions: independent side × phase assignments; common Easy/Medium/Hard levels; engine-declared Advanced schemas; Advanced overrides win; editable presets; reuse of protocol `config`; strict validation; no migration; phase detection remains separate.
 - **2026-11-07:** PR #138 was squash-merged to `main` at `bbc0357`. The engine-configuration CI workflow passed, and the user completed manual PWA verification of side/phase assignments, strength, Advanced settings, presets/custom state, persistence, and 2 Player Pass. Edit Board edge cases remain a separate follow-up. Future extensions are tracked in [Engine Extensibility Plan](ENGINE-EXTENSIBILITY-PLAN.md).
