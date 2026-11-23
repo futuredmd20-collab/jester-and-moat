@@ -4,9 +4,7 @@ Purpose: preserve exploratory ideas for future engine, board, and opponent modes
 
 ## Status
 
-**Update (2026-11-23):** The third engine is no longer merely a selected direction: Evolutionary is implemented and integrated (PR #158). Its current play has been manually exercised, but its strength has not been established by controlled training/holdout evaluation. The remaining ideas below retain their exploratory status unless explicitly marked otherwise.
-
-The engine-personality architecture direction is agreed. Pjäsjägaren (Piece Hunter) is implemented for MinMax and MCTS in opening, midgame, and endgame (PR #147); the user also manually exercised the profile with Evolutionary during runtime verification. Evolutionary is now implemented as the third engine and integrated through PR #158; the user reported that it works across all currently available variants and modes. Its offline training pilot, controlled holdout evaluation, and approved parameter export remain unfinished; see [Evolutionary Engine Plan](EVOLUTIONARY-ENGINE-PLAN.md). Other personality examples, further engines, and the remaining ideas below are exploratory unless explicitly noted.
+The engine-personality architecture direction is agreed. Pjäsjägaren (Piece Hunter) is implemented for MinMax and MCTS in opening, midgame, and endgame (PR #147); the user also manually exercised the profile with Evolutionary during runtime verification. Evolutionary is implemented as the third engine and integrated through PR #158; the user reported that it works across all currently available variants and modes. Its offline training pilot, controlled holdout evaluation, and approved parameter export remain unfinished; see [Evolutionary Engine Plan](EVOLUTIONARY-ENGINE-PLAN.md). The remaining ideas below are exploratory unless explicitly noted. This status was reviewed on 2026-11-23.
 
 ## 1. Standard Chess Opponents and Strength Measurement
 
@@ -49,9 +47,9 @@ Other illustrative personalities (not selected or approved):
 
 A future design should distinguish personality from basic playing competence: a style preference should not automatically make an engine overlook an obvious win or choose a clearly losing move.
 
-## 4. Evolutionary Engine — Selected Direction
+## 4. Evolutionary Engine — Implemented Engine and Ongoing Training
 
-The user selected an evolutionary engine as the next engine after MinMax and MCTS. The initial direction is deliberately modest:
+Evolutionary is integrated as the third engine after MinMax and MCTS (PR #158). The implementation follows the deliberately modest initial direction:
 
 - Evolve a bounded set of evaluation weights through automated matches; do not begin with neural networks or evolved complete programs.
 - Train offline through a separate Node.js CLI workflow. Normal PWA gameplay loads a prepared, validated parameter package and does not run training.
@@ -60,7 +58,7 @@ The user selected an evolutionary engine as the next engine after MinMax and MCT
 - Export selected results as small, versioned JSON parameter packages.
 - Keep a future path open for in-game evolution, but do not implement it in the first version.
 
-This is a selected direction, not a completed design or implementation. See [Evolutionary Engine Plan](EVOLUTIONARY-ENGINE-PLAN.md) for scope, staged work, and acceptance gates.
+The runtime engine is implemented; training and controlled strength acceptance are not complete. See [Evolutionary Engine Plan](EVOLUTIONARY-ENGINE-PLAN.md) for the remaining pilot, holdout, export, and acceptance gates.
 
 ## Relationship Between the Ideas
 
