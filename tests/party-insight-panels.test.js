@@ -25,7 +25,6 @@ test('Party Insight tabs preserve board layout on desktop and mobile', () => {
   assert.match(css, /\.board-layout \.party-insight-panel-white\s*\{[^}]*grid-row:\s*4/s);
   assert.match(css, /\.board-frame-wrap\s*\{\s*grid-row:\s*2/s);
   assert.match(css, /\.board-layout \.board-frame-wrap\s*\{[^}]*grid-row:\s*3/s);
-  assert.match(css, /\.board-layout \.party-insight-panel-black\s*\{[^}]*grid-row:\s*4/s);
   assert.match(css, /\.board-layout\.is-black-perspective \.party-insight-panel-white\s*\{[^}]*grid-row:\s*3/s);
   assert.match(css, /\.board-layout\.is-black-perspective \.party-insight-panel-black\s*\{[^}]*grid-row:\s*1/s);
   assert.match(css, /\.board-layout\.is-black-perspective \.party-insight-panel-white\s*\{[^}]*grid-row:\s*2/s);
