@@ -84,10 +84,13 @@ test('Party Insight details control is compact, sits in the reaction corner, and
   assert.match(script, /detailsButton\.hidden = view !== 'information'/);
   assert.match(script, /event\.target\.closest\('\[data-party-insight-details\]'\)/);
   assert.match(css, /\.party-insight-panel\s*\{[^}]*position:\s*relative/s);
-  assert.match(css, /\.party-insight-details-button\s*\{[^}]*position:\s*absolute[^}]*width:\s*24px[^}]*height:\s*24px/s);
-  assert.match(css, /\.party-insight-panel-black \.party-insight-details-button\s*\{[^}]*right:\s*5px[^}]*bottom:\s*5px/s);
+  assert.match(css, /\.party-insight-tab\[aria-expanded="true"\]\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*minmax\(0, \.85fr\) minmax\(0, 1\.15fr\)/s);
+  assert.match(css, /\.party-insight-expression\s*\{[^}]*padding:\s*3px 8px 3px 20px/s);
+  assert.match(css, /\.party-insight-panel-black \.party-insight-expression\s*\{[^}]*padding:\s*3px 20px 3px 8px/s);
+  assert.match(css, /\.party-insight-details-button\s*\{[^}]*position:\s*absolute[^}]*top:\s*5px[^}]*right:\s*5px/s);
+  assert.match(css, /\.party-insight-panel-black \.party-insight-details-button\s*\{[^}]*bottom:\s*5px[^}]*left:\s*5px/s);
   assert.match(css, /\.party-insight-details-button\[hidden\]\s*\{\s*display:\s*none;/);
-  assert.match(css, /\.party-insight-summary\s*\{[^}]*padding:\s*3px 30px/s);
+  assert.match(css, /\.party-insight-summary\s*\{[^}]*padding:\s*3px 4px/s);
   assert.match(css, /\.party-insight-details-dialog::backdrop/);
   assert.match(css, /\.party-insight-details-dialog\s*\{/);
 });
