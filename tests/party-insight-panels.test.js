@@ -78,9 +78,16 @@ test('Party Insight details dialog shows phase assignments and engine-declared s
   assert.match(script, /dialog\.showModal\(\)/);
 });
 
-test('Party Insight details control is only available while the side information view is open', () => {
+test('Party Insight details control is compact, sits in the reaction corner, and appears only in information view', () => {
+  assert.match(html, /data-party-insight-details="white"[^>]*aria-label="Show full White AI details"[^>]*title="More details"[^>]*hidden>\?<\/button>/);
+  assert.match(html, /data-party-insight-details="black"[^>]*aria-label="Show full Black AI details"[^>]*title="More details"[^>]*hidden>\?<\/button>/);
   assert.match(script, /detailsButton\.hidden = view !== 'information'/);
   assert.match(script, /event\.target\.closest\('\[data-party-insight-details\]'\)/);
+  assert.match(css, /\.party-insight-panel\s*\{[^}]*position:\s*relative/s);
+  assert.match(css, /\.party-insight-details-button\s*\{[^}]*position:\s*absolute[^}]*width:\s*24px[^}]*height:\s*24px/s);
+  assert.match(css, /\.party-insight-panel-black \.party-insight-details-button\s*\{[^}]*right:\s*5px[^}]*bottom:\s*5px/s);
+  assert.match(css, /\.party-insight-details-button\[hidden\]\s*\{\s*display:\s*none;/);
+  assert.match(css, /\.party-insight-summary\s*\{[^}]*padding:\s*3px 30px/s);
   assert.match(css, /\.party-insight-details-dialog::backdrop/);
   assert.match(css, /\.party-insight-details-dialog\s*\{/);
 });
