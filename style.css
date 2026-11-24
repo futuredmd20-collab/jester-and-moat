@@ -502,6 +502,7 @@
   main { width: min(100%, 820px); }
 
   .party-insight-panel {
+    position: relative;
     grid-column: 1 / -1;
     min-width: 0;
     display: flex;
@@ -526,7 +527,7 @@
   .party-insight-panel-black .party-insight-emoji { top: auto; right: 0; bottom: 2px; left: auto; }
   .party-insight-side-label { flex: 0 0 auto; font-weight: 700; }
   .party-insight-reaction-text { display: block; min-width: 0; overflow-wrap: anywhere; }
-  .party-insight-summary { min-width: 0; overflow-wrap: anywhere; }
+  .party-insight-summary { min-width: 0; padding: 3px 30px; overflow-wrap: anywhere; }
   .party-insight-handover {
     flex: 0 0 auto; align-self: center; padding: 2px 5px;
     border-radius: 5px; color: var(--muted-ink); font-size: .66rem;
@@ -537,10 +538,16 @@
   .party-insight-tab:focus-visible,
   .party-insight-details-button:focus-visible { outline: 2px solid var(--burgundy); outline-offset: 2px; }
   .party-insight-details-button {
-    flex: 0 0 auto; border: 1px solid var(--line); border-radius: 7px;
-    padding: 4px 8px; background: transparent; color: var(--ink);
-    font: inherit; font-size: .72rem; cursor: pointer;
+    position: absolute; z-index: 2; top: 5px; left: 5px;
+    display: grid; place-items: center; width: 24px; height: 24px; padding: 0;
+    border: 1px solid var(--line); border-radius: 50%;
+    background: var(--panel, #f5eee2); color: var(--ink);
+    font: inherit; font-size: .82rem; font-weight: 700; line-height: 1; cursor: pointer;
   }
+  .party-insight-panel-black .party-insight-details-button {
+    top: auto; right: 5px; bottom: 5px; left: auto;
+  }
+  .party-insight-details-button[hidden] { display: none; }
   .party-insight-details-dialog {
     width: min(92vw, 560px); max-width: 560px; max-height: 82vh;
     padding: 18px; border: 1px solid var(--line); border-radius: 12px;
