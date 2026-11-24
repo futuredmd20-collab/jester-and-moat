@@ -20,15 +20,16 @@ test('Party Insight tabs are placed around the board and independently address e
 
 test('Party Insight tabs preserve board layout on desktop and mobile', () => {
   assert.match(css, /\.party-insight-panel-white\s*\{[^}]*grid-row:\s*1/s);
-  assert.match(css, /\.board-layout \.party-insight-panel-white\s*\{[^}]*grid-row:\s*2/s);
   assert.match(css, /\.party-insight-panel-black\s*\{[^}]*grid-row:\s*3/s);
+  assert.match(css, /\.board-layout \.party-insight-panel-black\s*\{[^}]*grid-row:\s*2/s);
+  assert.match(css, /\.board-layout \.party-insight-panel-white\s*\{[^}]*grid-row:\s*4/s);
   assert.match(css, /\.board-frame-wrap\s*\{\s*grid-row:\s*2/s);
   assert.match(css, /\.board-layout \.board-frame-wrap\s*\{[^}]*grid-row:\s*3/s);
   assert.match(css, /\.board-layout \.party-insight-panel-black\s*\{[^}]*grid-row:\s*4/s);
   assert.match(css, /\.board-layout\.is-black-perspective \.party-insight-panel-white\s*\{[^}]*grid-row:\s*3/s);
   assert.match(css, /\.board-layout\.is-black-perspective \.party-insight-panel-black\s*\{[^}]*grid-row:\s*1/s);
-  assert.match(css, /\.board-layout\.is-black-perspective \.party-insight-panel-black\s*\{[^}]*grid-row:\s*2/s);
-  assert.match(css, /\.board-layout\.is-black-perspective \.party-insight-panel-white\s*\{[^}]*grid-row:\s*4/s);
+  assert.match(css, /\.board-layout\.is-black-perspective \.party-insight-panel-white\s*\{[^}]*grid-row:\s*2/s);
+  assert.match(css, /\.board-layout\.is-black-perspective \.party-insight-panel-black\s*\{[^}]*grid-row:\s*4/s);
 });
 
 test('Party Insight layout follows the flipped board and keeps emojis clear of reaction text', () => {
@@ -84,7 +85,9 @@ test('Party Insight details control is compact, sits in the reaction corner, and
   assert.match(script, /detailsButton\.hidden = view !== 'information'/);
   assert.match(script, /event\.target\.closest\('\[data-party-insight-details\]'\)/);
   assert.match(css, /\.party-insight-panel\s*\{[^}]*position:\s*relative/s);
-  assert.match(css, /\.party-insight-tab\[aria-expanded="true"\]\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*minmax\(0, \.85fr\) minmax\(0, 1\.15fr\)/s);
+  assert.match(css, /\.party-insight-tab\[aria-expanded="true"\]\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*minmax\(0, \.7fr\) minmax\(0, 1\.3fr\)/s);
+  assert.match(css, /\.party-insight-panel-white \.party-insight-tab\s*\{[^}]*padding-right:\s*32px/s);
+  assert.match(css, /\.party-insight-panel-black \.party-insight-tab\s*\{[^}]*padding-left:\s*32px/s);
   assert.match(css, /\.party-insight-expression\s*\{[^}]*padding:\s*3px 8px 3px 20px/s);
   assert.match(css, /\.party-insight-panel-black \.party-insight-expression\s*\{[^}]*padding:\s*3px 20px 3px 8px/s);
   assert.match(css, /\.party-insight-details-button\s*\{[^}]*position:\s*absolute[^}]*top:\s*5px[^}]*right:\s*5px/s);
