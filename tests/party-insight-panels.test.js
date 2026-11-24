@@ -20,20 +20,20 @@ test('Party Insight tabs are placed around the board and independently address e
 
 test('Party Insight tabs preserve board layout on desktop and mobile', () => {
   assert.match(css, /\.party-insight-panel-white\s*\{[^}]*grid-row:\s*1/s);
-  assert.match(css, /\.board-layout \.party-insight-panel-white\s*\{[^}]*grid-row:\s*2/s);
   assert.match(css, /\.party-insight-panel-black\s*\{[^}]*grid-row:\s*3/s);
+  assert.match(css, /\.board-layout \.party-insight-panel-black\s*\{[^}]*grid-row:\s*2/s);
+  assert.match(css, /\.board-layout \.party-insight-panel-white\s*\{[^}]*grid-row:\s*4/s);
   assert.match(css, /\.board-frame-wrap\s*\{\s*grid-row:\s*2/s);
   assert.match(css, /\.board-layout \.board-frame-wrap\s*\{[^}]*grid-row:\s*3/s);
-  assert.match(css, /\.board-layout \.party-insight-panel-black\s*\{[^}]*grid-row:\s*4/s);
   assert.match(css, /\.board-layout\.is-black-perspective \.party-insight-panel-white\s*\{[^}]*grid-row:\s*3/s);
   assert.match(css, /\.board-layout\.is-black-perspective \.party-insight-panel-black\s*\{[^}]*grid-row:\s*1/s);
-  assert.match(css, /\.board-layout\.is-black-perspective \.party-insight-panel-black\s*\{[^}]*grid-row:\s*2/s);
-  assert.match(css, /\.board-layout\.is-black-perspective \.party-insight-panel-white\s*\{[^}]*grid-row:\s*4/s);
+  assert.match(css, /\.board-layout\.is-black-perspective \.party-insight-panel-white\s*\{[^}]*grid-row:\s*2/s);
+  assert.match(css, /\.board-layout\.is-black-perspective \.party-insight-panel-black\s*\{[^}]*grid-row:\s*4/s);
 });
 
 test('Party Insight layout follows the flipped board and keeps emojis clear of reaction text', () => {
   assert.match(script, /host\.classList\.toggle\('is-black-perspective', Boolean\(board\?\.classList\.contains\('flipped'\)\)\)/);
-  assert.match(css, /\.party-insight-expression \{[^}]*padding:\s*3px 30px/s);
+  assert.match(css, /\.party-insight-expression\s*\{[^}]*padding:\s*3px 8px 3px 20px/s);
   assert.match(css, /\.party-insight-panel-black \.party-insight-emoji \{[^}]*right:\s*0[^}]*bottom:\s*2px[^}]*left:\s*auto/s);
 });
 
@@ -78,9 +78,21 @@ test('Party Insight details dialog shows phase assignments and engine-declared s
   assert.match(script, /dialog\.showModal\(\)/);
 });
 
-test('Party Insight details control is only available while the side information view is open', () => {
+test('Party Insight details control is compact, sits in the reaction corner, and appears only in information view', () => {
+  assert.match(html, /data-party-insight-details="white"[^>]*aria-label="Show full White AI details"[^>]*title="More details"[^>]*hidden>\?<\/button>/);
+  assert.match(html, /data-party-insight-details="black"[^>]*aria-label="Show full Black AI details"[^>]*title="More details"[^>]*hidden>\?<\/button>/);
   assert.match(script, /detailsButton\.hidden = view !== 'information'/);
   assert.match(script, /event\.target\.closest\('\[data-party-insight-details\]'\)/);
+  assert.match(css, /\.party-insight-panel\s*\{[^}]*position:\s*relative/s);
+  assert.match(css, /\.party-insight-tab\[aria-expanded="true"\]\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*minmax\(0, \.7fr\) minmax\(0, 1\.3fr\)/s);
+  assert.match(css, /\.party-insight-panel-white \.party-insight-tab\s*\{[^}]*padding-right:\s*32px/s);
+  assert.match(css, /\.party-insight-panel-black \.party-insight-tab\s*\{[^}]*padding-left:\s*32px/s);
+  assert.match(css, /\.party-insight-expression\s*\{[^}]*padding:\s*3px 8px 3px 20px/s);
+  assert.match(css, /\.party-insight-panel-black \.party-insight-expression\s*\{[^}]*padding:\s*3px 20px 3px 8px/s);
+  assert.match(css, /\.party-insight-details-button\s*\{[^}]*position:\s*absolute[^}]*top:\s*5px[^}]*right:\s*5px/s);
+  assert.match(css, /\.party-insight-panel-black \.party-insight-details-button\s*\{[^}]*bottom:\s*5px[^}]*left:\s*5px/s);
+  assert.match(css, /\.party-insight-details-button\[hidden\]\s*\{\s*display:\s*none;/);
+  assert.match(css, /\.party-insight-summary\s*\{[^}]*padding:\s*3px 4px/s);
   assert.match(css, /\.party-insight-details-dialog::backdrop/);
   assert.match(css, /\.party-insight-details-dialog\s*\{/);
 });
