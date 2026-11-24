@@ -33,7 +33,7 @@ test('Party Insight tabs preserve board layout on desktop and mobile', () => {
 
 test('Party Insight layout follows the flipped board and keeps emojis clear of reaction text', () => {
   assert.match(script, /host\.classList\.toggle\('is-black-perspective', Boolean\(board\?\.classList\.contains\('flipped'\)\)\)/);
-  assert.match(css, /\.party-insight-expression \{[^}]*padding:\s*3px 30px/s);
+  assert.match(css, /\.party-insight-expression\s*\{[^}]*padding:\s*3px 8px 3px 20px/s);
   assert.match(css, /\.party-insight-panel-black \.party-insight-emoji \{[^}]*right:\s*0[^}]*bottom:\s*2px[^}]*left:\s*auto/s);
 });
 
