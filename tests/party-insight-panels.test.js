@@ -25,6 +25,16 @@ test('Party Insight tabs preserve board layout on desktop and mobile', () => {
   assert.match(css, /\.board-frame-wrap\s*\{\s*grid-row:\s*2/s);
   assert.match(css, /\.board-layout \.board-frame-wrap\s*\{[^}]*grid-row:\s*3/s);
   assert.match(css, /\.board-layout \.party-insight-panel-black\s*\{[^}]*grid-row:\s*4/s);
+  assert.match(css, /\.board-layout\.is-black-perspective \.party-insight-panel-white\s*\{[^}]*grid-row:\s*3/s);
+  assert.match(css, /\.board-layout\.is-black-perspective \.party-insight-panel-black\s*\{[^}]*grid-row:\s*1/s);
+  assert.match(css, /\.board-layout\.is-black-perspective \.party-insight-panel-black\s*\{[^}]*grid-row:\s*2/s);
+  assert.match(css, /\.board-layout\.is-black-perspective \.party-insight-panel-white\s*\{[^}]*grid-row:\s*4/s);
+});
+
+test('Party Insight layout follows the flipped board and keeps emojis clear of reaction text', () => {
+  assert.match(script, /host\.classList\.toggle\('is-black-perspective', Boolean\(board\?\.classList\.contains\('flipped'\)\)\)/);
+  assert.match(css, /\.party-insight-expression \{[^}]*padding:\s*3px 30px/s);
+  assert.match(css, /\.party-insight-panel-black \.party-insight-emoji \{[^}]*right:\s*0[^}]*bottom:\s*2px[^}]*left:\s*auto/s);
 });
 
 test('Party Insight visibility offers both sides, either side, or neither', () => {

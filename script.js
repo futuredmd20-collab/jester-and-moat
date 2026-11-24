@@ -1906,6 +1906,8 @@ function updatePartyInsightPanels() {
   updatePartyInsightRecapControl();
   const host = document.getElementById('boardLayout');
   if (!host || typeof host.querySelectorAll !== 'function') return;
+  const board = document.getElementById('board');
+  host.classList.toggle('is-black-perspective', Boolean(board?.classList.contains('flipped')));
   const mode = document.getElementById('modeSelect')?.value;
   const visible = mode !== 'pvp' && !!state && !editMode;
   const visibilitySelect = document.getElementById('partyInsightVisibilitySelect');
